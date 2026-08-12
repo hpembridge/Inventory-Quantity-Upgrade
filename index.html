@@ -1,90 +1,279 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Inventory — Materials</title>
-    <script src="https://kit.fontawesome.com/da08280601.js" crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="shared/css/design-tokens.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=optional" rel="stylesheet" />
-    <link rel="stylesheet" href="inventory.css" />
-    <script>
-      window.SIDEBAR_CONFIG = {
-        activeItem: 'Inventory',
-        user: { name: 'Healey Pembridge', role: 'team member' }
-      };
-    </script>
-  </head>
-  <body>
-    <script src="shared/components/sidebar-component.js"></script>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PL-CM-1.5</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 
-    <div class="main-content">
-      <div class="breadcrumb-bar">
-        <nav class="breadcrumbs">
-          <span class="crumb current"><i class="fa-regular fa-pallet-boxes"></i> Inventory</span>
-        </nav>
-      </div>
+  <!-- ── Project config — only thing to change per sprint ── -->
+  <script>
+    const CONFIG = {
+      owner:           'hpembridge',
+      repo:            'PL-CM-1.5',
+      title:           'PL-CM-1.5',
+      eyebrow:         'Customer Management',
+      sprintTrackerUrl:'https://hpembridge.github.io/Sprint-Tracker/',
+    };
+  </script>
 
-      <div class="page-scroll">
-        <div class="page-inner">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-            <!-- Library tabs -->
-            <div class="tab-row">
-              <a class="tab active" href="index.html">Materials</a>
-              <a class="tab" href="#">IT Inventory</a>
-              <button class="tab add" type="button">+ Add New Library</button>
-            </div>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f2f5;
+      color: #1a1d23;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
 
-            <!-- Title -->
-            <div class="title-row">
-              <h1 class="page-title">Materials</h1>
-              <a class="btn-pill outline sm" href="#">Edit</a>
-            </div>
+    header {
+      background: #1a1d23;
+      color: #fff;
+      padding: 32px 48px 28px;
+    }
+    .header-inner { max-width: 900px; margin: auto; }
 
-            <!-- Catalogs -->
-            <div class="card-grid">
-              <button class="catalog-card add" type="button">
-                <span class="add-label"><i class="fa-regular fa-plus"></i> Add New Catalog To Materials</span>
-              </button>
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #7b8fa6;
+      margin-bottom: 6px;
+    }
+    header h1 {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -.3px;
+      margin-bottom: 20px;
+    }
 
-              <div class="catalog-card">
-                <div class="catalog-card-head">
-                  <span class="catalog-card-title">Bookcloth</span>
-                  <button class="kebab" type="button" title="Catalog actions"><i class="fa-regular fa-ellipsis-vertical"></i></button>
-                </div>
-                <div class="card-foot">
-                  <span class="count-pill">793 Items</span>
-                  <a class="btn-pill solid" href="catalog.html">View</a>
-                </div>
-              </div>
+    .quick-links { display: flex; gap: 10px; }
+    .quick-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #7b8fa6;
+      text-decoration: none;
+      padding: 6px 12px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 6px;
+      transition: color .15s, border-color .15s;
+    }
+    .quick-link:hover { color: #c8d4e0; border-color: rgba(255,255,255,.2); }
 
-              <div class="catalog-card">
-                <div class="catalog-card-head">
-                  <span class="catalog-card-title">Endsheet</span>
-                  <button class="kebab" type="button" title="Catalog actions"><i class="fa-regular fa-ellipsis-vertical"></i></button>
-                </div>
-                <div class="card-foot">
-                  <span class="count-pill">412 Items</span>
-                  <a class="btn-pill solid" href="catalog.html">View</a>
-                </div>
-              </div>
+    main {
+      flex: 1;
+      padding: 40px 48px;
+      max-width: 996px;
+      margin: auto;
+      width: 100%;
+    }
 
-              <div class="catalog-card span-all">
-                <div class="catalog-card-head">
-                  <span class="catalog-card-title">Board</span>
-                  <button class="kebab" type="button" title="Catalog actions"><i class="fa-regular fa-ellipsis-vertical"></i></button>
-                </div>
-                <div class="card-foot">
-                  <span class="count-pill">168 Items</span>
-                  <a class="btn-pill solid" href="catalog.html">View</a>
-                </div>
-              </div>
-            </div>
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: #8e9aab;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #dde2ea;
+      margin-bottom: 16px;
+    }
 
-          </div>
+    /* Dev Notes */
+    .notes-section { margin-bottom: 36px; }
+
+    /* Inline markdown notes */
+    .notes-inline-card {
+      background: #fff;
+      border: 1px solid #dde2ea;
+      border-radius: 10px;
+      padding: 24px 28px;
+      margin-bottom: 10px;
+    }
+    .notes-inline-card h1, .notes-inline-card h2, .notes-inline-card h3 {
+      font-weight: 700; margin: 0 0 10px; color: #1a1d23; line-height: 1.3;
+    }
+    .notes-inline-card h1 { font-size: 18px; }
+    .notes-inline-card h2 { font-size: 15px; }
+    .notes-inline-card h3 { font-size: 13px; color: #4b5563; }
+    .notes-inline-card p  { font-size: 13px; line-height: 1.65; color: #374151; margin-bottom: 12px; }
+    .notes-inline-card ul, .notes-inline-card ol {
+      font-size: 13px; line-height: 1.65; color: #374151;
+      padding-left: 18px; margin-bottom: 12px;
+    }
+    .notes-inline-card li { margin-bottom: 4px; }
+    .notes-inline-card code {
+      font-family: "SF Mono", Menlo, monospace; font-size: 12px;
+      background: #f3f4f6; border-radius: 4px; padding: 1px 5px; color: #6366f1;
+    }
+    .notes-inline-card pre {
+      background: #f3f4f6; border-radius: 6px; padding: 14px;
+      overflow-x: auto; margin-bottom: 12px;
+    }
+    .notes-inline-card pre code { background: none; padding: 0; color: #1a1d23; }
+    .notes-inline-card blockquote {
+      border-left: 3px solid #dde2ea; padding-left: 12px;
+      color: #6b7280; margin: 0 0 12px;
+    }
+    .notes-inline-card hr { border: none; border-top: 1px solid #edf0f4; margin: 20px 0; }
+    .notes-inline-card strong { font-weight: 700; color: #1a1d23; }
+    .notes-inline-card a { color: #6366f1; text-decoration: underline; }
+
+    /* Prototype cards */
+    .card-grid { display: flex; flex-direction: column; gap: 10px; }
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      border: 1px solid #dde2ea;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      transition: box-shadow .15s, transform .15s;
+    }
+    .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); transform: translateY(-1px); }
+    .card h2 { font-size: 14px; font-weight: 600; flex: 1; }
+    .card-arrow { font-size: 12px; color: #9aa3b0; }
+
+    .status-msg { font-size: 13px; color: #8e9aab; }
+
+    footer {
+      text-align: center;
+      font-size: 12px;
+      color: #9aa3b0;
+      padding: 20px 48px;
+      border-top: 1px solid #dde2ea;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <div class="eyebrow" id="hEyebrow"></div>
+      <h1 id="hTitle"></h1>
+      <div class="quick-links">
+        <a class="quick-link" id="lTracker" href="#" target="_blank">
+          <i class="fa-solid fa-chart-gantt"></i> Sprint Tracker
+        </a>
+        <a class="quick-link" id="lGithub" href="#" target="_blank">
+          <i class="fa-brands fa-github"></i> Project Files
+        </a>
       </div>
     </div>
-  </body>
+  </header>
+
+  <main>
+    <div class="section-label">Prototypes</div>
+    <div class="card-grid" id="cardGrid">
+      <span class="status-msg">Loading…</span>
+    </div>
+
+    <div class="notes-section" id="notesSection" style="display:none">
+      <div class="section-label" style="margin-top:36px">Dev Notes</div>
+      <div id="notesList"></div>
+    </div>
+  </main>
+
+  <footer id="footerText"></footer>
+
+  <script>
+    // ── Apply static config ──
+    document.title                                      = CONFIG.title;
+    document.getElementById('hEyebrow').textContent     = CONFIG.eyebrow;
+    document.getElementById('hTitle').textContent       = CONFIG.title;
+    document.getElementById('footerText').textContent   = CONFIG.title + ' · Cleveland Menu Co.';
+    document.getElementById('lTracker').href            = CONFIG.sprintTrackerUrl;
+    document.getElementById('lGithub').href             = `https://github.com/${CONFIG.owner}/${CONFIG.repo}`;
+
+    // ── Utilities ──
+    function toTitle(str) {
+      return str
+        .replace(/\.[^.]+$/, '')
+        .replace(/^notes-/, '')
+        .split('-')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+    }
+
+    async function fetchTitle(filename) {
+      try {
+        const r = await fetch(filename);
+        const text = await r.text();
+        const m = text.match(/<title[^>]*>(.*?)<\/title>/i);
+        const t = m && m[1].trim();
+        return (t && t !== 'Document') ? t : toTitle(filename);
+      } catch {
+        return toTitle(filename);
+      }
+    }
+
+    // ── Main build ──
+    async function build() {
+      const res = await fetch(
+        `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/`
+      );
+      if (!res.ok) throw new Error(`GitHub API ${res.status}`);
+      const files = await res.json();
+
+      const htmlFiles  = files.filter(f => f.type === 'file' && f.name.endsWith('.html') && f.name !== 'index.html').map(f => f.name);
+      const notesFiles = files.filter(f => f.type === 'file' && f.name.startsWith('notes-') && f.name.endsWith('.md')).map(f => f.name);
+
+      // Build prototype cards
+      const grid = document.getElementById('cardGrid');
+      grid.innerHTML = '';
+
+      if (htmlFiles.length === 0) {
+        grid.innerHTML = '<span class="status-msg">No prototype files found.</span>';
+      } else {
+        const entries = await Promise.all(
+          htmlFiles.map(async name => ({ name, title: await fetchTitle(name) }))
+        );
+        entries.forEach(({ name, title }) => {
+          const a = document.createElement('a');
+          a.className = 'card';
+          a.href = name;
+          a.innerHTML = `<h2>${title}</h2><i class="fa-solid fa-arrow-right card-arrow"></i>`;
+          grid.appendChild(a);
+        });
+      }
+
+      // Build inline notes
+      if (notesFiles.length > 0) {
+        const section = document.getElementById('notesSection');
+        const list    = document.getElementById('notesList');
+        section.style.display = '';
+        await Promise.all(notesFiles.map(async name => {
+          const card = document.createElement('div');
+          card.className = 'notes-inline-card';
+          card.innerHTML = '<p style="color:#8e9aab;font-size:13px">Loading…</p>';
+          list.appendChild(card);
+          try {
+            const r = await fetch(name);
+            const md = await r.text();
+            card.innerHTML = marked.parse(md);
+          } catch {
+            card.innerHTML = '<p style="color:#8e9aab;font-size:13px">Could not load notes.</p>';
+          }
+        }));
+      }
+    }
+
+    build().catch(() => {
+      document.getElementById('cardGrid').innerHTML =
+        '<span class="status-msg">Could not load files. This page must be served over HTTP with access to the GitHub API.</span>';
+    });
+  </script>
+
+</body>
 </html>
