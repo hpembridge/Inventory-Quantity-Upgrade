@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bookcloth — Catalog Settings</title>
+    <script src="https://kit.fontawesome.com/da08280601.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="shared/css/design-tokens.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=optional" rel="stylesheet" />
+    <link rel="stylesheet" href="inventory.css" />
+    <script src="inventory-data.js"></script>
+    <script>
+      window.SIDEBAR_CONFIG = {
+        activeItem: 'Inventory',
+        user: { name: 'Healey Pembridge', role: 'team member' }
+      };
+    </script>
+  </head>
+  <body>
+    <script src="shared/components/sidebar-component.js"></script>
+
+    <div class="main-content">
+      <div class="breadcrumb-bar">
+        <nav class="breadcrumbs">
+          <a class="crumb" href="index.html"><i class="fa-regular fa-pallet-boxes"></i> Inventory</a>
+          <i class="fa-regular fa-chevron-right crumb-sep"></i>
+          <a class="crumb" href="index.html"><i class="fa-regular fa-layer-group"></i> Materials</a>
+          <i class="fa-regular fa-chevron-right crumb-sep"></i>
+          <span class="crumb current"><i class="fa-regular fa-book"></i> Bookcloth</span>
+        </nav>
+      </div>
+
+      <div class="page-scroll">
+        <div class="page-card">
+          <div class="page-inner">
+
+            <div class="title-row" style="align-items:center">
+              <h1 class="page-title">Bookcloth</h1>
+              <button class="kebab" type="button" title="Catalog actions"><i class="fa-regular fa-ellipsis-vertical"></i></button>
+            </div>
+
+            <hr class="divider" />
+
+            <!-- CATALOG PROPERTIES -->
+            <div class="section">
+              <div class="section-label">Catalog Properties</div>
+              <div class="section-body">
+                <div class="chip-row">
+                  <span class="chip"><i class="fa-regular fa-building chip-icon"></i><span class="chip-label">Vendor</span></span>
+                  <span class="chip"><i class="fa-regular fa-location-dot chip-icon"></i><span class="chip-label">Default Location</span></span>
+                  <span class="chip"><i class="fa-regular fa-layer-group chip-icon"></i><span class="chip-label">Product Line</span></span>
+                  <span class="chip"><i class="fa-regular fa-sitemap chip-icon"></i><span class="chip-label">Family</span></span>
+                  <span class="chip"><i class="fa-regular fa-palette chip-icon"></i><span class="chip-label">Color</span></span>
+                  <span class="chip removable"><i class="fa-regular fa-stamp chip-icon"></i><span class="chip-label">Decoration</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
+                  <span class="chip removable"><i class="fa-regular fa-ship chip-icon"></i><span class="chip-label">Cruise Line</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
+                  <span class="chip removable"><i class="fa-regular fa-warehouse chip-icon"></i><span class="chip-label">House / Stocking</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
+                  <span class="chip removable"><span class="chip-icon">#</span><span class="chip-label">Swatch Number</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
+                </div>
+                <button class="add-row" type="button">
+                  <i class="fa-regular fa-plus" style="margin-right: var(--scale-200)"></i> Add Catalog Property
+                </button>
+              </div>
+            </div>
+
+            <!-- UNITS -->
+            <div class="section">
+              <div class="section-label">Units</div>
+              <div class="section-help">
+                Each unit type describes one way this catalog's stock is held, and gets its own
+                tab in the items table. The measurement type sets which fields a unit carries;
+                allocatable types also track a job number, allocation and availability.
+              </div>
+              <div class="section-body">
+                <div id="unitTypes" style="display:flex; flex-direction:column; gap: var(--scale-300)"></div>
+                <button class="add-row" type="button" id="addUnitType">
+                  <i class="fa-regular fa-plus" style="margin-right: var(--scale-200)"></i> Add Unit Type
+                </button>
+              </div>
+            </div>
+
+            <!-- ITEM NAMING -->
+            <div class="section">
+              <div class="section-label">Item Naming</div>
+              <div class="section-help">
+                Items are named automatically from their properties. Add segments to define the template.
+              </div>
+              <div class="section-body">
+                <div class="chip-row" id="namingChips">
+                  <span class="chip removable" data-seg="Vendor"><i class="fa-regular fa-building chip-icon"></i><span class="chip-label">Vendor</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
+                  <span class="chip removable" data-seg="Product Line"><i class="fa-regular fa-layer-group chip-icon"></i><span class="chip-label">Product Line</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
+                  <span class="chip removable" data-seg="Family"><i class="fa-regular fa-sitemap chip-icon"></i><span class="chip-label">Family</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
+                  <span class="chip removable" data-seg="Color"><i class="fa-regular fa-palette chip-icon"></i><span class="chip-label">Color</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
+                  <span class="chip removable" data-seg="Decoration"><i class="fa-regular fa-stamp chip-icon"></i><span class="chip-label">Decoration</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
+                </div>
+                <button class="add-row" type="button">
+                  <i class="fa-regular fa-plus" style="margin-right: var(--scale-200)"></i> Add Naming Segment
+                </button>
+              </div>
+            </div>
+
+            <div class="form-footer">
+              <a class="btn-pill outline" href="catalog.html">Back</a>
+              <button class="btn-pill solid is-disabled" type="button" id="saveBtn">Save Changes</button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const { MEASUREMENT_TYPES, UNIT_OPTIONS, UNIT_LABELS, loadConfig, saveConfig } = window.INVENTORY;
+
+      const saveBtn   = document.getElementById('saveBtn');
+      const listEl    = document.getElementById('unitTypes');
+      const chipsEl   = document.getElementById('namingChips');
+
+      /* Working copy — nothing is committed until Save Changes. */
+      let cfg = JSON.parse(JSON.stringify(loadConfig()));
+
+      function dirty() { saveBtn.classList.remove('is-disabled'); }
+
+      function unitSelect(name, value) {
+        const opts = UNIT_OPTIONS.map(u =>
+          `<option value="${u}"${u === value ? ' selected' : ''}>${UNIT_LABELS[u]} (${u})</option>`
+        ).join('');
+        return `<select class="select" data-unit-field="${name}">${opts}</select>`;
+      }
+
+      /* Which unit pickers a card shows depends on its measurement type. */
+      function unitFields(t) {
+        if (t.measurementType === 'roll') {
+          return `
+            <div class="field shrink">
+              <label class="field-label">Width unit</label>
+              ${unitSelect('widthUnit', t.widthUnit || 'in')}
+            </div>
+            <div class="field shrink">
+              <label class="field-label">Length unit</label>
+              ${unitSelect('lengthUnit', t.lengthUnit || 'yd')}
+            </div>`;
+        }
+        if (t.measurementType === 'sheet') {
+          return `
+            <div class="field shrink">
+              <label class="field-label">Dimension unit</label>
+              ${unitSelect('dimensionUnit', t.dimensionUnit || 'yd')}
+            </div>`;
+        }
+        return ''; /* piece carries a count only */
+      }
+
+      function hint(t) {
+        const map = {
+          roll: 'Each unit records a width and a length. Stock is the total length.',
+          piece: 'Each unit records a count. Stock is the total count.',
+          sheet: 'Each unit records a sheet size and a count. Stock is the total count.'
+        };
+        return map[t.measurementType] || '';
+      }
+
+      function render() {
+        listEl.innerHTML = cfg.unitTypes.map(t => {
+          const typeOpts = Object.values(MEASUREMENT_TYPES).map(m =>
+            `<option value="${m.key}"${m.key === t.measurementType ? ' selected' : ''}>${m.label}</option>`
+          ).join('');
+
+          return `
+            <div class="unit-type-card" data-id="${t.id}">
+              <div class="field grow">
+                <label class="field-label">Unit type name</label>
+                <input class="input" type="text" data-field="name" value="${t.name}" />
+              </div>
+              <div class="field shrink">
+                <label class="field-label">Measurement type</label>
+                <select class="select" data-field="measurementType">${typeOpts}</select>
+              </div>
+              ${unitFields(t)}
+              <label class="check-toggle" title="Units of this type can be committed to a job">
+                <input type="checkbox" data-field="allocatable"${t.allocatable ? ' checked' : ''} />
+                <span>Allocatable to a job</span>
+              </label>
+              <button class="icon-btn danger shrink" type="button" data-remove="${t.id}"
+                      title="Remove unit type"${cfg.unitTypes.length === 1 ? ' disabled' : ''}>
+                <i class="fa-regular fa-trash"></i>
+              </button>
+              <div class="meas-hint">${hint(t)}${
+                t.allocatable
+                  ? ' Purchased and committed to jobs, so it carries a job number and reports On Order, Allocated and Available.'
+                  : ' Treated as a child of the parent item — cut, not ordered — so it reports In-House only.'
+              }</div>
+            </div>`;
+        }).join('');
+      }
+
+      /* ── Edits ─────────────────────────────────────────────── */
+      listEl.addEventListener('input', (e) => {
+        const card = e.target.closest('.unit-type-card');
+        if (!card) return;
+        const t = cfg.unitTypes.find(x => x.id === card.dataset.id);
+        const field = e.target.dataset.field || e.target.dataset.unitField;
+        if (!t || !field) return;
+
+        t[field] = e.target.value;
+
+        /* Switching measurement type swaps the whole field set, and
+           renames the type if it still carries the old default name. */
+        if (field === 'measurementType') {
+          const prevDefaults = Object.values(MEASUREMENT_TYPES).map(m => m.defaultName);
+          if (prevDefaults.includes(t.name)) t.name = MEASUREMENT_TYPES[t.value || t.measurementType].defaultName;
+          if (t.measurementType === 'roll') { t.widthUnit = t.widthUnit || 'in'; t.lengthUnit = t.lengthUnit || 'yd'; }
+          if (t.measurementType === 'sheet') { t.dimensionUnit = t.dimensionUnit || 'yd'; }
+          render();
+        }
+        dirty();
+      });
+
+      listEl.addEventListener('change', (e) => {
+        if (e.target.dataset.field !== 'allocatable') return;
+        const card = e.target.closest('.unit-type-card');
+        const t = cfg.unitTypes.find(x => x.id === card.dataset.id);
+        t.allocatable = e.target.checked;
+        render();
+        dirty();
+      });
+
+      listEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-remove]');
+        if (!btn) return;
+        const id = btn.dataset.remove;
+        cfg.unitTypes = cfg.unitTypes.filter(t => t.id !== id);
+        render();
+        dirty();
+      });
+
+      document.getElementById('addUnitType').addEventListener('click', () => {
+        const id = 'ut-' + Date.now().toString(36);
+        cfg.unitTypes.push({ id, name: MEASUREMENT_TYPES.piece.defaultName, measurementType: 'piece', allocatable: false });
+        render();
+        dirty();
+        listEl.querySelector(`[data-id="${id}"] [data-field="name"]`)?.focus();
+      });
+
+      /* ── Item naming chips ─────────────────────────────────── */
+      document.addEventListener('click', (e) => {
+        const x = e.target.closest('.chip-x');
+        if (!x) return;
+        x.closest('.chip').remove();
+        dirty();
+      });
+
+      /* ── Save ──────────────────────────────────────────────── */
+      saveBtn.addEventListener('click', () => {
+        saveConfig(JSON.parse(JSON.stringify(cfg)));
+        saveBtn.classList.add('is-disabled');
+        saveBtn.textContent = 'Saved';
+        setTimeout(() => { saveBtn.textContent = 'Save Changes'; }, 1600);
+      });
+
+      render();
+    </script>
+  </body>
+</html>

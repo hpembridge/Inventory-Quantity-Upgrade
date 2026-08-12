@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inventory — Materials</title>
+    <script src="https://kit.fontawesome.com/da08280601.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="shared/css/design-tokens.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=optional" rel="stylesheet" />
+    <link rel="stylesheet" href="inventory.css" />
+    <script>
+      window.SIDEBAR_CONFIG = {
+        activeItem: 'Inventory',
+        user: { name: 'Healey Pembridge', role: 'team member' }
+      };
+    </script>
+  </head>
+  <body>
+    <script src="shared/components/sidebar-component.js"></script>
+
+    <div class="main-content">
+      <div class="breadcrumb-bar">
+        <nav class="breadcrumbs">
+          <span class="crumb current"><i class="fa-regular fa-pallet-boxes"></i> Inventory</span>
+        </nav>
+      </div>
+
+      <div class="page-scroll">
+        <div class="page-inner">
+
+            <!-- Library tabs -->
+            <div class="tab-row">
+              <a class="tab active" href="index.html">Materials</a>
+              <a class="tab" href="#">IT Inventory</a>
+              <button class="tab add" type="button">+ Add New Library</button>
+            </div>
+
+            <!-- Title -->
+            <div class="title-row">
+              <h1 class="page-title">Materials</h1>
+              <a class="btn-pill outline sm" href="#">Edit</a>
+            </div>
+
+            <!-- Catalogs -->
+            <div class="card-grid">
+              <button class="catalog-card add" type="button">
+                <span class="add-label"><i class="fa-regular fa-plus"></i> Add New Catalog To Materials</span>
+              </button>
+
+              <div class="catalog-card">
+                <div class="catalog-card-head">
+                  <span class="catalog-card-title">Bookcloth</span>
+                  <button class="kebab" type="button" title="Catalog actions"><i class="fa-regular fa-ellipsis-vertical"></i></button>
+                </div>
+                <div class="card-foot">
+                  <span class="count-pill">793 Items</span>
+                  <a class="btn-pill solid" href="catalog.html">View</a>
+                </div>
+              </div>
+
+              <div class="catalog-card">
+                <div class="catalog-card-head">
+                  <span class="catalog-card-title">Endsheet</span>
+                  <button class="kebab" type="button" title="Catalog actions"><i class="fa-regular fa-ellipsis-vertical"></i></button>
+                </div>
+                <div class="card-foot">
+                  <span class="count-pill">412 Items</span>
+                  <a class="btn-pill solid" href="catalog.html">View</a>
+                </div>
+              </div>
+
+              <div class="catalog-card span-all">
+                <div class="catalog-card-head">
+                  <span class="catalog-card-title">Board</span>
+                  <button class="kebab" type="button" title="Catalog actions"><i class="fa-regular fa-ellipsis-vertical"></i></button>
+                </div>
+                <div class="card-foot">
+                  <span class="count-pill">168 Items</span>
+                  <a class="btn-pill solid" href="catalog.html">View</a>
+                </div>
+              </div>
+            </div>
+
+          </div>
+      </div>
+    </div>
+  </body>
+</html>

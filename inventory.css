@@ -1,0 +1,773 @@
+/* ============================================================
+   Inventory Quantity Upgrade — page styles
+   Built on PL-SHARED design tokens. No hard-coded colors:
+   every value below resolves to a token in shared/css/design-tokens.css
+   ============================================================ */
+
+* { box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+html { height: 100%; }
+
+/* The shared sidebar component inserts its <aside> as body's first child,
+   so body itself is the app shell flex row. */
+body {
+  margin: 0;
+  height: 100%;
+  display: flex;
+  overflow: hidden;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-family: var(--font-family-primary);
+  font-size: var(--fontsize-body-md);
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* ── Breadcrumb bar ────────────────────────────────────────── */
+.breadcrumb-bar {
+  height: var(--scale-1200);
+  flex-shrink: 0;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-tertiary);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--scale-800);
+}
+.breadcrumbs {
+  width: 100%;
+  max-width: var(--container-workspace);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--scale-200);
+  font-size: var(--fontsize-body-sm);
+}
+.crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--scale-100);
+  color: var(--text-tertiary);
+  text-decoration: none;
+}
+.crumb:hover { color: var(--text-interactive); }
+.crumb.current { color: var(--text-primary); font-weight: var(--font-weight-semibold); }
+.crumb-sep { color: var(--border-subtle); font-size: 9px; }
+
+/* ── Scrollable page body ──────────────────────────────────── */
+.page-scroll { flex: 1; overflow-y: auto; padding: var(--scale-800); }
+
+.page-card {
+  width: 100%;
+  max-width: calc(var(--container-workspace) + (var(--scale-900) * 2));
+  margin: 0 auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-tertiary);
+  border-radius: var(--border-radius-lg);
+  padding: var(--scale-900);
+}
+.page-inner { max-width: var(--container-workspace); margin: 0 auto; }
+
+/* Page that sits directly on the canvas (item page — no card) */
+.page-bare {
+  width: 100%;
+  max-width: var(--container-workspace);
+  margin: 0 auto;
+}
+
+/* ── Tabs ──────────────────────────────────────────────────── */
+.tab-row { display: flex; align-items: center; gap: var(--scale-300); margin-bottom: var(--scale-800); }
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--scale-900);
+  padding: 0 var(--scale-500);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--interactive-default);
+  background: var(--bg-surface);
+  color: var(--interactive-default);
+  font-family: inherit;
+  font-size: var(--fontsize-body-md);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background .15s, color .15s;
+}
+.tab:hover { background: var(--interactive-bg-subtle); color: var(--interactive-default); }
+.tab.active {
+  background: var(--interactive-default);
+  color: var(--color-white);
+  font-weight: var(--font-weight-semibold);
+}
+.tab.add {
+  background: var(--status-info-bg);
+  font-size: var(--fontsize-body-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+/* ── Page title row ────────────────────────────────────────── */
+.title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--scale-400);
+  margin-bottom: var(--scale-600);
+}
+.page-title {
+  font-size: 36px;
+  line-height: 44px;
+  font-weight: var(--font-weight-book);
+  color: var(--text-primary);
+  margin: 0;
+}
+.page-title-sm {
+  font-size: var(--fontsize-heading-h4);
+  line-height: var(--line-height-heading-h4);
+  font-weight: var(--font-weight-bold);
+  margin: 0;
+}
+
+/* ── Buttons (extend the shared .btn-* set) ────────────────── */
+.btn-pill {
+  border-radius: var(--border-radius-full);
+  padding: var(--scale-200) var(--scale-600);
+  font-family: inherit;
+  font-size: var(--fontsize-body-md);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--scale-200);
+  transition: background .15s, color .15s;
+}
+.btn-pill.solid {
+  background: var(--interactive-default);
+  border: 1px solid var(--interactive-default);
+  color: var(--color-white);
+}
+.btn-pill.solid:hover { background: var(--interactive-hover); border-color: var(--interactive-hover); }
+.btn-pill.outline {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--interactive-default);
+}
+.btn-pill.outline:hover { background: var(--interactive-bg-subtle); border-color: var(--interactive-default); }
+.btn-pill.sm { padding: var(--scale-100) var(--scale-500); font-size: var(--fontsize-body-sm); }
+.btn-pill:disabled,
+.btn-pill.is-disabled {
+  background: var(--bg-subtle);
+  border-color: var(--bg-subtle);
+  color: var(--text-tertiary);
+  cursor: default;
+  pointer-events: none;
+}
+
+/* ── Full-width "add" affordance ───────────────────────────── */
+.add-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: var(--scale-1100);
+  padding: 0 var(--scale-400);
+  background: var(--status-info-bg);
+  border: 1px solid var(--status-info-border);
+  border-radius: var(--border-radius-md);
+  color: var(--interactive-default);
+  font-family: inherit;
+  font-size: var(--fontsize-body-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-align: left;
+  transition: background .15s;
+}
+.add-row:hover { background: var(--interactive-bg-subtle); }
+
+/* ── Catalog cards ─────────────────────────────────────────── */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--scale-300);
+}
+.card-grid .span-all { grid-column: 1 / -1; }
+
+.catalog-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 134px;
+  padding: var(--scale-400);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-tertiary);
+  border-radius: var(--border-radius-md);
+}
+.catalog-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--scale-200);
+}
+.catalog-card-title {
+  font-size: var(--fontsize-heading-h5);
+  line-height: var(--line-height-heading-h5);
+  font-weight: var(--font-weight-book);
+  color: var(--text-primary);
+}
+.card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--scale-200);
+  margin-top: var(--scale-500);
+}
+.kebab {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  padding: var(--scale-100);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--fontsize-body-lg);
+}
+.kebab:hover { background: var(--bg-subtle); color: var(--text-primary); }
+
+.catalog-card.add {
+  justify-content: flex-start;
+  background: var(--status-info-bg);
+  border-color: var(--status-info-border);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+.catalog-card.add:hover { background: var(--interactive-bg-subtle); }
+.catalog-card.add .add-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--scale-200);
+  color: var(--interactive-default);
+  font-size: var(--fontsize-body-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* count pill — reuses the shared .pill recipe */
+.count-pill {
+  font-size: var(--fontsize-label);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: var(--scale-50) var(--scale-200);
+  border-radius: var(--border-radius-sm);
+  background: var(--bg-subtle);
+  color: var(--text-tertiary);
+}
+
+/* ── Filter / search panel ─────────────────────────────────── */
+.filter-panel {
+  padding: var(--scale-300);
+  border-bottom: 1px solid var(--border-tertiary);
+}
+.filter-status {
+  text-align: center;
+  font-size: var(--fontsize-body-sm);
+  color: var(--text-tertiary);
+  margin-bottom: var(--scale-300);
+}
+.search-input {
+  width: 100%;
+  height: var(--scale-700);
+  padding: 0 var(--scale-300);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--border-radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--fontsize-body-sm);
+}
+.search-input::placeholder { color: var(--text-tertiary); }
+.search-input:focus { outline: 2px solid var(--border-focus); outline-offset: -1px; }
+
+/* ── Data table ────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; }
+
+table.data { width: 100%; border-collapse: collapse; }
+
+table.data th {
+  height: var(--scale-1200);
+  padding: 0 var(--scale-300);
+  font-size: var(--fontsize-body-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  text-align: center;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-tertiary);
+}
+table.data th.left, table.data td.left { text-align: left; }
+
+table.data td {
+  height: 51px;
+  padding: 0 var(--scale-300);
+  font-size: var(--fontsize-body-sm);
+  color: var(--text-primary);
+  text-align: center;
+  border-bottom: 1px solid var(--border-tertiary);
+}
+table.data tbody tr:hover { background: var(--bg-muted); }
+table.data tbody tr:last-child td { border-bottom: none; }
+
+.col-check { width: var(--scale-1200); }
+.col-swatch { width: 88px; }
+.col-num { width: 116px; }
+
+td.swatch { font-weight: var(--font-weight-semibold); }
+
+.item-link { color: var(--text-primary); text-decoration: none; }
+.item-link:hover { color: var(--text-interactive); text-decoration: underline; }
+
+/* Read-only quantity cells. AVAILABLE is derived (in-house − allocated),
+   so a negative value is an oversell and reads as an error. */
+.qty { font-variant-numeric: tabular-nums; }
+.qty.derived { font-weight: var(--font-weight-semibold); }
+.qty.negative { color: var(--color-red-900); font-weight: var(--font-weight-semibold); }
+
+input[type="checkbox"] {
+  width: 14px; height: 14px;
+  accent-color: var(--interactive-default);
+  cursor: pointer;
+  margin: 0;
+}
+
+.table-empty {
+  min-height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  font-size: var(--fontsize-body-sm);
+}
+
+/* ── Chips (property / naming segment) ─────────────────────── */
+.chip-row { display: flex; flex-wrap: wrap; gap: var(--scale-300); }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--scale-200);
+  height: 30px;
+  padding: 0 var(--scale-300);
+  border-radius: var(--border-radius-sm);
+  background: var(--bg-subtle);
+  border: 1px solid transparent;
+  font-size: var(--fontsize-body-sm);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.chip .chip-icon { color: var(--text-tertiary); font-size: var(--fontsize-body-sm); width: 14px; text-align: center; }
+.chip .chip-label { color: var(--text-tertiary); }
+.chip .chip-value { color: var(--text-primary); font-weight: var(--font-weight-medium); }
+
+/* Removable chips read as active/editable — white surface + border */
+.chip.removable {
+  background: var(--bg-surface);
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+}
+.chip.removable .chip-label { color: var(--text-primary); }
+.chip-x {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  font-size: var(--fontsize-body-sm);
+  padding: 0 0 0 var(--scale-100);
+  line-height: 1;
+}
+.chip-x:hover { color: var(--color-red-900); }
+
+/* ── Section blocks (settings + item page) ─────────────────── */
+.section { padding: var(--scale-800) 0; }
+.section + .section { border-top: 1px solid var(--border-tertiary); }
+
+.section-label {
+  font-size: var(--fontsize-body-sm);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  margin-bottom: var(--scale-100);
+}
+.section-help {
+  font-size: var(--fontsize-body-sm);
+  color: var(--text-tertiary);
+  margin-bottom: var(--scale-400);
+}
+.section-body { margin-top: var(--scale-400); display: flex; flex-direction: column; gap: var(--scale-400); }
+
+/* stubbed section — nothing designed here yet */
+.section-stub {
+  padding: var(--scale-600);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--border-radius-md);
+  color: var(--text-tertiary);
+  font-size: var(--fontsize-body-sm);
+  background: var(--bg-muted);
+}
+
+/* ── Form controls ─────────────────────────────────────────── */
+.field { display: flex; flex-direction: column; gap: var(--scale-50); }
+.field-label {
+  font-size: var(--fontsize-label);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.input, .select {
+  height: var(--scale-800);
+  padding: 0 var(--scale-200);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--border-radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--fontsize-body-sm);
+}
+.input:focus, .select:focus { outline: 2px solid var(--border-focus); outline-offset: -1px; }
+.input[readonly] { background: var(--bg-muted); color: var(--text-tertiary); }
+.input.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ── Unit type editor (Catalog Settings → UNITS) ───────────── */
+.unit-type-card {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: var(--scale-300);
+  padding: var(--scale-400);
+  border: 1px solid var(--border-tertiary);
+  border-radius: var(--border-radius-md);
+  background: var(--bg-surface);
+}
+.unit-type-card .grow { flex: 1 1 180px; min-width: 150px; }
+.unit-type-card .shrink { flex: 0 0 auto; }
+
+.check-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--scale-200);
+  height: var(--scale-800);
+  font-size: var(--fontsize-body-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.check-toggle:has(input:focus-visible) {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+  border-radius: var(--border-radius-sm);
+}
+
+.meas-hint {
+  font-size: var(--fontsize-body-sm);
+  color: var(--text-tertiary);
+  flex-basis: 100%;
+  margin-top: calc(var(--scale-100) * -1);
+}
+
+.form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--scale-800);
+  border-top: 1px solid var(--border-tertiary);
+}
+
+/* ── Item page: unit type cards ────────────────────────────
+   Follows the shipping-accounts card in customer maintenance:
+   bordered surface, header strip with an icon-btn add, hover-
+   revealed row actions, and a count footer.
+   ---------------------------------------------------------- */
+.unit-type-block {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+}
+/* Fixed leading columns so Location and Job Number sit at the same
+   offset in every unit table, whatever the measurement type. */
+.unit-type-block table.data th.col-loc,
+.unit-type-block table.data td.col-loc { width: 200px; }
+.unit-type-block table.data th.col-job,
+.unit-type-block table.data td.col-job { width: 140px; }
+.unit-type-block table.data th.col-act,
+.unit-type-block table.data td.col-act { width: 60px; }
+
+.unit-type-head {
+  display: flex;
+  align-items: center;
+  gap: var(--scale-300);
+  padding: var(--scale-300) var(--scale-400);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-muted);
+}
+.unit-type-name {
+  font-size: var(--fontsize-body-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.unit-type-meta { font-size: var(--fontsize-body-sm); color: var(--text-tertiary); }
+.unit-type-head .icon-btn { margin-left: var(--scale-200); }
+
+/* Inline rollup — allocatable types carry their figures in the card
+   header as pills. Available comes last and is called out, since it
+   is the derived number people actually act on. */
+.unit-stats {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--scale-200);
+  margin-left: auto;
+}
+.unit-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--scale-200);
+  padding: var(--scale-100) var(--scale-200);
+  border-radius: var(--border-radius-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-tertiary);
+  white-space: nowrap;
+}
+.unit-stat-label {
+  font-size: var(--fontsize-label);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.unit-stat-value {
+  font-size: var(--fontsize-body-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.unit-stat-value .measure {
+  font-size: var(--fontsize-body-sm);
+  font-weight: var(--font-weight-book);
+  color: var(--text-tertiary);
+}
+.unit-stat.derived {
+  background: var(--status-success-bg);
+  border-color: var(--status-success-border);
+}
+.unit-stat.derived .unit-stat-label { color: var(--text-primary); }
+.unit-stat.alert {
+  background: var(--status-error-bg);
+  border-color: var(--status-error-border);
+}
+.unit-stat.alert .unit-stat-label,
+.unit-stat.alert .unit-stat-value { color: var(--color-red-900); }
+
+/* ── Unit card layout ───────────────────────────────────────
+   Allocatable types carry more columns and a stat row, so they
+   hold the full width. The lean ones pair up once there's room,
+   which also stops their short tables reading as ragged.
+   ---------------------------------------------------------- */
+/* align-items:start so a short card keeps its footer snug instead of
+   stretching to match its taller neighbour. */
+.unit-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--scale-400);
+  align-items: start;
+}
+
+/* Pairing happens inside the workspace column — the page width stays
+   var(--container-workspace) like every other screen. */
+@media (min-width: 1200px) {
+  .unit-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .unit-type-block.is-allocatable { grid-column: 1 / -1; }
+}
+
+.unit-type-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--scale-300);
+  padding: var(--scale-200) var(--scale-400);
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+  font-size: var(--fontsize-body-sm);
+}
+.unit-type-count {
+  font-size: var(--fontsize-label);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.unit-type-total { color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.unit-type-total strong { font-weight: var(--font-weight-semibold); }
+
+/* Table inside a unit card sits flush; header strip reads as chrome. */
+.unit-type-block table.data th { background: var(--bg-surface); }
+.unit-type-block table.data th:first-child,
+.unit-type-block table.data td:first-child { padding-left: var(--scale-400); }
+.unit-type-block table.data th:last-child,
+.unit-type-block table.data td:last-child { padding-right: var(--scale-400); }
+.unit-type-block table.data tbody tr:last-child td { border-bottom: none; }
+
+/* ── Inline job allocation ─────────────────────────────────
+   An unallocated unit offers a button in its Job Number cell;
+   allocating swaps it for a six-digit field, saved in place.
+   ---------------------------------------------------------- */
+.allocate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--scale-100);
+  padding: var(--scale-50) var(--scale-200);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--border-radius-sm);
+  background: transparent;
+  color: var(--text-interactive);
+  font-family: inherit;
+  font-size: var(--fontsize-body-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.allocate-btn:hover {
+  background: var(--interactive-bg-subtle);
+  border-color: var(--interactive-default);
+  border-style: solid;
+}
+
+.job-value {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--scale-100);
+  font-variant-numeric: tabular-nums;
+}
+.job-value .icon-btn { width: var(--scale-600); height: var(--scale-600); visibility: hidden; }
+tr:hover .job-value .icon-btn,
+tr:focus-within .job-value .icon-btn { visibility: visible; }
+
+.job-edit { display: inline-flex; align-items: center; gap: var(--scale-100); }
+.job-input {
+  width: 84px;
+  height: var(--scale-700);
+  padding: 0 var(--scale-200);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--border-radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: var(--font-family-mono);
+  font-size: var(--fontsize-body-sm);
+  letter-spacing: .04em;
+}
+.job-input:focus { outline: 2px solid var(--border-focus); outline-offset: -1px; }
+.job-input.invalid { border-color: var(--status-error-border); background: var(--status-error-bg); }
+.job-error {
+  display: block;
+  margin-top: var(--scale-50);
+  font-size: var(--fontsize-label);
+  color: var(--color-red-900);
+}
+
+/* Row actions appear on hover, as in the shipping list. */
+.unit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--scale-50);
+  visibility: hidden;
+}
+table.data tbody tr:hover .unit-actions,
+table.data tbody tr:focus-within .unit-actions { visibility: visible; }
+/* Matches the icon-btn in customer maintenance. */
+.icon-btn {
+  width: var(--scale-700); height: var(--scale-700);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-sm);
+  color: var(--text-tertiary);
+  font-size: var(--fontsize-body-sm);
+  transition: background .15s, color .15s;
+}
+.icon-btn:hover {
+  background: var(--bg-muted);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+}
+.icon-btn.danger:hover { color: var(--color-red-900); background: var(--status-error-bg); border-color: var(--status-error-border); }
+.icon-btn:disabled { opacity: .35; pointer-events: none; }
+
+/* ── Item page: quantity summary ───────────────────────────── */
+.rollup-group + .rollup-group { margin-top: var(--scale-300); }
+.rollup-title {
+  font-size: var(--fontsize-label);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: var(--scale-100);
+}
+
+.qty-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--scale-300);
+}
+.qty-stat {
+  padding: var(--scale-300) var(--scale-400);
+  border: 1px solid var(--border-tertiary);
+  border-radius: var(--border-radius-md);
+  background: var(--bg-surface);
+}
+.qty-stat-label {
+  font-size: var(--fontsize-body-sm);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: var(--scale-50);
+}
+.qty-stat-value {
+  font-size: var(--fontsize-heading-h5);
+  line-height: var(--line-height-heading-h5);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.qty-stat.derived { background: var(--bg-muted); }
+.qty-stat.derived .qty-stat-value { color: var(--text-primary); }
+.qty-stat.alert { background: var(--status-error-bg); border-color: var(--status-error-border); }
+.qty-stat.alert .qty-stat-value { color: var(--color-red-900); }
+
+.divider { height: 1px; background: var(--border-tertiary); border: 0; margin: 0; }
+
+/* ── Prototype-only note ribbon ────────────────────────────── */
+.proto-note {
+  max-width: var(--container-workspace);
+  margin: var(--scale-400) auto 0;
+  padding: var(--scale-300) var(--scale-400);
+  border-left: 3px solid var(--accent-default);
+  background: var(--accent-bg);
+  font-size: var(--fontsize-body-sm);
+  color: var(--text-primary);
+  border-radius: var(--border-radius-sm);
+}

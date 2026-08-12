@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bookcloth — Items</title>
+    <script src="https://kit.fontawesome.com/da08280601.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="shared/css/design-tokens.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=optional" rel="stylesheet" />
+    <link rel="stylesheet" href="inventory.css" />
+    <script src="inventory-data.js"></script>
+    <script>
+      window.SIDEBAR_CONFIG = {
+        activeItem: 'Inventory',
+        user: { name: 'Healey Pembridge', role: 'team member' }
+      };
+    </script>
+  </head>
+  <body>
+    <script src="shared/components/sidebar-component.js"></script>
+
+    <div class="main-content">
+      <div class="breadcrumb-bar">
+        <nav class="breadcrumbs">
+          <a class="crumb" href="index.html"><i class="fa-regular fa-pallet-boxes"></i> Inventory</a>
+          <i class="fa-regular fa-chevron-right crumb-sep"></i>
+          <a class="crumb" href="index.html"><i class="fa-regular fa-layer-group"></i> Materials</a>
+          <i class="fa-regular fa-chevron-right crumb-sep"></i>
+          <span class="crumb current"><i class="fa-regular fa-book"></i> Bookcloth</span>
+        </nav>
+      </div>
+
+      <div class="page-scroll">
+        <div class="page-inner" style="max-width: var(--container-workspace)">
+
+          <!-- One tab per unit type, plus Vendors. -->
+          <div class="tab-row" id="tabs"></div>
+
+          <div class="page-card" style="padding:0; max-width:none">
+            <!-- Filters -->
+            <div class="filter-panel">
+              <div class="filter-status" id="filterStatus">No active filters applied</div>
+              <input class="search-input" type="search" id="search" placeholder="Search items..." autocomplete="off" />
+            </div>
+
+            <!-- Quantity table (read-only — drill into an item to edit) -->
+            <div class="table-wrap">
+              <table class="data">
+                <thead><tr id="headRow"></tr></thead>
+                <tbody id="rows"></tbody>
+              </table>
+              <div class="table-empty" id="emptyState" hidden>No items match that search.</div>
+            </div>
+          </div>
+
+          <p class="proto-note" id="protoNote"></p>
+
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const INV = window.INVENTORY;
+      const { ITEMS, fmt } = INV;
+
+      const cfg      = INV.loadConfig();
+      const tabsEl   = document.getElementById('tabs');
+      const headEl   = document.getElementById('headRow');
+      const rowsEl   = document.getElementById('rows');
+      const emptyEl  = document.getElementById('emptyState');
+      const statusEl = document.getElementById('filterStatus');
+      const searchEl = document.getElementById('search');
+      const noteEl   = document.getElementById('protoNote');
+
+      let activeId = cfg.unitTypes[0]?.id || null;
+
+      /* ── Tabs: one per unit type, then Vendors ──────────────── */
+      function renderTabs() {
+        tabsEl.innerHTML =
+          cfg.unitTypes.map(t =>
+            `<button class="tab${t.id === activeId ? ' active' : ''}" type="button" data-tab="${t.id}">${t.name}</button>`
+          ).join('') +
+          `<button class="tab" type="button" data-tab="vendors">Vendors</button>` +
+          `<a class="btn-pill outline sm" href="catalog-settings.html" style="margin-left:auto">
+             <i class="fa-regular fa-gear"></i> Catalog Settings
+           </a>`;
+      }
+
+      tabsEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-tab]');
+        if (!btn || btn.dataset.tab === 'vendors' || btn.dataset.tab === activeId) return;
+        activeId = btn.dataset.tab;
+        renderTabs();
+        renderHead();
+        render(searchEl.value);
+      });
+
+      /* ── Columns depend on whether the tab's type is allocatable ─
+         A type that can't be committed to a job has no Allocated,
+         and therefore no Available to derive from it. */
+      function activeType() { return INV.unitTypeById(cfg, activeId); }
+
+      function renderHead() {
+        const t = activeType();
+        if (!t) { headEl.innerHTML = ''; return; }
+        const measure = INV.quantityUnitLabel(t);
+        const suffix = measure
+          ? ` <span style="font-weight:var(--font-weight-book); color:var(--border-subtle)">(${measure})</span>`
+          : '';
+
+        /* Non-allocatable types are cut from the parent, not purchased,
+           so they have no On Order either — just what's on hand. */
+        let cols = `
+          <th class="col-check"><input type="checkbox" id="selectAll" title="Select all" /></th>
+          <th class="col-swatch">Swatch</th>
+          <th class="left">Item Name</th>`;
+        if (t.allocatable) cols += `<th class="col-num">On Order${suffix}</th>`;
+        cols += `<th class="col-num">In-House${suffix}</th>`;
+        if (t.allocatable) {
+          cols += `
+            <th class="col-num">Allocated${suffix}</th>
+            <th class="col-num" title="Derived: In-House minus Allocated">Available${suffix}</th>`;
+        }
+        headEl.innerHTML = cols;
+
+        document.getElementById('selectAll').addEventListener('change', (e) => {
+          rowsEl.querySelectorAll('.row-check').forEach(c => { c.checked = e.target.checked; });
+        });
+
+        noteEl.innerHTML = t.allocatable
+          ? `Quantities are in <strong>${t.name}</strong>${measure ? ` (${measure})` : ''}. ` +
+            `<strong>Available</strong> is derived (In-House &minus; Allocated) and turns red when an item is ` +
+            `oversold — see <em>Majilite-Majilite-Attache-Silver</em>. Editing happens on the item page.`
+          : `<strong>${t.name}</strong> are cut from the parent item rather than purchased, so there's ` +
+            `nothing to order and nothing to allocate — In-House is all there is. That follows from the ` +
+            `<em>allocatable</em> setting in <a href="catalog-settings.html">Catalog Settings</a>.`;
+      }
+
+      /* ── Rows ───────────────────────────────────────────────── */
+      function render(query = '') {
+        const t = activeType();
+        if (!t) { rowsEl.innerHTML = ''; return; }
+
+        const q = query.trim().toLowerCase();
+        const list = q
+          ? ITEMS.filter(it => it.name.toLowerCase().includes(q) || String(it.swatch).includes(q))
+          : ITEMS;
+
+        rowsEl.innerHTML = list.map(it => {
+          const v = INV.itemQty(it, t);
+          let cells = `
+            <td class="col-check"><input type="checkbox" class="row-check" /></td>
+            <td class="swatch">${it.swatch}</td>
+            <td class="left"><a class="item-link" href="item.html">${it.name}</a></td>`;
+          if (t.allocatable) cells += `<td class="qty">${fmt(v.onOrder)}</td>`;
+          cells += `<td class="qty">${fmt(v.inHouse)}</td>`;
+          if (t.allocatable) {
+            const neg = v.available < 0;
+            cells += `
+              <td class="qty">${fmt(v.allocated)}</td>
+              <td class="qty derived${neg ? ' negative' : ''}"${neg ? ' title="Oversold — allocated exceeds in-house"' : ''}>${fmt(v.available)}</td>`;
+          }
+          return `<tr>${cells}</tr>`;
+        }).join('');
+
+        emptyEl.hidden = list.length > 0;
+        statusEl.textContent = q
+          ? `Filtered — showing ${list.length} of ${ITEMS.length} items`
+          : 'No active filters applied';
+        const all = document.getElementById('selectAll');
+        if (all) all.checked = false;
+      }
+
+      searchEl.addEventListener('input', e => render(e.target.value));
+
+      renderTabs();
+      renderHead();
+      render();
+    </script>
+  </body>
+</html>

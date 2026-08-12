@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Majilite-Majilite-Baby Ostrich-Cobalt Blue</title>
+    <script src="https://kit.fontawesome.com/da08280601.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="shared/css/design-tokens.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=optional" rel="stylesheet" />
+    <link rel="stylesheet" href="inventory.css" />
+    <script src="inventory-data.js"></script>
+    <script>
+      window.SIDEBAR_CONFIG = {
+        activeItem: 'Inventory',
+        user: { name: 'Healey Pembridge', role: 'team member' }
+      };
+    </script>
+  </head>
+  <body>
+    <script src="shared/components/sidebar-component.js"></script>
+
+    <div class="main-content">
+      <div class="breadcrumb-bar">
+        <nav class="breadcrumbs">
+          <a class="crumb" href="index.html"><i class="fa-regular fa-pallet-boxes"></i> Inventory</a>
+          <i class="fa-regular fa-chevron-right crumb-sep"></i>
+          <a class="crumb" href="index.html"><i class="fa-regular fa-layer-group"></i> Materials</a>
+          <i class="fa-regular fa-chevron-right crumb-sep"></i>
+          <a class="crumb" href="catalog.html"><i class="fa-regular fa-book"></i> Bookcloth</a>
+          <i class="fa-regular fa-chevron-right crumb-sep"></i>
+          <span class="crumb current">Majilite-Majilite-Baby Ostrich-Cobalt Blue</span>
+        </nav>
+      </div>
+
+      <div class="page-scroll">
+        <div class="page-bare">
+
+          <div class="title-row" style="align-items:center">
+            <h1 class="page-title-sm">Majilite-Majilite-Baby Ostrich-Cobalt Blue</h1>
+            <a class="btn-pill outline" href="#" style="flex-shrink:0">Edit Item Details</a>
+          </div>
+
+          <hr class="divider" style="margin-top: var(--scale-600)" />
+
+          <!-- Item properties -->
+          <div class="section">
+            <div class="chip-row">
+              <span class="chip"><i class="fa-regular fa-building chip-icon"></i><span class="chip-label">Vendor</span><span class="chip-value">Majilite</span></span>
+              <span class="chip"><i class="fa-regular fa-layer-group chip-icon"></i><span class="chip-label">Product Line</span><span class="chip-value">Majilite</span></span>
+              <span class="chip"><i class="fa-regular fa-sitemap chip-icon"></i><span class="chip-label">Family</span><span class="chip-value">Baby Ostrich</span></span>
+              <span class="chip"><i class="fa-regular fa-palette chip-icon"></i><span class="chip-label">Color</span><span class="chip-value">Cobalt Blue</span></span>
+              <span class="chip"><i class="fa-regular fa-warehouse chip-icon"></i><span class="chip-label">House / Stocking</span><span class="chip-value">*</span></span>
+            </div>
+          </div>
+
+          <!-- Item units, grouped by unit type -->
+          <div class="section unit-grid" id="unitBlocks"></div>
+
+          <p class="proto-note">
+            Unit types come from <a href="catalog-settings.html">Catalog Settings</a> — add,
+            rename, or toggle <em>allocatable</em> there and this page follows. Non-allocatable
+            types are children cut from the parent, so they show only their own sheet, piece or
+            roll figures — no job number, no ordering, no allocation.
+          </p>
+
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const INV = window.INVENTORY;
+      const { MEASUREMENT_TYPES, fmt } = INV;
+
+      const cfg   = INV.loadConfig();
+      const units = INV.DEFAULT_UNITS;
+
+      const ITEM = INV.ITEMS.find(i => i.detailed);
+
+      /* ── Inline rollup ──────────────────────────────────────────
+         Only allocatable unit types have an Allocated and a derived
+         Available to report, so only they carry stats in the card
+         header. Everything else just totals in its footer.
+         --------------------------------------------------------- */
+      function statsFor(t) {
+        if (!t.allocatable) return '';
+        const measure = INV.quantityUnitLabel(t);
+        const q = INV.itemQty(ITEM, t);
+
+        const stat = (label, value, cls = '') => `
+          <div class="unit-stat ${cls}">
+            <div class="unit-stat-label">${label}</div>
+            <div class="unit-stat-value">${fmt(value)} <span class="measure">${measure}</span></div>
+          </div>`;
+
+        /* Available sits last: it's what the other three resolve to. */
+        return `
+          <div class="unit-stats">
+            ${stat('On Order',  q.onOrder)}
+            ${stat('In-House',  q.inHouse)}
+            ${stat('Allocated', q.allocated)}
+            ${stat('Available', q.available, q.available < 0 ? 'alert' : 'derived')}
+          </div>`;
+      }
+
+      /* ── Per-measurement-type table shapes ──────────────────── */
+      function columnsFor(t) {
+        const spec = MEASUREMENT_TYPES[t.measurementType];
+        /* Job Number only exists on unit types that can be allocated. */
+        const base = [{ key: 'location', label: 'Location', left: true, cls: 'col-loc' }];
+        if (t.allocatable) base.push({ key: 'job', label: 'Job Number', left: true, cls: 'col-job' });
+        if (spec.key === 'roll') {
+          return base.concat([
+            { key: 'width',  label: `Width (${t.widthUnit})` },
+            { key: 'length', label: `Yardage (${t.lengthUnit})`, strong: true }
+          ]);
+        }
+        if (spec.key === 'sheet') {
+          return base.concat([
+            { key: '_size', label: `Size (${t.dimensionUnit})` },
+            { key: 'count', label: 'Count', strong: true }
+          ]);
+        }
+        return base.concat([{ key: 'count', label: 'Count', strong: true }]);
+      }
+
+      /* Which unit is mid-edit, if any. */
+      let editingId = null;
+      let editError = '';
+
+      function jobCell(u) {
+        if (editingId === u.id) {
+          return `
+            <div class="job-edit">
+              <input class="job-input${editError ? ' invalid' : ''}" data-job-input="${u.id}"
+                     inputmode="numeric" maxlength="6" placeholder="000000"
+                     value="${u.job || ''}" aria-label="Six-digit job number" />
+              <button class="icon-btn" type="button" data-save="${u.id}" title="Save"><i class="fa-regular fa-check"></i></button>
+              <button class="icon-btn" type="button" data-cancel="1" title="Cancel"><i class="fa-regular fa-xmark"></i></button>
+            </div>
+            ${editError ? `<span class="job-error">${editError}</span>` : ''}`;
+        }
+        if (u.job) {
+          return `
+            <span class="job-value">${u.job}
+              <button class="icon-btn" type="button" data-edit="${u.id}" title="Change job number"><i class="fa-regular fa-pen"></i></button>
+              <button class="icon-btn danger" type="button" data-release="${u.id}" title="Release allocation"><i class="fa-regular fa-xmark"></i></button>
+            </span>`;
+        }
+        return `<button class="allocate-btn" type="button" data-edit="${u.id}">
+                  <i class="fa-regular fa-plus"></i> Allocate
+                </button>`;
+      }
+
+      function cellValue(u, col, t) {
+        if (col.key === '_size') return `${fmt(u.width)} × ${fmt(u.height)}`;
+        if (col.key === 'job') return jobCell(u);
+        if (col.key === 'location') return u[col.key] ?? '—';
+        return fmt(u[col.key]);
+      }
+
+      /* ── Unit blocks ────────────────────────────────────────── */
+      function renderBlocks() {
+        document.getElementById('unitBlocks').innerHTML = cfg.unitTypes.map(t => {
+          const spec    = MEASUREMENT_TYPES[t.measurementType];
+          const cols    = columnsFor(t);
+          const mine    = units.filter(u => u.unitTypeId === t.id);
+          const total   = INV.totalFor(t, units);
+          const measure = INV.quantityUnitLabel(t);
+
+          const body = mine.length
+            ? mine.map(u => `
+                <tr>
+                  ${cols.map(c => `<td class="${c.left ? 'left' : 'qty'}${c.strong ? ' derived' : ''}${c.cls ? ' ' + c.cls : ''}">${cellValue(u, c, t)}</td>`).join('')}
+                  <td class="qty col-act">
+                    <div class="unit-actions">
+                      <button class="icon-btn" type="button" title="Print unit label"><i class="fa-regular fa-print"></i></button>
+                    </div>
+                  </td>
+                </tr>`).join('')
+            : `<tr><td class="left" colspan="${cols.length + 1}" style="color:var(--text-tertiary)">No ${t.name.toLowerCase()} recorded.</td></tr>`;
+
+          const noun = mine.length === 1 ? 'unit' : 'units';
+
+          return `
+            <div class="unit-type-block${t.allocatable ? ' is-allocatable' : ''}">
+              <div class="unit-type-head">
+                <span class="unit-type-name">${t.name}</span>
+                <span class="unit-type-meta">${spec.label}</span>
+                ${statsFor(t)}
+                <button class="icon-btn" type="button" title="Add ${t.name}"${t.allocatable ? '' : ' style="margin-left:auto"'}>
+                  <i class="fa-solid fa-plus"></i>
+                </button>
+              </div>
+              <table class="data">
+                <thead>
+                  <tr>
+                    ${cols.map(c => `<th class="${c.left ? 'left' : ''}${c.cls ? ' ' + c.cls : ''}">${c.label}</th>`).join('')}
+                    <th class="col-act"></th>
+                  </tr>
+                </thead>
+                <tbody>${body}</tbody>
+              </table>
+              <div class="unit-type-foot">
+                <span class="unit-type-count">${mine.length} ${noun}</span>
+                ${t.allocatable
+                  /* In-House in the header already reports this sum. */
+                  ? ''
+                  : `<span class="unit-type-total">Total <strong>${fmt(total)} ${measure}</strong></span>`}
+              </div>
+            </div>`;
+        }).join('');
+      }
+
+      /* ── Allocation actions ─────────────────────────────────── */
+      const blocksEl = document.getElementById('unitBlocks');
+
+      function commit(id, value) {
+        const v = String(value || '').trim();
+        if (!INV.isValidJob(v)) {
+          editError = 'Enter a six-digit job number.';
+          renderBlocks();
+          focusEditor();
+          return;
+        }
+        units.find(u => u.id === id).job = v;
+        editingId = null;
+        editError = '';
+        renderBlocks();   /* re-render so Allocated and Available follow */
+      }
+
+      function focusEditor() {
+        const el = blocksEl.querySelector('[data-job-input]');
+        if (el) { el.focus(); el.select(); }
+      }
+
+      blocksEl.addEventListener('click', (e) => {
+        const edit    = e.target.closest('[data-edit]');
+        const save    = e.target.closest('[data-save]');
+        const cancel  = e.target.closest('[data-cancel]');
+        const release = e.target.closest('[data-release]');
+
+        if (edit)   { editingId = edit.dataset.edit; editError = ''; renderBlocks(); focusEditor(); return; }
+        if (cancel) { editingId = null; editError = ''; renderBlocks(); return; }
+        if (save)   { commit(save.dataset.save, blocksEl.querySelector('[data-job-input]')?.value); return; }
+        if (release) {
+          units.find(u => u.id === release.dataset.release).job = null;
+          renderBlocks();
+        }
+      });
+
+      /* Digits only, and Enter/Escape do the obvious thing. */
+      blocksEl.addEventListener('input', (e) => {
+        if (!e.target.matches('[data-job-input]')) return;
+        e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+      });
+
+      blocksEl.addEventListener('keydown', (e) => {
+        if (!e.target.matches('[data-job-input]')) return;
+        if (e.key === 'Enter')  { e.preventDefault(); commit(editingId, e.target.value); }
+        if (e.key === 'Escape') { editingId = null; editError = ''; renderBlocks(); }
+      });
+
+      renderBlocks();
+    </script>
+  </body>
+</html>
