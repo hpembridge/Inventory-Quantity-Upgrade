@@ -74,7 +74,12 @@
   const DEFAULT_CONFIG = {
     catalog: 'Bookcloth',
     unitTypes: [
-      { id: 'ut-rolls',    name: 'Rolls',    measurementType: 'roll',  widthUnit: 'in', lengthUnit: 'yd' },
+      /* defaults: the measurements a newly added unit of this type
+         starts with. Most rolls of a bookcloth come 54 inches wide, so
+         that is worth not retyping. A field with no default starts
+         empty; Job Number and Location never have one. */
+      { id: 'ut-rolls',    name: 'Rolls',    measurementType: 'roll',  widthUnit: 'in', lengthUnit: 'yd',
+        defaults: { width: 54 } },
       { id: 'ut-swatches', name: 'Swatches', measurementType: 'piece' },
       { id: 'ut-miscuts',  name: 'Miscuts',  measurementType: 'sheet', widthUnit: 'yd', heightUnit: 'yd' }
     ]
@@ -138,22 +143,69 @@
      between several, and nobody outside IT needs the IT library — but
      anyone can pull one in when they occasionally need it.
      ------------------------------------------------------------ */
+  /* stockForms: the ways stock is held in this library. A catalog's
+     unit types can only take one of these forms, so a library of
+     laptops is never offered "roll". Every library has at least one. */
   const LIBRARIES = [
-    { id: 'lib-materials', name: 'Materials', catalogs: [
+    { id: 'lib-materials', name: 'Materials', stockForms: ['roll', 'piece', 'sheet'], catalogs: [
       { name: 'Bookcloth', items: 793 }, { name: 'Endsheet', items: 412 }, { name: 'Board', items: 168 } ] },
-    { id: 'lib-it', name: 'IT Library', catalogs: [
+    { id: 'lib-it', name: 'IT Library', stockForms: ['piece'], catalogs: [
       { name: 'Laptops', items: 84 }, { name: 'Monitors', items: 121 }, { name: 'Peripherals', items: 342 } ] },
-    { id: 'lib-bindery', name: 'Bindery Supplies', catalogs: [
+    { id: 'lib-bindery', name: 'Bindery Supplies', stockForms: ['roll', 'piece'], catalogs: [
       { name: 'Adhesives', items: 56 }, { name: 'Head & Tail Bands', items: 210 }, { name: 'Ribbon', items: 178 } ] },
-    { id: 'lib-shipping', name: 'Shipping & Packaging', catalogs: [
+    { id: 'lib-shipping', name: 'Shipping & Packaging', stockForms: ['piece', 'sheet'], catalogs: [
       { name: 'Cartons', items: 96 }, { name: 'Void Fill', items: 24 } ] },
-    { id: 'lib-sample', name: 'Sample Room', catalogs: [
+    { id: 'lib-sample', name: 'Sample Room', stockForms: ['piece'], catalogs: [
       { name: 'Swatch Books', items: 431 }, { name: 'Dummies', items: 88 } ] },
-    { id: 'lib-foil', name: 'Foils & Films', catalogs: [
+    { id: 'lib-foil', name: 'Foils & Films', stockForms: ['roll', 'sheet'], catalogs: [
       { name: 'Hot Foil', items: 143 }, { name: 'Lamination', items: 67 } ] }
   ];
 
+  /* ── Library edits ───────────────────────────────────────────
+     A library's name and stock forms are settings, not view state, so
+     they outlive the page — the catalog settings page reads the forms
+     to decide what a unit type may be. Only what can be edited is
+     stored; the catalogs stay in the seed data.
+     ------------------------------------------------------------ */
+  const LIB_KEY = 'iqu.libraries';
+
+  function saveLibraries() {
+    try {
+      const slim = {};
+      LIBRARIES.forEach(l => { slim[l.id] = { name: l.name, stockForms: l.stockForms }; });
+      global.localStorage.setItem(LIB_KEY, JSON.stringify(slim));
+    } catch (e) { /* file:// or blocked storage — the edit stays in memory */ }
+  }
+
+  (function loadLibraries() {
+    try {
+      const raw = global.localStorage && global.localStorage.getItem(LIB_KEY);
+      if (!raw) return;
+      const slim = JSON.parse(raw);
+      LIBRARIES.forEach(l => {
+        const saved = slim[l.id];
+        if (!saved) return;
+        if (saved.name) l.name = saved.name;
+        if (Array.isArray(saved.stockForms) && saved.stockForms.length) l.stockForms = saved.stockForms;
+      });
+    } catch (e) { /* fall through to the seed data */ }
+  })();
+
   function libraryById(id) { return LIBRARIES.find(l => l.id === id) || null; }
+
+  /* Which library a catalog sits in — the catalog settings page needs
+     it to know which stock forms it may offer. */
+  function libraryOfCatalog(name) {
+    return LIBRARIES.find(l => l.catalogs.some(c => c.name === name)) || null;
+  }
+
+  /* The forms a library allows, falling back to all of them so a
+     library saved before this setting existed is not left empty. */
+  function stockFormsOf(lib) {
+    const keys = Object.keys(MEASUREMENT_TYPES);
+    const forms = (lib && lib.stockForms || []).filter(k => keys.includes(k));
+    return forms.length ? forms : keys;
+  }
 
   /* ── Per-person library view ──────────────────────────────────
      Which libraries this person keeps as tabs, in the order they added
@@ -237,21 +289,39 @@
   }
 
   /* Total stock held in one unit type, in that type's own measure. */
-  function totalFor(unitType, units) {
+  /* ── What counts as on hand ───────────────────────────────────
+     A unit with no location has not been put away yet: the stock is
+     recorded but not findable, so it reads as On Order rather than
+     In-House. Giving it a location is what brings it into stock.
+     ------------------------------------------------------------ */
+  function isPlaced(u) {
+    return !!(u.location && String(u.location).trim());
+  }
+
+  function sumOf(unitType, units, keep) {
     if (!unitType) return 0;
     const spec = MEASUREMENT_TYPES[unitType.measurementType];
     return units
-      .filter(u => u.unitTypeId === unitType.id)
+      .filter(u => u.unitTypeId === unitType.id && keep(u))
       .reduce((sum, u) => sum + spec.quantityOf(u), 0);
   }
 
-  /* Stock committed to a job — the units carrying a job number. */
+  /* Stock in hand: the units that have somewhere to be. */
+  function totalFor(unitType, units) {
+    return sumOf(unitType, units, isPlaced);
+  }
+
+  /* Stock recorded but not yet placed — on its way in. */
+  function onOrderFor(unitType, units) {
+    return sumOf(unitType, units, u => !isPlaced(u));
+  }
+
+  /* Stock committed to a job — the units carrying a job number. Only
+     what is in hand can be allocated against; an unplaced unit is
+     counted once, as On Order, so that Available never goes negative
+     over stock that has not arrived. */
   function allocatedFor(unitType, units) {
-    if (!unitType) return 0;
-    const spec = MEASUREMENT_TYPES[unitType.measurementType];
-    return units
-      .filter(u => u.unitTypeId === unitType.id && u.job)
-      .reduce((sum, u) => sum + spec.quantityOf(u), 0);
+    return sumOf(unitType, units, u => u.job && isPlaced(u));
   }
 
   /* ── Stock state ─────────────────────────────────────────────
@@ -290,19 +360,23 @@
       ? (item.detailed ? totalFor(unitType, DEFAULT_UNITS) : 0)
       : q.inHouse;
     /* For the detailed item, Allocated is the sum of the units that
-       carry a job number — so allocating a roll moves the figure. */
+       carry a job number — so allocating a roll moves the figure — and
+       On Order is the stock recorded without a location yet. */
     const allocated = item.detailed
       ? allocatedFor(unitType, DEFAULT_UNITS)
       : (q.allocated || 0);
-    return { onOrder: q.onOrder || 0, inHouse, allocated, available: inHouse - allocated };
+    const onOrder = item.detailed
+      ? onOrderFor(unitType, DEFAULT_UNITS)
+      : (q.onOrder || 0);
+    return { onOrder, inHouse, allocated, available: inHouse - allocated };
   }
 
   global.INVENTORY = {
     MEASUREMENT_TYPES, MEASUREMENT_ICONS, measurementIcon, UNIT_OPTIONS, UNIT_LABELS,
     DEFAULT_CONFIG, DEFAULT_UNITS, ITEMS,
-    LIBRARIES, libraryById, loadLibraryView, saveLibraryView,
+    LIBRARIES, libraryById, libraryOfCatalog, stockFormsOf, saveLibraries, loadLibraryView, saveLibraryView,
     loadConfig, saveConfig, resetConfig,
-    unitTypeById, totalFor, allocatedFor,
+    unitTypeById, totalFor, allocatedFor, onOrderFor, isPlaced,
     quantityUnitLabel, itemQty, stockState, LOW_STOCK_RATIO, isValidJob, fmt
   };
 

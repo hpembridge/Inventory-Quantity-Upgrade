@@ -12,6 +12,10 @@
     <link rel="stylesheet" href="inventory.css" />
     <link rel="stylesheet" href="components/breadcrumbs/breadcrumbs.css" />
     <link rel="stylesheet" href="components/confirm-modal/confirm-modal.css" />
+    <link rel="stylesheet" href="components/flyout/flyout.css" />
+    <link rel="stylesheet" href="components/switch/switch.css" />
+    <link rel="stylesheet" href="components/toast/toast.css" />
+    <script src="components/toast/toast.js"></script>
     <script>
       window.SIDEBAR_CONFIG = {
         activeItem: 'Inventory',
@@ -49,6 +53,28 @@
       </div>
     </div>
 
+    <!-- ── Library settings flyout ──
+         Same .flyout-overlay/.flyout-panel recipe as the catalog's Edit
+         Unit Type panel. Edits a draft copy, so Cancel (or the overlay
+         / Esc) discards cleanly. -->
+    <div class="flyout-overlay" id="libFlyout">
+      <div class="flyout-panel" role="dialog" aria-modal="true" aria-labelledby="libFlyoutTitle">
+        <div class="flyout-header">
+          <span class="flyout-title" id="libFlyoutTitle">Library Settings</span>
+          <button class="icon-btn" type="button" id="libFlyoutClose" aria-label="Close">
+            <i class="fa-regular fa-xmark"></i>
+          </button>
+        </div>
+        <div class="flyout-body" id="libFlyoutBody"></div>
+        <div class="flyout-footer">
+          <div class="footer-actions">
+            <button class="btn-pill outline sm" type="button" id="libFlyoutCancel">Cancel</button>
+            <button class="btn-pill solid sm" type="button" id="libFlyoutDone">Save Library</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Deleting a library is the one destructive action here, so it is
          confirmed and the confirmation says what is lost. -->
     <div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true"
@@ -77,7 +103,6 @@
       let openIds  = INV.loadLibraryView().slice();
       let activeId = openIds[0];
       let query = '';
-      let renaming = false;   /* is the active library's name being edited */
 
       const tabsEl  = document.getElementById('libTabs');
       const titleEl = document.getElementById('libTitle');
@@ -185,26 +210,11 @@
       function renderTitle(lib) {
         const onlyOne = INV.LIBRARIES.length === 1;
 
-        if (renaming) {
-          titleEl.innerHTML = `
-            <input class="input title-input" id="libNameInput" type="text"
-                   value="${esc(lib.name)}" aria-label="Library name" autocomplete="off" />
-            <span class="lib-name-actions">
-              <button class="icon-btn" type="button" data-rename-save title="Save" aria-label="Save name">
-                <i class="fa-regular fa-check"></i>
-              </button>
-              <button class="icon-btn" type="button" data-rename-cancel title="Cancel" aria-label="Cancel">
-                <i class="fa-regular fa-xmark"></i>
-              </button>
-            </span>`;
-          return;
-        }
-
         titleEl.innerHTML = `
           <h5>${esc(lib.name)}</h5>
           <span class="lib-name-actions">
-            <button class="icon-btn" type="button" data-rename
-                    title="Rename ${esc(lib.name)}" aria-label="Rename ${esc(lib.name)}">
+            <button class="icon-btn" type="button" data-lib-settings
+                    title="${esc(lib.name)} settings" aria-label="${esc(lib.name)} settings">
               <i class="fa-regular fa-pen"></i>
             </button>
             <button class="icon-btn danger" type="button" data-delete-lib
@@ -239,24 +249,6 @@
 
       function render() { renderTabs(); renderLibrary(); }
 
-      /* ── Rename ─────────────────────────────────────────────────── */
-      function startRename() {
-        renaming = true;
-        render();
-        const el = document.getElementById('libNameInput');
-        el.focus(); el.select();
-      }
-      function cancelRename() { renaming = false; render(); }
-      function commitRename() {
-        const el = document.getElementById('libNameInput');
-        const name = el.value.trim();
-        /* A library with no name would be unfindable in the picker. */
-        if (!name) { el.classList.add('invalid'); el.focus(); return; }
-        INV.libraryById(activeId).name = name;
-        renaming = false;
-        render();
-      }
-
       /* The row itself opens the catalog; the pencil goes to its settings.
          The pencil is a span so it can sit inside the row's link. */
       cardsEl.addEventListener('click', (e) => {
@@ -274,22 +266,108 @@
       });
 
       titleEl.addEventListener('click', (e) => {
-        if (e.target.closest('[data-rename]'))        { startRename();  return; }
-        if (e.target.closest('[data-rename-save]'))   { commitRename(); return; }
-        if (e.target.closest('[data-rename-cancel]')) { cancelRename(); return; }
+        if (e.target.closest('[data-lib-settings]')) { openLibFlyout(); return; }
         const del = e.target.closest('[data-delete-lib]');
         if (del && !del.disabled) askDelete();
       });
 
-      titleEl.addEventListener('input', (e) => {
-        if (e.target.id === 'libNameInput') e.target.classList.remove('invalid');
+      /* ── Library settings ──────────────────────────────────────
+         The library's name, and which forms stock can take inside it.
+         The forms are what a catalog's unit types may be built from, so
+         turning one off here takes it out of every Stock Form list in
+         the library — which is why the panel says so, and why the last
+         one on cannot be turned off.
+         --------------------------------------------------------- */
+      const libFlyout     = document.getElementById('libFlyout');
+      const libFlyoutBody = document.getElementById('libFlyoutBody');
+
+      let libDraft = null;
+
+      function renderLibFlyout() {
+        const forms = Object.values(INV.MEASUREMENT_TYPES);
+        const on    = libDraft.stockForms;
+        const last  = on.length === 1;
+
+        libFlyoutBody.innerHTML = `
+          <div class="field">
+            <label class="field-label">Library name</label>
+            <input class="input" type="text" data-lib-field="name"
+                   value="${esc(libDraft.name)}" autocomplete="off" />
+          </div>
+
+          <div class="field-group">
+            <div class="field-group-title">Stock forms</div>
+            <div class="field-group-help">
+              The physical forms stock takes in this library. Catalog unit types
+              can only use forms listed here.
+            </div>
+            ${forms.map(m => {
+              const checked = on.includes(m.key);
+              const stuck   = checked && last;
+              return `
+                <label class="switch"${stuck ? ' title="A library needs at least one stock form"' : ''}>
+                  <input type="checkbox" data-form="${m.key}"
+                         ${checked ? 'checked' : ''} ${stuck ? 'disabled' : ''} />
+                  <span class="switch-track" aria-hidden="true"></span>
+                  <span><i class="fa-regular ${INV.measurementIcon(m.key)}"></i> ${m.label}</span>
+                </label>`;
+            }).join('')}
+          </div>`;
+      }
+
+      function openLibFlyout() {
+        const lib = INV.libraryById(activeId);
+        libDraft = { name: lib.name, stockForms: INV.stockFormsOf(lib).slice() };
+        document.getElementById('libFlyoutTitle').textContent = `${lib.name} Settings`;
+        renderLibFlyout();
+        libFlyout.classList.add('open');
+        libFlyoutBody.querySelector('[data-lib-field="name"]').focus();
+      }
+
+      function closeLibFlyout() {
+        libFlyout.classList.remove('open');
+        libDraft = null;
+      }
+
+      libFlyoutBody.addEventListener('input', (e) => {
+        if (!libDraft) return;
+        if (e.target.dataset.libField === 'name') {
+          libDraft.name = e.target.value;
+          e.target.classList.remove('invalid');
+        }
       });
 
-      titleEl.addEventListener('keydown', (e) => {
-        if (e.target.id !== 'libNameInput') return;
-        if (e.key === 'Enter')  { e.preventDefault(); commitRename(); }
-        if (e.key === 'Escape') { e.preventDefault(); cancelRename(); }
+      libFlyoutBody.addEventListener('change', (e) => {
+        const form = e.target.dataset.form;
+        if (!libDraft || !form) return;
+        libDraft.stockForms = e.target.checked
+          ? libDraft.stockForms.concat(form)
+          : libDraft.stockForms.filter(k => k !== form);
+        renderLibFlyout();   /* the last one on becomes unturnable-off */
       });
+
+      document.getElementById('libFlyoutDone').addEventListener('click', () => {
+        if (!libDraft) return;
+        const name = libDraft.name.trim();
+        /* A library with no name would be unfindable in the picker. */
+        if (!name) {
+          const el = libFlyoutBody.querySelector('[data-lib-field="name"]');
+          el.classList.add('invalid');
+          el.focus();
+          window.toast('Give the library a name.', 'error');
+          return;
+        }
+        const lib = INV.libraryById(activeId);
+        lib.name = name;
+        lib.stockForms = libDraft.stockForms.slice();
+        INV.saveLibraries();
+        closeLibFlyout();
+        render();
+      });
+
+      document.getElementById('libFlyoutCancel').addEventListener('click', closeLibFlyout);
+      document.getElementById('libFlyoutClose').addEventListener('click', closeLibFlyout);
+      libFlyout.addEventListener('click', (e) => { if (e.target === libFlyout) closeLibFlyout(); });
 
       /* ── Delete, with the cost stated ───────────────────────────── */
       const modal = document.getElementById('confirmModal');
@@ -314,6 +392,7 @@
         /* Never leave the page with no library showing. */
         if (!openIds.length && INV.LIBRARIES.length) openIds = [INV.LIBRARIES[0].id];
         commitView();
+        INV.saveLibraries();
         activeId = openIds[Math.min(Math.max(index, 0), openIds.length - 1)];
         closeModal();
         render();
@@ -424,6 +503,7 @@
 
       document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
+        if (libFlyout.classList.contains('open')) { closeLibFlyout(); return; }
         if (modal.classList.contains('open')) { closeModal(); return; }
         closePicker();
       });

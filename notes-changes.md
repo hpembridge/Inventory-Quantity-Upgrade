@@ -157,3 +157,99 @@ Properties are the fields every item in this catalog carries.
 | R8 | Item names are generated from the naming template, never typed. |
 
 ---
+## 7. Editable unit rows (item page)
+
+Every value in a unit row is now a field rather than static text with an edit affordance bolted on.
+
+| Behaviour | Detail |
+|---|---|
+| **At rest** | A field reads exactly as the old static cell did — no border, no fill, column alignment kept. Measurements show their settled form (`1.50`, not `1.5`). |
+| **Hover** | The row is the unit of discovery: hovering anywhere in a row outlines every field in it at once, so the editable targets are findable from one place instead of cell by cell. The field under the pointer takes the stronger edge, to say which one a click lands on. |
+| **Focus** | White fill, focus ring, editable. The contents select on focus — one click and you can type over the value. A second click, or a drag, positions the caret normally. |
+| **Empty** | Placeholder text in the field's own shape (`000000` for Job Number, `0.00`, `0`, `Add location`) in `--text-tertiary` — this replaces the old plus button. |
+| **Size** | Two fields reading as one value: width `×` height. |
+| **Input** | Numeric fields accept digits only (decimals take a single point, two places); no steppers. Characters that don't belong simply never land. |
+| **Zero** | Zero is a real quantity for Yardage and Count — it says the unit is used up, not that the entry is wrong. Dimensions (Width, Height) still have to be greater than zero: a roll 0 inches wide is not a roll. |
+| **Clearing** | Emptying a number is not an entry, so it reverts silently to what it held. Emptying Job Number is a real instruction: it releases the allocation. |
+| **Commit** | Blur or Enter. Escape reverts. No save/cancel buttons. |
+| **Reject** | An invalid value is rejected outright — the field snaps back to the value it held, the error tint flashes to point at which field refused, and a toast says why. |
+| **Job Number** | Six digits, or empty — emptying the field releases the allocation (the old × action). |
+| **Rollup** | A commit rebuilds the rollup and the footer in place — neither holds a field — so the figures follow the rows without the table being re-rendered underneath the cursor. That's what makes it possible to tab through a row field by field. |
+
+New shared component: `components/toast/` — top-right, error/success/info, icon plus message (never colour alone), auto-dismisses, `window.toast(message, kind)`.
+
+| # | Rule |
+|---|---|
+| R9 | A rejected value is discarded, never half-accepted: the field returns to its previous value and the toast names the reason. |
+| R10 | Counts and measurements must be greater than zero. |
+
+## 8. Depleted units
+
+A quantity of zero is depletion, not an error. The quantity column is the one that says how much is on hand — Yardage for a roll, Count for anything else.
+
+| Behaviour | Detail |
+|---|---|
+| **Dim** | A depleted unit's row is dimmed: still readable, still editable, plainly not part of what is on hand. The zero in the quantity column is the fact; the dimming is reinforcement. |
+| **Hidden by default** | Depleted units are off screen unless asked for. **Show depleted** — a switch inline with the back link, above the first card — brings them back, and defaults to off. |
+| **Leaving, not vanishing** | Zeroing a quantity dims the row where it stands and only takes it off screen once the cursor has left it, so a zero entered by mistake can be corrected without the row disappearing mid-edit. A toast says where it went. |
+| **Footer** | Says what is on screen and what is being kept off it — "2 units · 1 depleted hidden". |
+| **Empty states** | Two different sentences: nothing here at all, versus nothing left that is not used up (which points at the switch). |
+
+New shared component: `components/switch/` — a labelled on/off control over a real checkbox, so it is keyboard- and screen-reader-operable for free.
+
+## 9. Adding a unit
+
+**Add Roll / Add Sheet / Add Swatch** appends a row to the bottom of the table and puts the cursor in its first field. A new unit is entered in the same place, and the same way, as an existing one is corrected — no modal, no separate form. An un-entered quantity is not depletion, so the new row stays put while it is being filled.
+
+### Default values
+
+Every measured field a unit of a given stock form records can be given a default in **Edit Unit Type → Default Values**. Those values are filled in when a new unit of that type is added, so adding one is a confirmation rather than a transcription — most rolls of a cloth come 54 inches wide.
+
+| Behaviour | Detail |
+|---|---|
+| **Which fields** | Whatever the stock form measures: Width / Yardage for a roll, Width / Height / Count for a sheet, Count for a piece. Changing the stock form swaps the field set. |
+| **No default** | Job Number, because an allocation belongs to one unit and not to the form; and Location, which is generated when the unit is created. |
+| **Blank** | A field with no default starts empty on a new row, showing its placeholder. |
+| **Stored** | On `unitType.defaults`, saved with the rest of the catalog config on Save Changes. A dimension of zero is not a default and is dropped. |
+
+| # | Rule |
+|---|---|
+| R11 | Zero is a quantity, never an error. Dimensions must still be greater than zero. |
+| R12 | A row is only taken off screen when the cursor is not in it. |
+| R13 | A default belongs to a stock form's measured fields. Job Number and Location never have one. |
+
+## 10. Library Settings
+
+The pencil beside a library's name opens a **Library Settings** flyout — the same `.flyout-overlay` / `.flyout-panel` recipe as Edit Unit Type — instead of the old in-place rename. It edits a draft, so Cancel, the overlay and Esc all discard cleanly.
+
+| Field | Detail |
+|---|---|
+| **Library name** | Renames the library everywhere: the tab, the panel title, the picker. An empty name is refused (it would be unfindable in the picker) — the field takes the error tint and a toast says so. |
+| **Stock forms** | Which of Roll / Piece / Sheet stock can take in this library, as switches. "The physical forms stock takes in this library. Catalog unit types can only use forms listed here." |
+
+| # | Rule |
+|---|---|
+| R14 | A library needs at least one stock form. The last one on cannot be turned off, and says why. |
+| R15 | A stock form already in use by a unit type stays listed in that type's Stock Form select even if the library has since dropped it — hiding it would silently rewrite the unit type on the next save. |
+
+Deleting a library is unchanged: still the trash beside the pencil, still confirmed, still says what is lost.
+
+**Data.** `library.stockForms` joins `library.name` as an editable setting, and both now persist (`iqu.libraries`) so the catalog settings page can read them — `libraryOfCatalog()` finds a catalog's library, `stockFormsOf()` reads its forms and falls back to all three. Catalogs themselves stay in the seed data. The seeds are realistic: the IT Library and Sample Room hold pieces only, Foils & Films rolls and sheets.
+
+## 11. Location decides On Order vs In-House
+
+A unit with no location has not been put away yet: the stock is recorded but not findable, so it reads as **On Order**. Giving it a location is what brings it into stock.
+
+| Figure | Made of |
+|---|---|
+| **On Order** | Units of this type with no location. |
+| **In-House** | Units with a location. |
+| **Allocated** | Units with a job number **and** a location — only stock in hand can be allocated against. |
+| **Available** | In-House − Allocated. |
+
+| # | Rule |
+|---|---|
+| R16 | A unit's quantity is counted once: On Order until it has a location, In-House after. |
+| R17 | An unplaced unit is never Allocated, so Available can't go negative over stock that hasn't arrived. |
+
+This is why a newly added unit — which starts with no location, since locations are generated on creation — shows up as On Order until it is placed.

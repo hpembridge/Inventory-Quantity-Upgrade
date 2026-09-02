@@ -11,6 +11,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=optional" rel="stylesheet" />
     <link rel="stylesheet" href="inventory.css" />
     <link rel="stylesheet" href="components/breadcrumbs/breadcrumbs.css" />
+    <link rel="stylesheet" href="components/toast/toast.css" />
+    <link rel="stylesheet" href="components/switch/switch.css" />
+    <script src="components/toast/toast.js"></script>
     <script src="inventory-data.js"></script>
     <script>
       window.SIDEBAR_CONFIG = {
@@ -38,9 +41,19 @@
       <div class="page-scroll">
         <div class="page-inner">
 
-          <a class="back-link" href="catalog.html">
-            <i class="fa-regular fa-arrow-left"></i> Back to Bookcloth
-          </a>
+          <!-- The back link shares its line with the page's one view
+               control: whether used-up units are on screen. -->
+          <div class="page-top">
+            <a class="back-link" href="catalog.html">
+              <i class="fa-regular fa-arrow-left"></i> Back to Bookcloth
+            </a>
+
+            <label class="switch">
+              <input type="checkbox" id="showDepleted" />
+              <span class="switch-track" aria-hidden="true"></span>
+              <span>Show depleted</span>
+            </label>
+          </div>
 
           <!-- Item header: name, the edit action, and the item's properties -->
           <div class="page-card is-flush item-header">
@@ -110,34 +123,32 @@
 
         return `
           <div class="unit-rollup">
-            <div class="rollup-top">
-              <span class="unit-type-meta">
-                <i class="fa-regular ${INV.measurementIcon(t.measurementType)}"></i> ${spec.label}
-              </span>
-            </div>
             <div class="rollup-stats">
               ${stat('On Order', q.onOrder)}
               ${stat('In-House', q.inHouse)}
               ${stat('Allocated', q.allocated)}
               ${stat('Available', q.available, flag || {})}
             </div>
-            <button class="add-row" type="button">
+            <button class="add-row" type="button" data-add="${t.id}">
               <i class="fa-regular fa-plus" style="margin-right: var(--scale-200)"></i> Add ${spec.label}
             </button>
           </div>`;
       }
 
-      /* ── Per-measurement-type table shapes ──────────────────── */
+      /* ── Per-measurement-type table shapes ────────────────────
+         Every column names the field behind it: `kind` decides what
+         the input will accept, `field` which property it writes.
+         ------------------------------------------------------- */
       function columnsFor(t) {
         const spec = MEASUREMENT_TYPES[t.measurementType];
         const base = [
-          { key: 'location', label: 'Location', left: true, cls: 'col-loc' },
-          { key: 'job',      label: 'Job Number', left: true, cls: 'col-job' }
+          { key: 'location', label: 'Location', left: true, cls: 'col-loc', kind: 'text' },
+          { key: 'job',      label: 'Job Number', left: true, cls: 'col-job', kind: 'job' }
         ];
         if (spec.key === 'roll') {
           return base.concat([
-            { key: 'width',  label: `Width (${t.widthUnit})` },
-            { key: 'length', label: `Yardage (${t.lengthUnit})`, strong: true }
+            { key: 'width',  label: `Width (${t.widthUnit})`, kind: 'measure' },
+            { key: 'length', label: `Yardage (${t.lengthUnit})`, strong: true, kind: 'quantity' }
           ]);
         }
         if (spec.key === 'sheet') {
@@ -147,51 +158,156 @@
             ? `Size (${t.widthUnit})`
             : `Size (${t.widthUnit} &times; ${t.heightUnit})`;
           return base.concat([
-            { key: '_size', label: size },
-            { key: 'count', label: 'Count', strong: true }
+            { key: '_size', label: size, kind: 'size' },
+            { key: 'count', label: 'Count', strong: true, kind: 'count' }
           ]);
         }
-        return base.concat([{ key: 'count', label: 'Count', strong: true }]);
+        return base.concat([{ key: 'count', label: 'Count', strong: true, kind: 'count' }]);
       }
 
-      /* Which unit is mid-edit, if any. */
-      let editingId = null;
-      let editError = '';
+      /* ── Field rules ──────────────────────────────────────────
+         One place to say, per kind of value, what may be typed, what
+         counts as valid, and what to say when it does not. Rejecting
+         an entry keeps it on screen to be corrected and raises a
+         toast, so the reason is never left to the field alone.
+         ------------------------------------------------------- */
+      /* Digits and a single decimal point, to two places. */
+      function decimals(v) {
+        const cleaned = v.replace(/[^\d.]/g, '');
+        const [whole, ...rest] = cleaned.split('.');
+        return rest.length
+          ? `${whole.slice(0, 5)}.${rest.join('').slice(0, 2)}`
+          : whole.slice(0, 5);
+      }
+
+      const FIELD_RULES = {
+        text: {
+          placeholder: 'Add location',
+          filter: v => v.slice(0, 24),
+          valid:  () => true,
+          parse:  v => v.trim() || null
+        },
+        job: {
+          placeholder: '000000',
+          inputmode: 'numeric',
+          maxlength: 6,
+          cls: 'is-job',
+          /* Empty releases the allocation; anything else must be a
+             whole six-digit job number. */
+          filter: v => v.replace(/\D/g, '').slice(0, 6),
+          valid:  v => v === '' || INV.isValidJob(v),
+          error:  'Job numbers are six digits — for example 487712.',
+          parse:  v => v === '' ? null : v
+        },
+        /* A physical dimension: a roll 0 inches wide is not a roll. */
+        measure: {
+          placeholder: '0.00',
+          inputmode: 'decimal',
+          cls: 'is-num',
+          filter: decimals,
+          valid:  v => Number(v) > 0,
+          error:  'Enter a measurement greater than zero.',
+          parse:  v => Number(v)
+        },
+        /* A quantity on hand. Zero is not an error — it says the unit
+           has been used up, which is what marks it depleted. */
+        quantity: {
+          placeholder: '0.00',
+          inputmode: 'decimal',
+          cls: 'is-num',
+          filter: decimals,
+          valid:  v => Number(v) >= 0,
+          error:  'Enter a quantity of zero or more.',
+          parse:  v => Number(v)
+        },
+        count: {
+          placeholder: '0',
+          inputmode: 'numeric',
+          cls: 'is-num',
+          filter: v => v.replace(/[^\d]/g, '').slice(0, 6),
+          valid:  v => Number(v) >= 0,
+          error:  'Enter a whole count of zero or more.',
+          parse:  v => Number(v)
+        }
+      };
+
+      /* ── Depletion ────────────────────────────────────────────
+         The quantity column is the one that says how much is on hand:
+         yardage for a roll, count for anything else. A unit whose
+         quantity has reached zero is depleted — used up, not wrong. A
+         quantity not yet entered (a row just added) is neither.
+         ------------------------------------------------------- */
+      function quantityKey(t) {
+        return MEASUREMENT_TYPES[t.measurementType].key === 'roll' ? 'length' : 'count';
+      }
+
+      function isDepleted(u, t) {
+        const v = u[quantityKey(t)];
+        return v !== null && v !== undefined && v !== '' && Number(v) === 0;
+      }
+
+      /* Depleted units are out of the way unless asked for. */
+      let showDepleted = false;
+
+      /* How a settled value is written into a field. */
+      function displayValue(kind, raw) {
+        if (raw === null || raw === undefined || raw === '') return '';
+        return (kind === 'measure' || kind === 'quantity') ? fmt(raw) : String(raw);
+      }
+
+      function fieldInput(u, key, kind, extraCls = '') {
+        const r    = FIELD_RULES[kind];
+        /* Measurements show their settled form — 1.50, not 1.5 — so a
+           field at rest reads exactly as the old static cell did. */
+        const val = displayValue(kind, u[key]);
+        const attrs = [
+          `class="cell-field${r.cls ? ' ' + r.cls : ''}${extraCls ? ' ' + extraCls : ''}"`,
+          `value="${val}"`,
+          `placeholder="${r.placeholder}"`,
+          `data-uid="${u.id}"`,
+          `data-field="${key}"`,
+          `data-kind="${kind}"`,
+          r.inputmode ? `inputmode="${r.inputmode}"` : '',
+          r.maxlength ? `maxlength="${r.maxlength}"` : '',
+          `aria-label="${FIELD_LABELS[key] || key}"`
+        ].filter(Boolean).join(' ');
+        return `<input type="text" ${attrs} />`;
+      }
+
+      const FIELD_LABELS = {
+        location: 'Location',
+        job:      'Job number, six digits',
+        width:    'Width',
+        height:   'Height',
+        length:   'Yardage',
+        count:    'Count'
+      };
 
       /* Which unit type is on screen. */
       let activeId = cfg.unitTypes[0]?.id || null;
       function activeType() { return INV.unitTypeById(cfg, activeId); }
 
-      function jobCell(u) {
-        if (editingId === u.id) {
-          return `
-            <div class="job-edit">
-              <input class="job-input${editError ? ' invalid' : ''}" data-job-input="${u.id}"
-                     inputmode="numeric" maxlength="6" placeholder="000000"
-                     value="${u.job || ''}" aria-label="Six-digit job number" />
-              <button class="icon-btn" type="button" data-save="${u.id}" title="Save"><i class="fa-regular fa-check"></i></button>
-              <button class="icon-btn" type="button" data-cancel="1" title="Cancel"><i class="fa-regular fa-xmark"></i></button>
-            </div>
-            ${editError ? `<span class="job-error">${editError}</span>` : ''}`;
+      function cellValue(u, col) {
+        if (col.key === '_size') {
+          return `<span class="size-field">
+                    ${fieldInput(u, 'width', 'measure')}
+                    <span class="size-x" aria-hidden="true">&times;</span>
+                    ${fieldInput(u, 'height', 'measure')}
+                  </span>`;
         }
-        if (u.job) {
-          return `
-            <span class="job-value">${u.job}
-              <button class="icon-btn" type="button" data-edit="${u.id}" title="Change job number"><i class="fa-regular fa-pen"></i></button>
-              <button class="icon-btn danger" type="button" data-release="${u.id}" title="Remove this stock allocation from the job."><i class="fa-regular fa-xmark"></i></button>
-            </span>`;
-        }
-        return `<button class="icon-btn" type="button" data-edit="${u.id}"
-                        title="Allocate to job" aria-label="Allocate to job">
-                  <i class="fa-regular fa-plus"></i>
-                </button>`;
+        return fieldInput(u, col.key, col.kind);
       }
 
-      function cellValue(u, col, t) {
-        if (col.key === '_size') return `${fmt(u.width)} × ${fmt(u.height)}`;
-        if (col.key === 'job') return jobCell(u);
-        if (col.key === 'location') return u[col.key] ?? '—';
-        return fmt(u[col.key]);
+      /* The footer says what is on screen and what is being kept off
+         it, and is cheap enough to rebuild on its own after an edit. */
+      function footHtml(t) {
+        const mine   = units.filter(u => u.unitTypeId === t.id);
+        const spent  = mine.filter(u => isDepleted(u, t));
+        const shown  = showDepleted ? mine.length : mine.length - spent.length;
+        const hidden = showDepleted ? 0 : spent.length;
+        return `
+          <span class="unit-type-count">${shown} ${shown === 1 ? 'unit' : 'units'}</span>
+          ${hidden ? `<span class="unit-type-hidden">${hidden} depleted hidden</span>` : ''}`;
       }
 
       /* ── Tabs ───────────────────────────────────────────────── */
@@ -213,20 +329,29 @@
         {
           const cols    = columnsFor(t);
           const mine    = units.filter(u => u.unitTypeId === t.id);
+          const spent   = mine.filter(u => isDepleted(u, t));
+          const shown   = showDepleted ? mine : mine.filter(u => !isDepleted(u, t));
 
-          const body = mine.length
-            ? mine.map(u => `
-                <tr>
-                  ${cols.map(c => `<td class="${c.left ? 'left' : 'qty'}${c.strong ? ' strong' : ''}${c.cls ? ' ' + c.cls : ''}">${cellValue(u, c, t)}</td>`).join('')}
-                  <td class="qty col-act">
-                    <div class="unit-actions">
-                      <button class="icon-btn" type="button" title="Print unit label"><i class="fa-regular fa-print"></i></button>
-                    </div>
-                  </td>
-                </tr>`).join('')
-            : `<tr><td class="left" colspan="${cols.length + 1}" style="color:var(--text-tertiary)">No ${t.name.toLowerCase()} yet. Add one to start tracking stock.</td></tr>`;
+          const row = (u) => `
+            <tr${isDepleted(u, t) ? ' class="is-depleted"' : ''} data-row="${u.id}">
+              ${cols.map(c => `<td class="${c.left ? 'left' : 'qty'}${c.strong ? ' strong' : ''}${c.cls ? ' ' + c.cls : ''}">${cellValue(u, c)}</td>`).join('')}
+              <td class="qty col-act">
+                <div class="unit-actions">
+                  <button class="icon-btn" type="button" title="Print unit label"><i class="fa-regular fa-print"></i></button>
+                </div>
+              </td>
+            </tr>`;
 
-          const noun = mine.length === 1 ? 'unit' : 'units';
+          /* Two different kinds of empty: nothing here at all, or
+             nothing left that is not used up. They need different
+             sentences. */
+          const empty = mine.length
+            ? `Every ${t.name.toLowerCase().replace(/s$/, '')} here is depleted. Turn on Show depleted to see ${spent.length === 1 ? 'it' : 'them'}.`
+            : `No ${t.name.toLowerCase()} yet. Add one to start tracking stock.`;
+
+          const body = shown.length
+            ? shown.map(row).join('')
+            : `<tr><td class="left" colspan="${cols.length + 1}" style="color:var(--text-tertiary)">${empty}</td></tr>`;
 
           host.innerHTML = `
             <div class="unit-type-block">
@@ -240,73 +365,210 @@
                 </thead>
                 <tbody>${body}</tbody>
               </table>
-              <div class="unit-type-foot">
-                <span class="unit-type-count">${mine.length} ${noun}</span>
-              </div>
+              <div class="unit-type-foot">${footHtml(t)}</div>
             </div>`;
         }
       }
 
-      /* ── Tab switching ──────────────────────────────────────────
-         Leaving a tab abandons any job number mid-edit, so the field
-         never reappears against a different unit type. */
+      /* ── Tab switching ────────────────────────────────────── */
       document.getElementById('unitTabs').addEventListener('click', (e) => {
         const btn = e.target.closest('[data-tab]');
         if (!btn || btn.dataset.tab === activeId) return;
-        activeId  = btn.dataset.tab;
-        editingId = null;
-        editError = '';
+        activeId = btn.dataset.tab;
         renderTabs();
         renderBlocks();
       });
 
-      /* ── Allocation actions ─────────────────────────────────── */
+      /* ── Editing ──────────────────────────────────────────────
+         Fields commit on blur or Enter and revert on Escape; there
+         are no save buttons, so the only thing to learn is that
+         leaving the field keeps the value. A commit that changes a
+         figure re-renders the block, so the rollup above the table
+         can never disagree with the rows beneath it.
+         ------------------------------------------------------- */
       const blocksEl = document.getElementById('unitBlocks');
 
-      function commit(id, value) {
-        const v = String(value || '').trim();
-        if (!INV.isValidJob(v)) {
-          editError = 'Enter a six-digit job number.';
-          renderBlocks();
-          focusEditor();
-          return;
-        }
-        units.find(u => u.id === id).job = v;
-        editingId = null;
-        editError = '';
-        renderBlocks();   /* re-render so Allocated and Available follow */
+      function unitById(id) { return units.find(u => u.id === id); }
+
+      /* A committed value changes the figures above the table and the
+         count below it, but re-rendering the rows would throw away the
+         focus — and with it the ability to tab through a row one field
+         at a time. Neither the rollup nor the footer holds a field, so
+         both can be rebuilt on the spot while the table stands. */
+      function refreshFigures() {
+        const t      = activeType();
+        const rollup = blocksEl.querySelector('.unit-rollup');
+        const foot   = blocksEl.querySelector('.unit-type-foot');
+        if (rollup) rollup.outerHTML = rollupFor(t);
+        if (foot)   foot.innerHTML   = footHtml(t);
       }
 
-      function focusEditor() {
-        const el = blocksEl.querySelector('[data-job-input]');
-        if (el) { el.focus(); el.select(); }
-      }
-
-      blocksEl.addEventListener('click', (e) => {
-        const edit    = e.target.closest('[data-edit]');
-        const save    = e.target.closest('[data-save]');
-        const cancel  = e.target.closest('[data-cancel]');
-        const release = e.target.closest('[data-release]');
-
-        if (edit)   { editingId = edit.dataset.edit; editError = ''; renderBlocks(); focusEditor(); return; }
-        if (cancel) { editingId = null; editError = ''; renderBlocks(); return; }
-        if (save)   { commit(save.dataset.save, blocksEl.querySelector('[data-job-input]')?.value); return; }
-        if (release) {
-          units.find(u => u.id === release.dataset.release).job = null;
-          renderBlocks();
+      /* Typing is constrained as it happens — the field simply will
+         not hold a character it cannot accept. */
+      blocksEl.addEventListener('input', (e) => {
+        const el = e.target;
+        if (!el.matches('.cell-field')) return;
+        const filtered = FIELD_RULES[el.dataset.kind].filter(el.value);
+        if (filtered !== el.value) {
+          const at = el.selectionStart - (el.value.length - filtered.length);
+          el.value = filtered;
+          el.setSelectionRange(at, at);
         }
+        el.classList.remove('invalid');
       });
 
-      /* Digits only, and Enter/Escape do the obvious thing. */
-      blocksEl.addEventListener('input', (e) => {
-        if (!e.target.matches('[data-job-input]')) return;
-        e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+      function commit(el) {
+        const rule = FIELD_RULES[el.dataset.kind];
+        const unit = unitById(el.dataset.uid);
+        const key  = el.dataset.field;
+        const raw  = el.value.trim();
+        const was  = unit[key];
+
+        /* Clearing a number is not an entry, so it needs no telling
+           off — the field simply returns to what it held. (An emptied
+           job number is a real instruction: release the allocation.)
+           */
+        if (raw === '' && el.dataset.kind !== 'job' && el.dataset.kind !== 'text') {
+          el.value = displayValue(el.dataset.kind, was);
+          return true;
+        }
+
+        /* An invalid entry is rejected outright: the field goes back to
+           the value it held, the toast says why, and the error tint
+           flashes just long enough to point at which field refused. */
+        if (!rule.valid(raw)) {
+          el.value = displayValue(el.dataset.kind, was);
+          el.classList.add('invalid');
+          clearTimeout(el._flash);
+          el._flash = setTimeout(() => el.classList.remove('invalid'), 900);
+          window.toast(rule.error, 'error');
+          return false;
+        }
+
+        const next = rule.parse(raw);
+        el.classList.remove('invalid');
+        el.value = displayValue(el.dataset.kind, next);
+        if (String(next ?? '') === String(was ?? '')) return true;
+
+        unit[key] = next;
+
+        /* A depleted unit dims where it stands. It is only taken off
+           screen once the cursor has left the row, so a zero entered
+           by mistake can still be corrected without the row vanishing
+           mid-edit. */
+        const tr = el.closest('tr[data-row]');
+        if (tr) tr.classList.toggle('is-depleted', isDepleted(unit, activeType()));
+
+        refreshFigures();
+        return true;
+      }
+
+      /* One click puts the whole value in hand: focusing a field selects
+         its contents, so typing replaces rather than appends. The mouse
+         would otherwise drop a caret at the click point on release, so
+         that first selection is held through mouseup — a second click,
+         or a drag, still positions the caret normally. */
+      let claiming = null;
+
+      blocksEl.addEventListener('mousedown', (e) => {
+        const el = e.target.closest('.cell-field');
+        if (el && el !== document.activeElement) claiming = el;
+      });
+
+      blocksEl.addEventListener('focusin', (e) => {
+        if (e.target.matches('.cell-field')) e.target.select();
+      });
+
+      blocksEl.addEventListener('mouseup', (e) => {
+        if (!claiming || e.target !== claiming) { claiming = null; return; }
+        const el = claiming;
+        claiming = null;
+        /* A drag is a deliberate selection — leave it alone. */
+        if (el.selectionStart !== el.selectionEnd) return;
+        e.preventDefault();
+        el.select();
+      });
+
+      blocksEl.addEventListener('focusout', (e) => {
+        if (!e.target.matches('.cell-field')) return;
+        commit(e.target);
+
+        const tr = e.target.closest('tr[data-row]');
+        /* Wait a tick: focus may only be moving to the next field in
+           the same row. */
+        setTimeout(() => {
+          if (!tr || !tr.isConnected || tr.contains(document.activeElement)) return;
+          if (showDepleted || !tr.classList.contains('is-depleted')) return;
+
+          const t = activeType();
+          window.toast('Unit depleted — hidden. Turn on Show depleted to see it.', 'info');
+          /* Losing the last visible row means the table needs its
+             empty state, which only a full render can give it. */
+          if (blocksEl.querySelectorAll('tbody tr[data-row]').length === 1) {
+            renderBlocks();
+          } else {
+            tr.remove();
+            blocksEl.querySelector('.unit-type-foot').innerHTML = footHtml(t);
+          }
+        }, 0);
       });
 
       blocksEl.addEventListener('keydown', (e) => {
-        if (!e.target.matches('[data-job-input]')) return;
-        if (e.key === 'Enter')  { e.preventDefault(); commit(editingId, e.target.value); }
-        if (e.key === 'Escape') { editingId = null; editError = ''; renderBlocks(); }
+        const el = e.target;
+        if (!el.matches('.cell-field')) return;
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          commit(el);
+          el.blur();
+        }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          el.value = displayValue(el.dataset.kind, unitById(el.dataset.uid)[el.dataset.field]);
+          el.classList.remove('invalid');
+          el.blur();
+        }
+      });
+
+      /* ── Show depleted ────────────────────────────────────────
+         Off by default: a depleted unit is history, not stock. The
+         toggle is the way back to it — including to recount one that
+         was zeroed by mistake.
+         ------------------------------------------------------- */
+      document.getElementById('showDepleted').addEventListener('change', (e) => {
+        showDepleted = e.target.checked;
+        renderBlocks();
+      });
+
+      /* ── Adding a unit ────────────────────────────────────────
+         Add puts an empty row at the bottom of the table and puts the
+         cursor in its first field, so a new unit is entered in the
+         same place and the same way as an existing one is corrected.
+         ------------------------------------------------------- */
+      let nextId = units.length + 1;
+
+      blocksEl.addEventListener('click', (e) => {
+        const add = e.target.closest('[data-add]');
+        if (!add) return;
+
+        const t   = INV.unitTypeById(cfg, add.dataset.add);
+        const def = t.defaults || {};
+        const u   = { id: `u-new-${nextId++}`, unitTypeId: t.id, job: null };
+
+        /* The unit type's default measurements are the starting point —
+           most rolls of a cloth are the same width, so adding one is a
+           confirmation, not a transcription. Location is generated on
+           creation, and a field with no default starts empty. */
+        const fill = (key) => { u[key] = def[key] ?? null; };
+        u.location = null;
+        columnsFor(t).forEach(c => {
+          if (c.key === '_size') { fill('width'); fill('height'); }
+          else if (c.kind !== 'text' && c.kind !== 'job') fill(c.key);
+        });
+        units.push(u);
+        renderBlocks();
+
+        const first = blocksEl.querySelector(`[data-row="${u.id}"] .cell-field`);
+        if (first) first.focus();
       });
 
       renderTabs();

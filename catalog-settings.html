@@ -142,7 +142,7 @@
 
     <script>
       const { MEASUREMENT_TYPES, UNIT_OPTIONS, UNIT_LABELS, measurementIcon,
-              loadConfig, saveConfig } = window.INVENTORY;
+              libraryOfCatalog, stockFormsOf, loadConfig, saveConfig } = window.INVENTORY;
 
       const saveBtn   = document.getElementById('saveBtn');
       const listEl    = document.getElementById('unitTypes');
@@ -270,8 +270,80 @@
         return `<select class="select" data-field="${field}">${opts}</select>`;
       }
 
+      /* ── Default values ───────────────────────────────────────
+         Every measured field a unit of this form records can be given
+         a value to start from, so adding a unit is a confirmation
+         rather than a transcription — most rolls of a bookcloth are
+         the same width, most miscuts the same size. A blank default
+         means the field starts empty. Two fields have none on purpose:
+         Job Number, because an allocation belongs to one unit and not
+         to the form, and Location, which is generated when the unit is
+         created.
+         --------------------------------------------------------- */
+      function defaultFieldsFor(t) {
+        const fields = [];
+        if (t.measurementType === 'roll') {
+          fields.push(
+            { key: 'width',  label: `Width (${t.widthUnit || 'in'})`,   kind: 'measure' },
+            { key: 'length', label: `Yardage (${t.lengthUnit || 'yd'})`, kind: 'quantity' }
+          );
+        } else if (t.measurementType === 'sheet') {
+          fields.push(
+            { key: 'width',  label: `Width (${t.widthUnit || 'yd'})`,  kind: 'measure' },
+            { key: 'height', label: `Height (${t.heightUnit || 'yd'})`, kind: 'measure' },
+            { key: 'count',  label: 'Count', kind: 'count' }
+          );
+        } else {
+          fields.push({ key: 'count', label: 'Count', kind: 'count' });
+        }
+        return fields;
+      }
+
+      const PLACEHOLDER = { text: 'None', measure: '0.00', quantity: '0.00', count: '0' };
+
+      function defaultsGroup() {
+        const fields = defaultFieldsFor(draft);
+        const d      = draft.defaults || {};
+
+        const field = (f) => `
+          <div class="field">
+            <label class="field-label">${f.label}</label>
+            <input class="input" type="text" data-default="${f.key}" data-kind="${f.kind}"
+                   inputmode="${f.kind === 'text' ? 'text' : 'decimal'}"
+                   placeholder="${PLACEHOLDER[f.kind]}"
+                   value="${d[f.key] === null || d[f.key] === undefined ? '' : esc(d[f.key])}" />
+          </div>`;
+
+        /* Measurements read as pairs — a width and a height belong on
+           one line. */
+        const pairs = [];
+        for (let i = 0; i < fields.length; i += 2) {
+          pairs.push(`<div class="field-pair">${fields.slice(i, i + 2).map(field).join('')}</div>`);
+        }
+
+        return `
+          <div class="field-group">
+            <div class="field-group-title">Default values</div>
+            <div class="field-group-help">
+              Filled in when a new ${esc(draft.name || 'unit')} is added. Leave blank to start empty.
+            </div>
+            ${pairs.join('')}
+          </div>`;
+      }
+
+      /* Which forms this catalog may use: the library's setting decides,
+         so a library of laptops never offers "roll". A form already in
+         use stays listed even if the library has since dropped it —
+         hiding it would silently rewrite the unit type on the next
+         save. */
+      function formsAvailable() {
+        const forms = stockFormsOf(libraryOfCatalog(cfg.catalog));
+        return Object.values(MEASUREMENT_TYPES)
+          .filter(m => forms.includes(m.key) || m.key === draft.measurementType);
+      }
+
       function renderFlyout() {
-        const typeOpts = Object.values(MEASUREMENT_TYPES).map(m =>
+        const typeOpts = formsAvailable().map(m =>
           `<option value="${m.key}"${m.key === draft.measurementType ? ' selected' : ''}>${m.label}</option>`
         ).join('');
 
@@ -307,15 +379,21 @@
             <label class="field-label">Stock form</label>
             <select class="select" data-field="measurementType">${typeOpts}</select>
           </div>
-          ${unitFields}`;
+          ${unitFields}
+          ${defaultsGroup()}`;
       }
 
       function openFlyout(id) {
         editingId = id;
         draft = id
           ? JSON.parse(JSON.stringify(cfg.unitTypes.find(t => t.id === id)))
-          : { id: 'ut-' + Date.now().toString(36), name: MEASUREMENT_TYPES.piece.defaultName,
-              measurementType: 'piece' };
+          : (() => {
+              const allowed = stockFormsOf(libraryOfCatalog(cfg.catalog));
+              const key = allowed.includes('piece') ? 'piece' : allowed[0];
+              return { id: 'ut-' + Date.now().toString(36),
+                       name: MEASUREMENT_TYPES[key].defaultName,
+                       measurementType: key };
+            })();
 
         flyoutTitle.textContent = id ? 'Edit Unit Type' : 'Add Unit Type';
 
@@ -331,12 +409,40 @@
       }
 
       flyoutBody.addEventListener('input', (e) => {
+        if (!draft) return;
+
+        /* A default is stored as typed and cleaned on the way out, so
+           the field stays easy to correct while it is being typed. */
+        const dflt = e.target.dataset.default;
+        if (dflt) {
+          if (e.target.dataset.kind !== 'text') {
+            const cleaned = e.target.dataset.kind === 'count'
+              ? e.target.value.replace(/[^\d]/g, '').slice(0, 6)
+              : e.target.value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1').slice(0, 8);
+            if (cleaned !== e.target.value) {
+              const at = e.target.selectionStart - (e.target.value.length - cleaned.length);
+              e.target.value = cleaned;
+              e.target.setSelectionRange(at, at);
+            }
+          }
+          draft.defaults = draft.defaults || {};
+          draft.defaults[dflt] = e.target.value;
+          return;
+        }
+
         const field = e.target.dataset.field;
-        if (!draft || !field) return;
+        if (!field) return;
         draft[field] = e.target.value;
 
         /* Switching measurement type swaps the whole field set, and
            renames the type if it still carries the old default name. */
+        /* The help line names the type, and the field set depends on
+           the form, so both need the panel redrawn. */
+        if (field === 'name') {
+          const help = flyoutBody.querySelector('.field-group-help');
+          if (help) help.textContent = `Filled in when a new ${draft.name || 'unit'} is added. Leave blank to start empty.`;
+        }
+
         if (field === 'measurementType') {
           const defaults = Object.values(MEASUREMENT_TYPES).map(m => m.defaultName);
           if (defaults.includes(draft.name)) draft.name = MEASUREMENT_TYPES[draft.measurementType].defaultName;
@@ -383,6 +489,22 @@
       document.getElementById('unitFlyoutDone').addEventListener('click', () => {
         if (!draft) return;
         if (!draft.name.trim()) draft.name = MEASUREMENT_TYPES[draft.measurementType].defaultName;
+
+        /* Keep only the defaults that belong to this form and actually
+           hold a value; a dimension of zero is no default at all. */
+        const kept = {};
+        defaultFieldsFor(draft).forEach(f => {
+          const raw = String((draft.defaults || {})[f.key] ?? '').trim();
+          if (!raw) return;
+          if (f.kind === 'text') { kept[f.key] = raw; return; }
+          const n = Number(raw);
+          if (!Number.isFinite(n)) return;
+          if (f.kind === 'measure' && n <= 0) return;
+          if (n < 0) return;
+          kept[f.key] = n;
+        });
+        if (Object.keys(kept).length) draft.defaults = kept;
+        else delete draft.defaults;
         if (editingId) {
           const i = cfg.unitTypes.findIndex(t => t.id === editingId);
           cfg.unitTypes[i] = draft;

@@ -360,6 +360,17 @@ table.data th {
    The breadcrumb says where you are; this says how to get back one
    step, at the top of the content where the reader's eye already is.
    ------------------------------------------------------------- */
+/* The back link and any view-level control for the page share one
+   line above the first card. */
+.page-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--scale-400);
+  margin-bottom: var(--scale-300);
+}
+.page-top .back-link { margin-bottom: 0; }
+
 .back-link {
   display: inline-flex;
   align-items: center;
@@ -570,6 +581,40 @@ table.data th {
 .search-input::placeholder { color: var(--text-tertiary); }
 
 .field { display: flex; flex-direction: column; gap: var(--scale-50); }
+
+/* A set of fields that belong together under one heading — the default
+   values a stock form hands a new unit, for instance. The rule sits
+   with the heading, so the group reads as one thing rather than as
+   more fields in the same list. */
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--scale-300);
+  padding-top: var(--scale-400);
+  border-top: 1px solid var(--border-tertiary);
+}
+.field-group-title {
+  font-size: var(--fontsize-label);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.field-group-help {
+  margin-top: calc(-1 * var(--scale-200));
+  color: var(--text-tertiary);
+  font-size: var(--fontsize-body-sm);
+}
+/* Two to a line where they are short — a width and a height read as a
+   pair, not as a queue. */
+.field-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--scale-300);
+}
+@media (max-width: 560px) {
+  .field-pair { grid-template-columns: minmax(0, 1fr); }
+}
 .field-label {
   font-size: var(--fontsize-label);
   color: var(--text-tertiary);
@@ -852,8 +897,6 @@ td.swatch { font-weight: var(--font-weight-semibold); }
 .unit-type-block table.data th.col-act,
 .unit-type-block table.data td.col-act { width: 60px; }
 
-.unit-type-meta { font-size: var(--fontsize-body-sm); color: var(--text-tertiary); white-space: nowrap; }
-.unit-type-meta i { margin-right: var(--scale-50); }
 
 /* ── Rollup band ────────────────────────────────────────────
    A KPI row: four figures for the unit type, each in its own tile on
@@ -868,17 +911,9 @@ td.swatch { font-weight: var(--font-weight-semibold); }
    ticks); at this size it makes a figure like 121 read loose.
    ---------------------------------------------------------- */
 .unit-rollup {
-  padding: var(--scale-300) var(--scale-400) var(--scale-400);
+  padding: var(--scale-400);
   background: var(--bg-muted);
   border-bottom: 1px solid var(--border-tertiary);
-}
-
-/* What this stock is, and the way to add more of it. */
-.rollup-top {
-  display: flex;
-  align-items: center;
-  gap: var(--scale-300);
-  margin-bottom: var(--scale-300);
 }
 
 /* Adding stock is the band's one action, so it spans it. */
@@ -965,35 +1000,133 @@ td.swatch { font-weight: var(--font-weight-semibold); }
 .unit-type-block table.data th:last-child,
 .unit-type-block table.data td:last-child { padding-right: var(--scale-400); }
 
-/* ── Inline job allocation ─────────────────────────────────
-   An unallocated unit offers a plus in its Job Number cell;
-   allocating swaps it for a six-digit field, saved in place.
+/* ── Editable table cells ──────────────────────────────────
+   Every value in a unit row is a field, but at rest it reads as
+   plain text: no border, no fill, aligned with the column. The
+   affordance arrives on hover (a faint outline) and the field
+   only looks like a field once it has focus — white, bordered,
+   ready. An empty field shows its own shape as placeholder text
+   instead of a plus button.
    ---------------------------------------------------------- */
-.job-value {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--scale-100);
-  font-variant-numeric: tabular-nums;
-}
-.job-value .icon-btn { width: var(--scale-600); height: var(--scale-600); visibility: hidden; }
-tr:hover .job-value .icon-btn,
-tr:focus-within .job-value .icon-btn { visibility: visible; }
-
-.job-edit { display: inline-flex; align-items: center; gap: var(--scale-100); }
-.job-input {
-  width: 84px;
+.cell-field {
+  /* The field fills its cell's content box exactly and drops the
+     padding on whichever side its text is aligned to, so a value at
+     rest sits precisely where the static cell put it — and where its
+     column header is — with the box outlining it rather than nudging
+     it. */
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
   height: var(--scale-700);
   padding: 0 var(--scale-200);
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--fontsize-body-sm);
+  font-weight: inherit;
+  text-align: inherit;
+  appearance: none;
+}
+
+/* No steppers: the value is typed, not nudged. */
+.cell-field::-webkit-outer-spin-button,
+.cell-field::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.cell-field[type="number"] { -moz-appearance: textfield; }
+
+.cell-field::placeholder { color: var(--text-tertiary); }
+
+/* The row is the unit of discovery: hovering it outlines every field
+   in it at once, so the editable targets are all findable from one
+   place instead of having to be hunted cell by cell. The field under
+   the pointer takes the stronger edge, to say which one a click lands
+   on. */
+table.data tbody tr:hover .cell-field:not(:focus) {
+  border-color: var(--border-tertiary);
+  background: var(--bg-surface);
+}
+
+table.data tbody tr:hover .cell-field:hover:not(:focus) {
+  border-color: var(--border-subtle);
+}
+
+.cell-field { transition: border-color 90ms linear, background-color 90ms linear; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cell-field { transition: none; }
+}
+
+.cell-field:focus {
+  background: var(--bg-surface);
+  border-color: var(--border-focus);
+  outline: 2px solid var(--border-focus);
+  outline-offset: -1px;
+}
+
+/* A rejected value stays on screen so it can be corrected; the
+   toast says why, the tint and the field agree with it. */
+.cell-field.invalid {
+  border-color: var(--status-error-border);
+  background: var(--status-error-bg);
+}
+
+.cell-field.is-num { font-variant-numeric: tabular-nums; }
+.cell-field.is-job {
   font-family: var(--font-family-mono);
   letter-spacing: .04em;
 }
-.job-input.invalid { border-color: var(--status-error-border); background: var(--status-error-bg); }
-.job-error {
-  display: block;
-  margin-top: var(--scale-50);
-  font-size: var(--fontsize-label);
-  color: var(--text-primary);
+
+/* Size is two fields reading as one value: width, a times sign,
+   height. The times sign is the anchor — width right-aligned into it,
+   height left-aligned out of it — so the pair reads as "1.50 × 2" and
+   sits identically in every row whatever the digits. */
+.size-field {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+.size-field .cell-field { width: 52px; }
+.size-field .cell-field[data-field="width"]  { text-align: right; padding-right: 0; }
+.size-field .cell-field[data-field="height"] { text-align: left;  padding-left: 0; }
+.size-field .size-x {
+  padding: 0 var(--scale-100);
+  color: var(--text-tertiary);
+}
+
+/* A quantity field only ever holds a few digits, so it takes the room
+   its digits need and stays centred under its column header, as the
+   static cell was. */
+table.data td.qty > .cell-field {
+  display: block;
+  width: 84px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* ── Depleted units ────────────────────────────────────────
+   A quantity of zero is not an error — the unit is simply used up.
+   Depleted units are hidden by default and, when shown, dimmed: still
+   readable, still editable (a recount is how one comes back), but
+   plainly not part of what is on hand. The dimming is reinforcement
+   only; the zero in the quantity column is the fact.
+   ---------------------------------------------------------- */
+table.data tbody tr.is-depleted td { color: var(--text-tertiary); }
+table.data tbody tr.is-depleted .cell-field { color: var(--text-tertiary); }
+table.data tbody tr.is-depleted td.strong { font-weight: var(--font-weight-book); }
+
+/* How many units are out of sight, said where the count is. */
+.unit-type-hidden { color: var(--text-tertiary); }
+
+/* Left-hand columns keep their own alignment and want more room. */
+.col-loc .cell-field,
+.col-job .cell-field {
+  text-align: left;
+  padding-left: 0;
+}
+.col-loc .cell-field { max-width: 168px; }
+.col-job .cell-field { max-width: 96px; }
 
 /* Row actions appear on hover, as in the shipping list. */
 .unit-actions {
