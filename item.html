@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=optional" rel="stylesheet" />
     <link rel="stylesheet" href="inventory.css" />
+    <link rel="stylesheet" href="components/breadcrumbs/breadcrumbs.css" />
     <script src="inventory-data.js"></script>
     <script>
       window.SIDEBAR_CONFIG = {
@@ -35,35 +36,36 @@
       </div>
 
       <div class="page-scroll">
-        <div class="page-bare">
+        <div class="page-inner">
 
-          <div class="title-row" style="align-items:center">
-            <h1 class="page-title-sm">Majilite-Majilite-Baby Ostrich-Cobalt Blue</h1>
-            <a class="btn-pill outline" href="#" style="flex-shrink:0">Edit Item Details</a>
-          </div>
+          <a class="back-link" href="catalog.html">
+            <i class="fa-regular fa-arrow-left"></i> Back to Bookcloth
+          </a>
 
-          <hr class="divider" style="margin-top: var(--scale-600)" />
+          <!-- Item header: name, the edit action, and the item's properties -->
+          <div class="page-card is-flush item-header">
+            <div class="item-header-row">
+              <h5>Majilite-Majilite-Baby Ostrich-Cobalt Blue</h5>
+              <button class="icon-btn" type="button"
+                      title="Edit item details" aria-label="Edit item details">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+            </div>
 
-          <!-- Item properties -->
-          <div class="section">
-            <div class="chip-row">
-              <span class="chip"><i class="fa-regular fa-building chip-icon"></i><span class="chip-label">Vendor</span><span class="chip-value">Majilite</span></span>
-              <span class="chip"><i class="fa-regular fa-layer-group chip-icon"></i><span class="chip-label">Product Line</span><span class="chip-value">Majilite</span></span>
-              <span class="chip"><i class="fa-regular fa-sitemap chip-icon"></i><span class="chip-label">Family</span><span class="chip-value">Baby Ostrich</span></span>
+            <div class="item-header-row chip-row">
+              <span class="chip"><i class="fa-regular fa-user chip-icon"></i><span class="chip-label">Vendor</span><span class="chip-value">Majilite</span></span>
+              <span class="chip"><i class="fa-regular fa-sitemap chip-icon"></i><span class="chip-label">Product Line</span><span class="chip-value">Majilite</span></span>
+              <span class="chip"><i class="fa-regular fa-layer-group chip-icon"></i><span class="chip-label">Family</span><span class="chip-value">Baby Ostrich</span></span>
               <span class="chip"><i class="fa-regular fa-palette chip-icon"></i><span class="chip-label">Color</span><span class="chip-value">Cobalt Blue</span></span>
-              <span class="chip"><i class="fa-regular fa-warehouse chip-icon"></i><span class="chip-label">House / Stocking</span><span class="chip-value">*</span></span>
+              <span class="chip"><i class="fa-regular fa-toggle-on chip-icon"></i><span class="chip-label">House / Stocking</span><span class="chip-value">*</span></span>
             </div>
           </div>
 
-          <!-- Item units, grouped by unit type -->
-          <div class="section unit-grid" id="unitBlocks"></div>
-
-          <p class="proto-note">
-            Unit types come from <a href="catalog-settings.html">Catalog Settings</a> — add,
-            rename, or toggle <em>allocatable</em> there and this page follows. Non-allocatable
-            types are children cut from the parent, so they show only their own sheet, piece or
-            roll figures — no job number, no ordering, no allocation.
-          </p>
+          <!-- Item units: one tab per unit type, as on the items table -->
+          <div class="section">
+            <div class="tab-row" id="unitTabs"></div>
+            <div id="unitBlocks"></div>
+          </div>
 
         </div>
       </div>
@@ -78,38 +80,60 @@
 
       const ITEM = INV.ITEMS.find(i => i.detailed);
 
-      /* ── Inline rollup ──────────────────────────────────────────
-         Only allocatable unit types have an Allocated and a derived
-         Available to report, so only they carry stats in the card
-         header. Everything else just totals in its footer.
+      /* ── Rollup ─────────────────────────────────────────────────
+         A KPI row: four headline figures for this unit type, each in its
+         own tile. The tiles are identical by default — colour is not
+         decoration. It appears only on Available, and only to say the
+         stock needs attention:
+         amber when it is running low, red when the item is oversold.
+         Neither state relies on colour alone; both carry an icon and a
+         tooltip saying what the state is.
          --------------------------------------------------------- */
-      function statsFor(t) {
-        if (!t.allocatable) return '';
-        const measure = INV.quantityUnitLabel(t);
-        const q = INV.itemQty(ITEM, t);
+      const STATE_FLAG = {
+        low:  { cls: 'is-low',  icon: 'fa-circle-exclamation',   note: 'Running low on available stock.' },
+        over: { cls: 'is-over', icon: 'fa-triangle-exclamation', note: 'Allocated stock exceeds in-house stock.' }
+      };
 
-        const stat = (label, value, cls = '') => `
-          <div class="unit-stat ${cls}">
-            <div class="unit-stat-label">${label}</div>
-            <div class="unit-stat-value">${fmt(value)} <span class="measure">${measure}</span></div>
+      function rollupFor(t) {
+        const spec    = MEASUREMENT_TYPES[t.measurementType];
+        const measure = INV.quantityUnitLabel(t);
+        const q       = INV.itemQty(ITEM, t);
+        const flag    = STATE_FLAG[INV.stockState(q)];
+
+        const stat = (label, value, opts = {}) => `
+          <div class="rollup-stat${opts.cls ? ' ' + opts.cls : ''}"${opts.note ? ` title="${opts.note}"` : ''}>
+            <div class="rollup-label">
+              ${opts.icon ? `<i class="fa-solid ${opts.icon}"></i> ` : ''}${label}
+            </div>
+            <div class="rollup-value">${fmt(value)}<span class="rollup-measure">${measure}</span></div>
           </div>`;
 
-        /* Available sits last: it's what the other three resolve to. */
         return `
-          <div class="unit-stats">
-            ${stat('On Order',  q.onOrder)}
-            ${stat('In-House',  q.inHouse)}
-            ${stat('Allocated', q.allocated)}
-            ${stat('Available', q.available, q.available < 0 ? 'alert' : 'derived')}
+          <div class="unit-rollup">
+            <div class="rollup-top">
+              <span class="unit-type-meta">
+                <i class="fa-regular ${INV.measurementIcon(t.measurementType)}"></i> ${spec.label}
+              </span>
+            </div>
+            <div class="rollup-stats">
+              ${stat('On Order', q.onOrder)}
+              ${stat('In-House', q.inHouse)}
+              ${stat('Allocated', q.allocated)}
+              ${stat('Available', q.available, flag || {})}
+            </div>
+            <button class="add-row" type="button">
+              <i class="fa-regular fa-plus" style="margin-right: var(--scale-200)"></i> Add ${spec.label}
+            </button>
           </div>`;
       }
 
       /* ── Per-measurement-type table shapes ──────────────────── */
       function columnsFor(t) {
         const spec = MEASUREMENT_TYPES[t.measurementType];
-        /* Job Number only exists on unit types that can be allocated. */
-        const base = [{ key: 'location', label: 'Location', left: true, cls: 'col-loc' }];
-        if (t.allocatable) base.push({ key: 'job', label: 'Job Number', left: true, cls: 'col-job' });
+        const base = [
+          { key: 'location', label: 'Location', left: true, cls: 'col-loc' },
+          { key: 'job',      label: 'Job Number', left: true, cls: 'col-job' }
+        ];
         if (spec.key === 'roll') {
           return base.concat([
             { key: 'width',  label: `Width (${t.widthUnit})` },
@@ -117,8 +141,13 @@
           ]);
         }
         if (spec.key === 'sheet') {
+          /* Width and height take their own units, so name both unless
+             they happen to match. */
+          const size = t.widthUnit === t.heightUnit
+            ? `Size (${t.widthUnit})`
+            : `Size (${t.widthUnit} &times; ${t.heightUnit})`;
           return base.concat([
-            { key: '_size', label: `Size (${t.dimensionUnit})` },
+            { key: '_size', label: size },
             { key: 'count', label: 'Count', strong: true }
           ]);
         }
@@ -128,6 +157,10 @@
       /* Which unit is mid-edit, if any. */
       let editingId = null;
       let editError = '';
+
+      /* Which unit type is on screen. */
+      let activeId = cfg.unitTypes[0]?.id || null;
+      function activeType() { return INV.unitTypeById(cfg, activeId); }
 
       function jobCell(u) {
         if (editingId === u.id) {
@@ -145,11 +178,12 @@
           return `
             <span class="job-value">${u.job}
               <button class="icon-btn" type="button" data-edit="${u.id}" title="Change job number"><i class="fa-regular fa-pen"></i></button>
-              <button class="icon-btn danger" type="button" data-release="${u.id}" title="Release allocation"><i class="fa-regular fa-xmark"></i></button>
+              <button class="icon-btn danger" type="button" data-release="${u.id}" title="Remove this stock allocation from the job."><i class="fa-regular fa-xmark"></i></button>
             </span>`;
         }
-        return `<button class="allocate-btn" type="button" data-edit="${u.id}">
-                  <i class="fa-regular fa-plus"></i> Allocate
+        return `<button class="icon-btn" type="button" data-edit="${u.id}"
+                        title="Allocate to job" aria-label="Allocate to job">
+                  <i class="fa-regular fa-plus"></i>
                 </button>`;
       }
 
@@ -160,39 +194,43 @@
         return fmt(u[col.key]);
       }
 
-      /* ── Unit blocks ────────────────────────────────────────── */
+      /* ── Tabs ───────────────────────────────────────────────── */
+      function renderTabs() {
+        document.getElementById('unitTabs').innerHTML = cfg.unitTypes.map(t =>
+          `<button class="tab-btn${t.id === activeId ? ' active' : ''}" type="button" data-tab="${t.id}">${t.name}</button>`
+        ).join('');
+      }
+
+      /* ── Active unit type ───────────────────────────────────────
+         The tab already names the type, so the card header carries only
+         the stock form, the rollup and the add action.
+         --------------------------------------------------------- */
       function renderBlocks() {
-        document.getElementById('unitBlocks').innerHTML = cfg.unitTypes.map(t => {
-          const spec    = MEASUREMENT_TYPES[t.measurementType];
+        const t = activeType();
+        const host = document.getElementById('unitBlocks');
+        if (!t) { host.innerHTML = ''; return; }
+
+        {
           const cols    = columnsFor(t);
           const mine    = units.filter(u => u.unitTypeId === t.id);
-          const total   = INV.totalFor(t, units);
-          const measure = INV.quantityUnitLabel(t);
 
           const body = mine.length
             ? mine.map(u => `
                 <tr>
-                  ${cols.map(c => `<td class="${c.left ? 'left' : 'qty'}${c.strong ? ' derived' : ''}${c.cls ? ' ' + c.cls : ''}">${cellValue(u, c, t)}</td>`).join('')}
+                  ${cols.map(c => `<td class="${c.left ? 'left' : 'qty'}${c.strong ? ' strong' : ''}${c.cls ? ' ' + c.cls : ''}">${cellValue(u, c, t)}</td>`).join('')}
                   <td class="qty col-act">
                     <div class="unit-actions">
                       <button class="icon-btn" type="button" title="Print unit label"><i class="fa-regular fa-print"></i></button>
                     </div>
                   </td>
                 </tr>`).join('')
-            : `<tr><td class="left" colspan="${cols.length + 1}" style="color:var(--text-tertiary)">No ${t.name.toLowerCase()} recorded.</td></tr>`;
+            : `<tr><td class="left" colspan="${cols.length + 1}" style="color:var(--text-tertiary)">No ${t.name.toLowerCase()} yet. Add one to start tracking stock.</td></tr>`;
 
           const noun = mine.length === 1 ? 'unit' : 'units';
 
-          return `
-            <div class="unit-type-block${t.allocatable ? ' is-allocatable' : ''}">
-              <div class="unit-type-head">
-                <span class="unit-type-name">${t.name}</span>
-                <span class="unit-type-meta">${spec.label}</span>
-                ${statsFor(t)}
-                <button class="icon-btn" type="button" title="Add ${t.name}"${t.allocatable ? '' : ' style="margin-left:auto"'}>
-                  <i class="fa-solid fa-plus"></i>
-                </button>
-              </div>
+          host.innerHTML = `
+            <div class="unit-type-block">
+              ${rollupFor(t)}
               <table class="data">
                 <thead>
                   <tr>
@@ -204,14 +242,23 @@
               </table>
               <div class="unit-type-foot">
                 <span class="unit-type-count">${mine.length} ${noun}</span>
-                ${t.allocatable
-                  /* In-House in the header already reports this sum. */
-                  ? ''
-                  : `<span class="unit-type-total">Total <strong>${fmt(total)} ${measure}</strong></span>`}
               </div>
             </div>`;
-        }).join('');
+        }
       }
+
+      /* ── Tab switching ──────────────────────────────────────────
+         Leaving a tab abandons any job number mid-edit, so the field
+         never reappears against a different unit type. */
+      document.getElementById('unitTabs').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-tab]');
+        if (!btn || btn.dataset.tab === activeId) return;
+        activeId  = btn.dataset.tab;
+        editingId = null;
+        editError = '';
+        renderTabs();
+        renderBlocks();
+      });
 
       /* ── Allocation actions ─────────────────────────────────── */
       const blocksEl = document.getElementById('unitBlocks');
@@ -262,6 +309,7 @@
         if (e.key === 'Escape') { editingId = null; editError = ''; renderBlocks(); }
       });
 
+      renderTabs();
       renderBlocks();
     </script>
   </body>

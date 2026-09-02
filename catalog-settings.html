@@ -10,6 +10,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=optional" rel="stylesheet" />
     <link rel="stylesheet" href="inventory.css" />
+    <link rel="stylesheet" href="components/breadcrumbs/breadcrumbs.css" />
+    <link rel="stylesheet" href="components/flyout/flyout.css" />
     <script src="inventory-data.js"></script>
     <script>
       window.SIDEBAR_CONFIG = {
@@ -34,213 +36,369 @@
 
       <div class="page-scroll">
         <div class="page-card">
-          <div class="page-inner">
 
-            <div class="title-row" style="align-items:center">
-              <h1 class="page-title">Bookcloth</h1>
-              <button class="kebab" type="button" title="Catalog actions"><i class="fa-regular fa-ellipsis-vertical"></i></button>
-            </div>
+          <!-- The catalog's name is edited here, so the page title is the
+               field itself rather than a heading with an edit affordance. -->
+          <div class="title-row">
+            <input class="input title-input" type="text" id="catalogTitle"
+                   aria-label="Catalog name" autocomplete="off" />
+          </div>
 
-            <hr class="divider" />
+          <hr class="divider" />
 
-            <!-- CATALOG PROPERTIES -->
-            <div class="section">
-              <div class="section-label">Catalog Properties</div>
-              <div class="section-body">
-                <div class="chip-row">
-                  <span class="chip"><i class="fa-regular fa-building chip-icon"></i><span class="chip-label">Vendor</span></span>
-                  <span class="chip"><i class="fa-regular fa-location-dot chip-icon"></i><span class="chip-label">Default Location</span></span>
-                  <span class="chip"><i class="fa-regular fa-layer-group chip-icon"></i><span class="chip-label">Product Line</span></span>
-                  <span class="chip"><i class="fa-regular fa-sitemap chip-icon"></i><span class="chip-label">Family</span></span>
-                  <span class="chip"><i class="fa-regular fa-palette chip-icon"></i><span class="chip-label">Color</span></span>
-                  <span class="chip removable"><i class="fa-regular fa-stamp chip-icon"></i><span class="chip-label">Decoration</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
-                  <span class="chip removable"><i class="fa-regular fa-ship chip-icon"></i><span class="chip-label">Cruise Line</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
-                  <span class="chip removable"><i class="fa-regular fa-warehouse chip-icon"></i><span class="chip-label">House / Stocking</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
-                  <span class="chip removable"><span class="chip-icon">#</span><span class="chip-label">Swatch Number</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
-                </div>
-                <button class="add-row" type="button">
-                  <i class="fa-regular fa-plus" style="margin-right: var(--scale-200)"></i> Add Catalog Property
-                </button>
+          <!-- CATALOG PROPERTIES -->
+          <div class="section">
+            <div class="section-label">Catalog Properties</div>
+            <div class="section-body">
+              <!-- Global properties carry a fixed icon; a created property
+                   carries the icon of its type (True/False → toggle-on,
+                   Dropdown → diamond, Measurement → square, Number →
+                   hashtag, Description → text). -->
+              <div class="chip-row">
+                <span class="chip"><i class="fa-regular fa-user chip-icon"></i><span class="chip-label">Vendor</span></span>
+                <span class="chip"><i class="fa-regular fa-location-arrow chip-icon"></i><span class="chip-label">Default Location</span></span>
+                <span class="chip"><i class="fa-regular fa-sitemap chip-icon"></i><span class="chip-label">Product Line</span></span>
+                <span class="chip"><i class="fa-regular fa-layer-group chip-icon"></i><span class="chip-label">Family</span></span>
+                <span class="chip"><i class="fa-regular fa-palette chip-icon"></i><span class="chip-label">Color</span></span>
+                <span class="chip removable"><i class="fa-regular fa-diamond chip-icon"></i><span class="chip-label">Decoration</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
+                <span class="chip removable"><i class="fa-regular fa-toggle-on chip-icon"></i><span class="chip-label">Cruise Line</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
+                <span class="chip removable"><i class="fa-regular fa-toggle-on chip-icon"></i><span class="chip-label">House / Stocking</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
+                <span class="chip removable"><i class="fa-regular fa-hashtag chip-icon"></i><span class="chip-label">Swatch Number</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
               </div>
+              <button class="add-row" type="button">
+                <i class="fa-regular fa-plus" style="margin-right: var(--scale-200)"></i> Add Catalog Property
+              </button>
             </div>
+          </div>
 
-            <!-- UNITS -->
-            <div class="section">
-              <div class="section-label">Units</div>
-              <div class="section-help">
-                Each unit type describes one way this catalog's stock is held, and gets its own
-                tab in the items table. The measurement type sets which fields a unit carries;
-                allocatable types also track a job number, allocation and availability.
-              </div>
-              <div class="section-body">
-                <div id="unitTypes" style="display:flex; flex-direction:column; gap: var(--scale-300)"></div>
-                <button class="add-row" type="button" id="addUnitType">
-                  <i class="fa-regular fa-plus" style="margin-right: var(--scale-200)"></i> Add Unit Type
-                </button>
-              </div>
+          <!-- UNITS -->
+          <div class="section">
+            <div class="section-label">Units</div>
+            <div class="section-help">
+              Configure how stock is measured and tracked in this catalog. Customize the name
+              and measurements for each collection of rolls, pieces or sheets.
             </div>
-
-            <!-- ITEM NAMING -->
-            <div class="section">
-              <div class="section-label">Item Naming</div>
-              <div class="section-help">
-                Items are named automatically from their properties. Add segments to define the template.
-              </div>
-              <div class="section-body">
-                <div class="chip-row" id="namingChips">
-                  <span class="chip removable" data-seg="Vendor"><i class="fa-regular fa-building chip-icon"></i><span class="chip-label">Vendor</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
-                  <span class="chip removable" data-seg="Product Line"><i class="fa-regular fa-layer-group chip-icon"></i><span class="chip-label">Product Line</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
-                  <span class="chip removable" data-seg="Family"><i class="fa-regular fa-sitemap chip-icon"></i><span class="chip-label">Family</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
-                  <span class="chip removable" data-seg="Color"><i class="fa-regular fa-palette chip-icon"></i><span class="chip-label">Color</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
-                  <span class="chip removable" data-seg="Decoration"><i class="fa-regular fa-stamp chip-icon"></i><span class="chip-label">Decoration</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
-                </div>
-                <button class="add-row" type="button">
-                  <i class="fa-regular fa-plus" style="margin-right: var(--scale-200)"></i> Add Naming Segment
-                </button>
-              </div>
+            <div class="section-body">
+              <!-- Rows are read-only summaries; every edit goes through the flyout. -->
+              <div class="unit-config-list" id="unitTypes"></div>
+              <button class="add-row" type="button" id="addUnitType">
+                <i class="fa-regular fa-plus" style="margin-right: var(--scale-200)"></i> Add Unit Type
+              </button>
             </div>
+          </div>
 
-            <div class="form-footer">
-              <a class="btn-pill outline" href="catalog.html">Back</a>
-              <button class="btn-pill solid is-disabled" type="button" id="saveBtn">Save Changes</button>
+          <!-- ITEM NAMING -->
+          <div class="section">
+            <div class="section-label">Item Naming</div>
+            <div class="section-help">
+              Items are named automatically from their properties. Add segments to define the template.
             </div>
+            <div class="section-body">
+              <div class="chip-row" id="namingChips">
+                <span class="chip removable" data-seg="Vendor"><i class="fa-regular fa-user chip-icon"></i><span class="chip-label">Vendor</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
+                <span class="chip removable" data-seg="Product Line"><i class="fa-regular fa-sitemap chip-icon"></i><span class="chip-label">Product Line</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
+                <span class="chip removable" data-seg="Family"><i class="fa-regular fa-layer-group chip-icon"></i><span class="chip-label">Family</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
+                <span class="chip removable" data-seg="Color"><i class="fa-regular fa-palette chip-icon"></i><span class="chip-label">Color</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
+                <span class="chip removable" data-seg="Decoration"><i class="fa-regular fa-diamond chip-icon"></i><span class="chip-label">Decoration</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
+              </div>
+              <button class="add-row" type="button">
+                <i class="fa-regular fa-plus" style="margin-right: var(--scale-200)"></i> Add Naming Segment
+              </button>
+            </div>
+          </div>
 
+          <div class="form-footer">
+            <a class="btn-pill outline" href="catalog.html">Cancel</a>
+            <button class="btn-pill solid" type="button" id="saveBtn" disabled>Save Changes</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Unit type flyout ──
+         Same .flyout-overlay/.flyout-panel recipe as the bindery
+         calculator's Edit Job Details / Settings panels. Edits a draft
+         copy so Cancel (or the overlay / Esc) discards cleanly; Done
+         writes back into the page's working config, which is still not
+         committed until Save Changes. -->
+    <div class="flyout-overlay" id="unitFlyout">
+      <div class="flyout-panel" role="dialog" aria-modal="true" aria-labelledby="unitFlyoutTitle">
+        <div class="flyout-header">
+          <span class="flyout-title" id="unitFlyoutTitle">Edit Unit Type</span>
+          <button class="icon-btn" type="button" id="unitFlyoutClose" aria-label="Close">
+            <i class="fa-regular fa-xmark"></i>
+          </button>
+        </div>
+        <div class="flyout-body" id="unitFlyoutBody"></div>
+        <div class="flyout-footer">
+          <div class="footer-actions">
+            <button class="btn-pill outline sm" type="button" id="unitFlyoutCancel">Cancel</button>
+            <button class="btn-pill solid sm" type="button" id="unitFlyoutDone">Save Unit Type</button>
           </div>
         </div>
       </div>
     </div>
 
     <script>
-      const { MEASUREMENT_TYPES, UNIT_OPTIONS, UNIT_LABELS, loadConfig, saveConfig } = window.INVENTORY;
+      const { MEASUREMENT_TYPES, UNIT_OPTIONS, UNIT_LABELS, measurementIcon,
+              loadConfig, saveConfig } = window.INVENTORY;
 
       const saveBtn   = document.getElementById('saveBtn');
       const listEl    = document.getElementById('unitTypes');
       const chipsEl   = document.getElementById('namingChips');
 
+      const flyout      = document.getElementById('unitFlyout');
+      const flyoutTitle = document.getElementById('unitFlyoutTitle');
+      const flyoutBody  = document.getElementById('unitFlyoutBody');
+
       /* Working copy — nothing is committed until Save Changes. */
       let cfg = JSON.parse(JSON.stringify(loadConfig()));
 
-      function dirty() { saveBtn.classList.remove('is-disabled'); }
+      function dirty() { saveBtn.disabled = false; }
 
-      function unitSelect(name, value) {
-        const opts = UNIT_OPTIONS.map(u =>
-          `<option value="${u}"${u === value ? ' selected' : ''}>${UNIT_LABELS[u]} (${u})</option>`
-        ).join('');
-        return `<select class="select" data-unit-field="${name}">${opts}</select>`;
-      }
+      /* The name is the same cfg.catalog the items page reads for its
+         title, so renaming here renames it there once saved. */
+      const titleEl = document.getElementById('catalogTitle');
+      titleEl.value = cfg.catalog;
+      titleEl.addEventListener('input', () => {
+        cfg.catalog = titleEl.value;
+        dirty();
+      });
 
-      /* Which unit pickers a card shows depends on its measurement type. */
-      function unitFields(t) {
+      const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+      const unitLabel = (u) => `${UNIT_LABELS[u]} (${u})`;
+
+      /* The fields a unit of this type records, spelled out in its own
+         units — the shape of the unit, in one line. */
+      const word = (u) => UNIT_LABELS[u] || u;
+
+      function shapeOf(t) {
         if (t.measurementType === 'roll') {
-          return `
-            <div class="field shrink">
-              <label class="field-label">Width unit</label>
-              ${unitSelect('widthUnit', t.widthUnit || 'in')}
-            </div>
-            <div class="field shrink">
-              <label class="field-label">Length unit</label>
-              ${unitSelect('lengthUnit', t.lengthUnit || 'yd')}
-            </div>`;
+          return `Roll Width (${word(t.widthUnit || 'in')}) &times; Length (${word(t.lengthUnit || 'yd')})`;
         }
         if (t.measurementType === 'sheet') {
-          return `
-            <div class="field shrink">
-              <label class="field-label">Dimension unit</label>
-              ${unitSelect('dimensionUnit', t.dimensionUnit || 'yd')}
-            </div>`;
+          return `Width (${word(t.widthUnit || 'yd')}) &times; Height (${word(t.heightUnit || 'yd')}) &amp; Count`;
         }
-        return ''; /* piece carries a count only */
+        return 'Count';
       }
 
-      function hint(t) {
-        const map = {
-          roll: 'Each unit records a width and a length. Stock is the total length.',
-          piece: 'Each unit records a count. Stock is the total count.',
-          sheet: 'Each unit records a sheet size and a count. Stock is the total count.'
-        };
-        return map[t.measurementType] || '';
+      /* A worked example, so the shape reads concretely. */
+      function exampleOf(t) {
+        if (t.measurementType === 'roll') return `i.e. 64 ${word(t.lengthUnit || 'yd')}`;
+        if (t.measurementType === 'sheet') {
+          const w = word(t.widthUnit || 'yd'), h = word(t.heightUnit || 'yd');
+          return w === h
+            ? `i.e. 35 sheets (8.5 &times; 11 ${w})`
+            : `i.e. 35 sheets (8.5 ${w} &times; 11 ${h})`;
+        }
+        return 'i.e. 35 pieces';
       }
 
+      /* Which unit type is pending deletion, if any. Deleting takes a
+         confirm step in place, rather than a dialog. */
+      let confirmingId = null;
+
+      /* Name what goes with it, so the confirmation states the real scope. */
+      function consequenceOf(t) {
+        const n = window.INVENTORY.DEFAULT_UNITS.filter(u => u.unitTypeId === t.id).length;
+        if (!n) return 'No stock is recorded in this form.';
+        return n === 1
+          ? 'The 1 unit recorded in this type will be deleted too.'
+          : `The ${n} units recorded in this type will be deleted too.`;
+      }
+
+      /* ── Read-only summary rows ─────────────────────────────────
+         One line per unit type: name, measurement shape, the fields a
+         unit records, and an example. Editing and deleting are the
+         hover actions at the trailing edge, as in the item page's unit
+         tables — the flyout is only reached from Edit.
+         --------------------------------------------------------- */
       function render() {
+        /* A catalog needs at least one way to hold stock. */
+        const last = cfg.unitTypes.length === 1;
+
         listEl.innerHTML = cfg.unitTypes.map(t => {
-          const typeOpts = Object.values(MEASUREMENT_TYPES).map(m =>
-            `<option value="${m.key}"${m.key === t.measurementType ? ' selected' : ''}>${m.label}</option>`
-          ).join('');
+          const spec = MEASUREMENT_TYPES[t.measurementType];
+
+          if (t.id === confirmingId) {
+            return `
+            <div class="unit-config-row is-confirming">
+              <span class="unit-config-confirm">
+                Delete <strong>${esc(t.name)}</strong>? ${consequenceOf(t)}
+              </span>
+              <span class="unit-config-actions">
+                <button class="btn-ghost" type="button" data-cancel-delete="1">Cancel</button>
+                <button class="btn-pill solid sm is-danger" type="button" data-confirm-delete="${t.id}">Delete</button>
+              </span>
+            </div>`;
+          }
 
           return `
-            <div class="unit-type-card" data-id="${t.id}">
-              <div class="field grow">
-                <label class="field-label">Unit type name</label>
-                <input class="input" type="text" data-field="name" value="${t.name}" />
-              </div>
-              <div class="field shrink">
-                <label class="field-label">Measurement type</label>
-                <select class="select" data-field="measurementType">${typeOpts}</select>
-              </div>
-              ${unitFields(t)}
-              <label class="check-toggle" title="Units of this type can be committed to a job">
-                <input type="checkbox" data-field="allocatable"${t.allocatable ? ' checked' : ''} />
-                <span>Allocatable to a job</span>
-              </label>
-              <button class="icon-btn danger shrink" type="button" data-remove="${t.id}"
-                      title="Remove unit type"${cfg.unitTypes.length === 1 ? ' disabled' : ''}>
-                <i class="fa-regular fa-trash"></i>
+          <div class="unit-config-row" data-row="${t.id}">
+            <span class="unit-config-name">${esc(t.name)}</span>
+            <span class="unit-config-measure">
+              <i class="fa-regular ${measurementIcon(t.measurementType)}"></i> ${spec.label}
+            </span>
+            <span class="unit-config-shape">${shapeOf(t)}</span>
+            <span class="unit-config-example">${exampleOf(t)}</span>
+            <span class="unit-config-actions">
+              <button class="icon-btn" type="button" data-edit="${t.id}"
+                      title="Edit ${esc(t.name)}" aria-label="Edit ${esc(t.name)}">
+                <i class="fa-regular fa-pen-to-square"></i>
               </button>
-              <div class="meas-hint">${hint(t)}${
-                t.allocatable
-                  ? ' Purchased and committed to jobs, so it carries a job number and reports On Order, Allocated and Available.'
-                  : ' Treated as a child of the parent item — cut, not ordered — so it reports In-House only.'
-              }</div>
-            </div>`;
+              <button class="icon-btn danger" type="button" data-delete="${t.id}"
+                      ${last ? 'disabled title="A catalog needs at least one unit type"'
+                             : `title="Delete ${esc(t.name)}" aria-label="Delete ${esc(t.name)}"`}>
+                <i class="fa-regular fa-trash-can"></i>
+              </button>
+            </span>
+          </div>`;
         }).join('');
       }
 
-      /* ── Edits ─────────────────────────────────────────────── */
-      listEl.addEventListener('input', (e) => {
-        const card = e.target.closest('.unit-type-card');
-        if (!card) return;
-        const t = cfg.unitTypes.find(x => x.id === card.dataset.id);
-        const field = e.target.dataset.field || e.target.dataset.unitField;
-        if (!t || !field) return;
+      /* ── Flyout ────────────────────────────────────────────────
+         `draft` is a copy; nothing lands in cfg until Done. `editingId`
+         is null when adding, so Done appends instead of replacing. */
+      let draft = null;
+      let editingId = null;
 
-        t[field] = e.target.value;
+      function unitSelect(field, value) {
+        const opts = UNIT_OPTIONS.map(u =>
+          `<option value="${u}"${u === value ? ' selected' : ''}>${unitLabel(u)}</option>`
+        ).join('');
+        return `<select class="select" data-field="${field}">${opts}</select>`;
+      }
+
+      function renderFlyout() {
+        const typeOpts = Object.values(MEASUREMENT_TYPES).map(m =>
+          `<option value="${m.key}"${m.key === draft.measurementType ? ' selected' : ''}>${m.label}</option>`
+        ).join('');
+
+        let unitFields = '';
+        if (draft.measurementType === 'roll') {
+          unitFields = `
+            <div class="field">
+              <label class="field-label">Width unit</label>
+              ${unitSelect('widthUnit', draft.widthUnit || 'in')}
+            </div>
+            <div class="field">
+              <label class="field-label">Length unit</label>
+              ${unitSelect('lengthUnit', draft.lengthUnit || 'yd')}
+            </div>`;
+        } else if (draft.measurementType === 'sheet') {
+          unitFields = `
+            <div class="field">
+              <label class="field-label">Width unit</label>
+              ${unitSelect('widthUnit', draft.widthUnit || 'yd')}
+            </div>
+            <div class="field">
+              <label class="field-label">Height unit</label>
+              ${unitSelect('heightUnit', draft.heightUnit || 'yd')}
+            </div>`;
+        }
+
+        flyoutBody.innerHTML = `
+          <div class="field">
+            <label class="field-label">Unit type name</label>
+            <input class="input" type="text" data-field="name" value="${esc(draft.name)}" />
+          </div>
+          <div class="field">
+            <label class="field-label">Stock form</label>
+            <select class="select" data-field="measurementType">${typeOpts}</select>
+          </div>
+          ${unitFields}`;
+      }
+
+      function openFlyout(id) {
+        editingId = id;
+        draft = id
+          ? JSON.parse(JSON.stringify(cfg.unitTypes.find(t => t.id === id)))
+          : { id: 'ut-' + Date.now().toString(36), name: MEASUREMENT_TYPES.piece.defaultName,
+              measurementType: 'piece' };
+
+        flyoutTitle.textContent = id ? 'Edit Unit Type' : 'Add Unit Type';
+
+        renderFlyout();
+        flyout.classList.add('open');
+        flyoutBody.querySelector('[data-field="name"]')?.focus();
+      }
+
+      function closeFlyout() {
+        flyout.classList.remove('open');
+        draft = null;
+        editingId = null;
+      }
+
+      flyoutBody.addEventListener('input', (e) => {
+        const field = e.target.dataset.field;
+        if (!draft || !field) return;
+        draft[field] = e.target.value;
 
         /* Switching measurement type swaps the whole field set, and
            renames the type if it still carries the old default name. */
         if (field === 'measurementType') {
-          const prevDefaults = Object.values(MEASUREMENT_TYPES).map(m => m.defaultName);
-          if (prevDefaults.includes(t.name)) t.name = MEASUREMENT_TYPES[t.value || t.measurementType].defaultName;
-          if (t.measurementType === 'roll') { t.widthUnit = t.widthUnit || 'in'; t.lengthUnit = t.lengthUnit || 'yd'; }
-          if (t.measurementType === 'sheet') { t.dimensionUnit = t.dimensionUnit || 'yd'; }
-          render();
+          const defaults = Object.values(MEASUREMENT_TYPES).map(m => m.defaultName);
+          if (defaults.includes(draft.name)) draft.name = MEASUREMENT_TYPES[draft.measurementType].defaultName;
+          if (draft.measurementType === 'roll') {
+            draft.widthUnit = draft.widthUnit || 'in';
+            draft.lengthUnit = draft.lengthUnit || 'yd';
+          }
+          if (draft.measurementType === 'sheet') {
+            draft.widthUnit  = draft.widthUnit  || 'yd';
+            draft.heightUnit = draft.heightUnit || 'yd';
+          }
+          renderFlyout();
         }
-        dirty();
-      });
-
-      listEl.addEventListener('change', (e) => {
-        if (e.target.dataset.field !== 'allocatable') return;
-        const card = e.target.closest('.unit-type-card');
-        const t = cfg.unitTypes.find(x => x.id === card.dataset.id);
-        t.allocatable = e.target.checked;
-        render();
-        dirty();
       });
 
       listEl.addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-remove]');
-        if (!btn) return;
-        const id = btn.dataset.remove;
-        cfg.unitTypes = cfg.unitTypes.filter(t => t.id !== id);
+        const edit    = e.target.closest('[data-edit]');
+        const del     = e.target.closest('[data-delete]');
+        const cancel  = e.target.closest('[data-cancel-delete]');
+        const confirm = e.target.closest('[data-confirm-delete]');
+        const row     = e.target.closest('[data-row]');
+
+        if (edit)   { confirmingId = null; render(); openFlyout(edit.dataset.edit); return; }
+        if (del)    { confirmingId = del.dataset.delete; render(); return; }
+        if (cancel) { confirmingId = null; render(); return; }
+        if (confirm) {
+          cfg.unitTypes = cfg.unitTypes.filter(t => t.id !== confirm.dataset.confirmDelete);
+          confirmingId = null;
+          render();
+          dirty();
+          return;
+        }
+        /* Clicking the row itself is a shortcut to Edit; the buttons above
+           are the keyboard path. */
+        if (row) openFlyout(row.dataset.row);
+      });
+
+      /* Escape backs out of a pending delete before it reaches the flyout. */
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && confirmingId) { confirmingId = null; render(); }
+      });
+      document.getElementById('addUnitType').addEventListener('click', () => openFlyout(null));
+
+      document.getElementById('unitFlyoutDone').addEventListener('click', () => {
+        if (!draft) return;
+        if (!draft.name.trim()) draft.name = MEASUREMENT_TYPES[draft.measurementType].defaultName;
+        if (editingId) {
+          const i = cfg.unitTypes.findIndex(t => t.id === editingId);
+          cfg.unitTypes[i] = draft;
+        } else {
+          cfg.unitTypes.push(draft);
+        }
+        closeFlyout();
         render();
         dirty();
       });
 
-      document.getElementById('addUnitType').addEventListener('click', () => {
-        const id = 'ut-' + Date.now().toString(36);
-        cfg.unitTypes.push({ id, name: MEASUREMENT_TYPES.piece.defaultName, measurementType: 'piece', allocatable: false });
-        render();
-        dirty();
-        listEl.querySelector(`[data-id="${id}"] [data-field="name"]`)?.focus();
+      document.getElementById('unitFlyoutCancel').addEventListener('click', closeFlyout);
+      document.getElementById('unitFlyoutClose').addEventListener('click', closeFlyout);
+      flyout.addEventListener('click', (e) => { if (e.target === flyout) closeFlyout(); });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && flyout.classList.contains('open')) closeFlyout();
       });
 
       /* ── Item naming chips ─────────────────────────────────── */
@@ -254,7 +412,7 @@
       /* ── Save ──────────────────────────────────────────────── */
       saveBtn.addEventListener('click', () => {
         saveConfig(JSON.parse(JSON.stringify(cfg)));
-        saveBtn.classList.add('is-disabled');
+        saveBtn.disabled = true;
         saveBtn.textContent = 'Saved';
         setTimeout(() => { saveBtn.textContent = 'Save Changes'; }, 1600);
       });

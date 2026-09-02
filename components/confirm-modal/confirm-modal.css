@@ -1,0 +1,93 @@
+/* ============================================================
+   Confirmation modal — centred dialog for a destructive action
+   ------------------------------------------------------------
+   Extracted from inventory.css for handoff — the dev team has
+   its own component for this (see the note in job maintenance's
+   ship-delete-confirm-modal.css). Nothing here is specific to
+   the inventory prototype.
+
+   Follows the same shell as PL-JM-1.25's components/modal-shell.css:
+   .modal-overlay / .modal-panel / -header / -title / -body /
+   -footer, with .modal-centered for the dialog case. Tokenised
+   here rather than carrying that file's literal pixel values.
+
+   Depends on: shared/css/design-tokens.css
+   Also uses --duration-panel, declared in inventory.css's local
+   token block and a candidate to promote into design-tokens.css.
+   ============================================================ */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--scale-500);
+  background: var(--overlay-modal);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-panel) ease;
+}
+.modal-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.modal-panel {
+  width: 420px;
+  max-width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0 8px 32px rgb(from var(--color-black) r g b / .2);
+  transform: translateY(var(--scale-300));
+  transition: transform var(--duration-panel) ease;
+}
+.modal-overlay.open .modal-panel { transform: translateY(0); }
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--scale-300);
+  flex-shrink: 0;
+  padding: var(--scale-400) var(--scale-500);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.modal-title {
+  font-size: var(--fontsize-body-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--scale-500);
+  font-size: var(--fontsize-body-sm);
+  color: var(--text-primary);
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--scale-300);
+  flex-shrink: 0;
+  padding: var(--scale-400) var(--scale-500);
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* The consequence, stated in the dialog rather than left to the
+   button label. Tinted so the cost is visible before the click. */
+.confirm-warning {
+  margin: 0;
+  padding: var(--scale-300) var(--scale-400);
+  background: var(--status-error-bg);
+  border: 1px solid var(--status-error-border);
+  border-radius: var(--border-radius-sm);
+  line-height: var(--line-height-body-sm);
+}

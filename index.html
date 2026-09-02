@@ -13,8 +13,8 @@
       owner:           'hpembridge',
       repo:            'Inventory-Quantity-Upgrade',
       title:           'Inventory Quantity Upgrade',
-      eyebrow:         'Inventory Quantity Upgrade',
-      sprintTrackerUrl:'https://hpembridge.github.io/Sprint-Tracker/',
+      eyebrow:         'Inventory',
+      sprintTrackerUrl:'https://hpembridge.github.io/Product-Management-Tool/',
     };
   </script>
 
@@ -90,6 +90,26 @@
     /* Dev Notes */
     .notes-section { margin-bottom: 36px; }
 
+    /* Prototype cards */
+    .card-grid { display: flex; flex-direction: column; gap: 10px; }
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      border: 1px solid #dde2ea;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      transition: box-shadow .15s, transform .15s;
+    }
+    .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); transform: translateY(-1px); }
+    .card h2 { font-size: 14px; font-weight: 600; flex: 1; }
+    .card-arrow { font-size: 12px; color: #9aa3b0; }
+
+    .status-msg { font-size: 13px; color: #8e9aab; }
+
     /* Inline markdown notes */
     .notes-inline-card {
       background: #fff;
@@ -127,25 +147,45 @@
     .notes-inline-card strong { font-weight: 700; color: #1a1d23; }
     .notes-inline-card a { color: #6366f1; text-decoration: underline; }
 
-    /* Prototype cards */
-    .card-grid { display: flex; flex-direction: column; gap: 10px; }
-    .card {
-      background: #fff;
-      border-radius: 10px;
+    /* Tables — marked emits bare <table>, and nothing above styled it, so
+       table-heavy notes fell back to browser defaults. */
+    .notes-table-scroll {
+      overflow-x: auto;
+      margin-bottom: 16px;
       border: 1px solid #dde2ea;
-      text-decoration: none;
-      color: inherit;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 16px 20px;
-      transition: box-shadow .15s, transform .15s;
+      border-radius: 8px;
     }
-    .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); transform: translateY(-1px); }
-    .card h2 { font-size: 14px; font-weight: 600; flex: 1; }
-    .card-arrow { font-size: 12px; color: #9aa3b0; }
+    .notes-inline-card table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+      line-height: 1.55;
+    }
+    .notes-inline-card thead th {
+      text-align: left;
+      font-weight: 700;
+      color: #1a1d23;
+      background: #f7f8fa;
+      padding: 9px 14px;
+      border-bottom: 1px solid #dde2ea;
+      white-space: nowrap;
+    }
+    .notes-inline-card tbody td {
+      padding: 9px 14px;
+      color: #374151;
+      border-bottom: 1px solid #edf0f4;
+      vertical-align: top;
+    }
+    .notes-inline-card tbody tr:last-child td { border-bottom: none; }
+    .notes-inline-card tbody tr:hover td { background: #fafbfc; }
 
-    .status-msg { font-size: 13px; color: #8e9aab; }
+    /* First column carries the control name or rule id — keep it tight and
+       emphasised so the tables scan as a reference rather than prose. */
+    .notes-inline-card tbody td:first-child { color: #1a1d23; }
+    .notes-inline-card tbody td:first-child strong { font-weight: 600; }
+    .notes-inline-card thead th:first-child,
+    .notes-inline-card tbody td:first-child { width: 1%; white-space: nowrap; }
+    .notes-inline-card table td code { white-space: nowrap; }
 
     footer {
       text-align: center;
@@ -189,12 +229,12 @@
 
   <script>
     // ── Apply static config ──
-    document.title                                      = CONFIG.title;
-    document.getElementById('hEyebrow').textContent     = CONFIG.eyebrow;
-    document.getElementById('hTitle').textContent       = CONFIG.title;
-    document.getElementById('footerText').textContent   = CONFIG.title + ' · Cleveland Menu Co.';
-    document.getElementById('lTracker').href            = CONFIG.sprintTrackerUrl;
-    document.getElementById('lGithub').href             = `https://github.com/${CONFIG.owner}/${CONFIG.repo}`;
+    document.title                          = CONFIG.title;
+    document.getElementById('hEyebrow').textContent  = CONFIG.eyebrow;
+    document.getElementById('hTitle').textContent    = CONFIG.title;
+    document.getElementById('footerText').textContent = CONFIG.title + ' · Cleveland Menu Co.';
+    document.getElementById('lTracker').href = CONFIG.sprintTrackerUrl;
+    document.getElementById('lGithub').href  = `https://github.com/${CONFIG.owner}/${CONFIG.repo}`;
 
     // ── Utilities ──
     function toTitle(str) {
@@ -262,6 +302,12 @@
             const r = await fetch(name);
             const md = await r.text();
             card.innerHTML = marked.parse(md);
+            card.querySelectorAll('table').forEach(t => {
+              const wrap = document.createElement('div');
+              wrap.className = 'notes-table-scroll';
+              t.parentNode.insertBefore(wrap, t);
+              wrap.appendChild(t);
+            });
           } catch {
             card.innerHTML = '<p style="color:#8e9aab;font-size:13px">Could not load notes.</p>';
           }

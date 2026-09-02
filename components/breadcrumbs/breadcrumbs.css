@@ -1,0 +1,39 @@
+/* ============================================================
+   Breadcrumbs — the bar above the page, and its crumbs
+   ------------------------------------------------------------
+   Extracted from inventory.css for handoff — the dev team has
+   its own component for this. Nothing here is specific to the
+   inventory prototype.
+
+   Depends on: shared/css/design-tokens.css
+   ============================================================ */
+
+/* ── Breadcrumb bar ────────────────────────────────────────── */
+.breadcrumb-bar {
+  height: var(--scale-1200);
+  flex-shrink: 0;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-tertiary);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--scale-800);
+}
+.breadcrumbs {
+  width: 100%;
+  max-width: var(--container-workspace);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--scale-200);
+  font-size: var(--fontsize-body-sm);
+}
+.crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--scale-100);
+  color: var(--text-tertiary);
+  text-decoration: none;
+}
+.crumb:hover { color: var(--text-interactive); }
+.crumb.current { color: var(--text-primary); font-weight: var(--font-weight-semibold); }
+.crumb-sep { color: var(--border-subtle); font-size: var(--fontsize-label); }

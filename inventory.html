@@ -10,6 +10,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=optional" rel="stylesheet" />
     <link rel="stylesheet" href="inventory.css" />
+    <link rel="stylesheet" href="components/breadcrumbs/breadcrumbs.css" />
+    <link rel="stylesheet" href="components/confirm-modal/confirm-modal.css" />
     <script>
       window.SIDEBAR_CONFIG = {
         activeItem: 'Inventory',
@@ -19,6 +21,7 @@
   </head>
   <body>
     <script src="shared/components/sidebar-component.js"></script>
+    <script src="inventory-data.js"></script>
 
     <div class="main-content">
       <div class="breadcrumb-bar">
@@ -30,61 +33,405 @@
       <div class="page-scroll">
         <div class="page-inner">
 
-            <!-- Library tabs -->
-            <div class="tab-row">
-              <a class="tab active" href="inventory.html">Materials</a>
-              <a class="tab" href="#">IT Inventory</a>
-              <button class="tab add" type="button">+ Add New Library</button>
-            </div>
+            <!-- Library tabs — one per library this person keeps in their
+                 view, each dismissable, plus a picker to add another. -->
+            <div class="lib-tabs" id="libTabs"></div>
 
-            <!-- Title -->
-            <div class="title-row">
-              <h1 class="page-title">Materials</h1>
-              <a class="btn-pill outline sm" href="#">Edit</a>
-            </div>
+            <!-- The active library's panel welds onto its tab, so the two
+                 read as one folder. -->
+            <div class="lib-panel">
+              <div class="title-row" id="libTitle"></div>
 
-            <!-- Catalogs -->
-            <div class="card-grid">
-              <button class="catalog-card add" type="button">
-                <span class="add-label"><i class="fa-regular fa-plus"></i> Add New Catalog To Materials</span>
-              </button>
-
-              <div class="catalog-card">
-                <div class="catalog-card-head">
-                  <span class="catalog-card-title">Bookcloth</span>
-                  <button class="kebab" type="button" title="Catalog actions"><i class="fa-regular fa-ellipsis-vertical"></i></button>
-                </div>
-                <div class="card-foot">
-                  <span class="count-pill">793 Items</span>
-                  <a class="btn-pill solid" href="catalog.html">View</a>
-                </div>
-              </div>
-
-              <div class="catalog-card">
-                <div class="catalog-card-head">
-                  <span class="catalog-card-title">Endsheet</span>
-                  <button class="kebab" type="button" title="Catalog actions"><i class="fa-regular fa-ellipsis-vertical"></i></button>
-                </div>
-                <div class="card-foot">
-                  <span class="count-pill">412 Items</span>
-                  <a class="btn-pill solid" href="catalog.html">View</a>
-                </div>
-              </div>
-
-              <div class="catalog-card span-all">
-                <div class="catalog-card-head">
-                  <span class="catalog-card-title">Board</span>
-                  <button class="kebab" type="button" title="Catalog actions"><i class="fa-regular fa-ellipsis-vertical"></i></button>
-                </div>
-                <div class="card-foot">
-                  <span class="count-pill">168 Items</span>
-                  <a class="btn-pill solid" href="catalog.html">View</a>
-                </div>
-              </div>
+              <div class="catalog-list" id="libCatalogs"></div>
             </div>
 
           </div>
       </div>
     </div>
+
+    <!-- Deleting a library is the one destructive action here, so it is
+         confirmed and the confirmation says what is lost. -->
+    <div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true"
+         aria-labelledby="confirmTitle">
+      <div class="modal-panel">
+        <div class="modal-header">
+          <span class="modal-title" id="confirmTitle">Delete library?</span>
+          <button class="icon-btn" type="button" id="confirmClose" aria-label="Close">
+            <i class="fa-regular fa-xmark"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="confirm-warning" id="confirmBody"></p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-pill outline" type="button" id="confirmCancel">Cancel</button>
+          <button class="btn-pill solid is-danger" type="button" id="confirmDelete">Delete Library</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const INV = window.INVENTORY;
+
+      /* The libraries in this person's view, and which one is showing. */
+      let openIds  = INV.loadLibraryView().slice();
+      let activeId = openIds[0];
+      let query = '';
+      let renaming = false;   /* is the active library's name being edited */
+
+      const tabsEl  = document.getElementById('libTabs');
+      const titleEl = document.getElementById('libTitle');
+      const cardsEl = document.getElementById('libCatalogs');
+
+      const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+
+      function commitView() { INV.saveLibraryView(openIds.slice()); }
+
+      /* ── Tabs ───────────────────────────────────────────────────
+         The X hides a library from this view only, so it is labelled
+         that way rather than "close" or "remove". A person always keeps
+         at least one library, so the last X explains why it is off.
+         --------------------------------------------------------- */
+      function renderTabs() {
+        const last = openIds.length === 1;
+
+        tabsEl.innerHTML = openIds.map(id => {
+          const lib = INV.libraryById(id);
+          const on  = id === activeId;
+          return `
+            <button class="lib-tab${on ? ' active' : ''}" type="button" data-lib="${id}">
+              <span>${esc(lib.name)}</span>
+              <span class="tab-close" data-hide="${id}" role="button" tabindex="0"
+                    ${last ? 'aria-disabled="true" title="Keep at least one library in your view"'
+                           : `title="Hide ${esc(lib.name)} from your view" aria-label="Hide ${esc(lib.name)} from your view"`}>
+                <i class="fa-regular fa-xmark"></i>
+              </span>
+            </button>`;
+        }).join('') + `
+          <div class="tab-add-wrap">
+            <button class="lib-tab add" type="button" id="pickerBtn"
+                    aria-expanded="false" aria-haspopup="true"
+                    title="Add a library to your view" aria-label="Add a library to your view">
+              <i class="fa-regular fa-plus"></i>
+            </button>
+            <div class="lib-picker" id="picker" hidden>
+              <input class="input lib-picker-input" id="pickerInput" type="search"
+                     placeholder="Find a library" autocomplete="off" />
+              <div class="lib-picker-body" id="pickerBody"></div>
+            </div>
+          </div>`;
+      }
+
+      /* ── Picker ─────────────────────────────────────────────────
+         Lists every library, marking the ones already in this view, so
+         nobody has to remember what they have open. Creating a library
+         is offered only when nothing matches, and stays a secondary
+         action — it is a much bigger step than adding a tab.
+         --------------------------------------------------------- */
+      function renderPicker() {
+        const q = query.trim().toLowerCase();
+        const hits = INV.LIBRARIES.filter(l => !q || l.name.toLowerCase().includes(q));
+        const body = document.getElementById('pickerBody');
+        if (!body) return;
+
+        if (!hits.length) {
+          body.innerHTML = `
+            <p class="lib-picker-none">No library called &ldquo;${esc(query.trim())}&rdquo;.</p>
+            <button class="btn-pill outline sm" type="button" id="pickerCreate">
+              <i class="fa-regular fa-plus"></i> Create ${esc(query.trim())}
+            </button>`;
+          return;
+        }
+
+        body.innerHTML = `<ul class="lib-picker-list">${hits.map(l => {
+          const open = openIds.includes(l.id);
+          const n = l.catalogs.length;
+          return `
+            <li>
+              <button class="lib-option" type="button" data-add="${l.id}">
+                <span class="lib-option-name">${esc(l.name)}</span>
+                <span class="lib-option-meta">${n} catalog${n === 1 ? '' : 's'}</span>
+                ${open ? '<span class="lib-option-on"><i class="fa-solid fa-check"></i> In your view</span>' : ''}
+              </button>
+            </li>`;
+        }).join('')}</ul>`;
+      }
+
+      function openPicker() {
+        query = '';
+        document.getElementById('picker').hidden = false;
+        document.getElementById('pickerBtn').setAttribute('aria-expanded', 'true');
+        const input = document.getElementById('pickerInput');
+        input.value = '';
+        renderPicker();
+        input.focus();
+      }
+      function closePicker() {
+        const el = document.getElementById('picker');
+        if (el) el.hidden = true;
+        const btn = document.getElementById('pickerBtn');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+      }
+      const pickerOpen = () => {
+        const el = document.getElementById('picker');
+        return el && !el.hidden;
+      };
+
+      /* ── Title row ──────────────────────────────────────────────
+         Renaming happens in place, the same swap the item page uses for
+         a job number: the value becomes a field with save and cancel
+         beside it. Deleting is the one destructive action, so it asks.
+         --------------------------------------------------------- */
+      function renderTitle(lib) {
+        const onlyOne = INV.LIBRARIES.length === 1;
+
+        if (renaming) {
+          titleEl.innerHTML = `
+            <input class="input title-input" id="libNameInput" type="text"
+                   value="${esc(lib.name)}" aria-label="Library name" autocomplete="off" />
+            <span class="lib-name-actions">
+              <button class="icon-btn" type="button" data-rename-save title="Save" aria-label="Save name">
+                <i class="fa-regular fa-check"></i>
+              </button>
+              <button class="icon-btn" type="button" data-rename-cancel title="Cancel" aria-label="Cancel">
+                <i class="fa-regular fa-xmark"></i>
+              </button>
+            </span>`;
+          return;
+        }
+
+        titleEl.innerHTML = `
+          <h5>${esc(lib.name)}</h5>
+          <span class="lib-name-actions">
+            <button class="icon-btn" type="button" data-rename
+                    title="Rename ${esc(lib.name)}" aria-label="Rename ${esc(lib.name)}">
+              <i class="fa-regular fa-pen"></i>
+            </button>
+            <button class="icon-btn danger" type="button" data-delete-lib
+                    ${onlyOne ? 'disabled title="A catalog needs at least one library"'
+                              : `title="Delete ${esc(lib.name)}" aria-label="Delete ${esc(lib.name)}"`}>
+              <i class="fa-regular fa-trash-can"></i>
+            </button>
+          </span>`;
+      }
+
+      /* ── Library content ───────────────────────────────────────── */
+      function renderLibrary() {
+        const lib = INV.libraryById(activeId);
+        if (!lib) { titleEl.innerHTML = ''; cardsEl.innerHTML = ''; return; }
+
+        renderTitle(lib);
+        cardsEl.innerHTML = `
+          <button class="add-row" type="button">
+            <span class="add-label"><i class="fa-regular fa-plus"></i> Add Catalog</span>
+          </button>` + lib.catalogs.map(c => `
+          <a class="catalog-row" href="catalog.html">
+            <span class="catalog-row-title">${esc(c.name)}</span>
+            <span class="catalog-row-end">
+              <span class="count-pill">${c.items} Items</span>
+              <span class="icon-btn" role="button" tabindex="0" data-catalog-settings
+                    title="Edit ${esc(c.name)}" aria-label="Edit ${esc(c.name)}">
+                <i class="fa-regular fa-pen"></i>
+              </span>
+            </span>
+          </a>`).join('');
+      }
+
+      function render() { renderTabs(); renderLibrary(); }
+
+      /* ── Rename ─────────────────────────────────────────────────── */
+      function startRename() {
+        renaming = true;
+        render();
+        const el = document.getElementById('libNameInput');
+        el.focus(); el.select();
+      }
+      function cancelRename() { renaming = false; render(); }
+      function commitRename() {
+        const el = document.getElementById('libNameInput');
+        const name = el.value.trim();
+        /* A library with no name would be unfindable in the picker. */
+        if (!name) { el.classList.add('invalid'); el.focus(); return; }
+        INV.libraryById(activeId).name = name;
+        renaming = false;
+        render();
+      }
+
+      /* The row itself opens the catalog; the pencil goes to its settings.
+         The pencil is a span so it can sit inside the row's link. */
+      cardsEl.addEventListener('click', (e) => {
+        const edit = e.target.closest('[data-catalog-settings]');
+        if (!edit) return;
+        e.preventDefault();
+        location.href = 'catalog-settings.html';
+      });
+      cardsEl.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const edit = e.target.closest('[data-catalog-settings]');
+        if (!edit) return;
+        e.preventDefault();
+        location.href = 'catalog-settings.html';
+      });
+
+      titleEl.addEventListener('click', (e) => {
+        if (e.target.closest('[data-rename]'))        { startRename();  return; }
+        if (e.target.closest('[data-rename-save]'))   { commitRename(); return; }
+        if (e.target.closest('[data-rename-cancel]')) { cancelRename(); return; }
+        const del = e.target.closest('[data-delete-lib]');
+        if (del && !del.disabled) askDelete();
+      });
+
+      titleEl.addEventListener('input', (e) => {
+        if (e.target.id === 'libNameInput') e.target.classList.remove('invalid');
+      });
+
+      titleEl.addEventListener('keydown', (e) => {
+        if (e.target.id !== 'libNameInput') return;
+        if (e.key === 'Enter')  { e.preventDefault(); commitRename(); }
+        if (e.key === 'Escape') { e.preventDefault(); cancelRename(); }
+      });
+
+      /* ── Delete, with the cost stated ───────────────────────────── */
+      const modal = document.getElementById('confirmModal');
+
+      function askDelete() {
+        const lib = INV.libraryById(activeId);
+        const n = lib.catalogs.length;
+        document.getElementById('confirmTitle').textContent = `Delete ${lib.name}?`;
+        document.getElementById('confirmBody').textContent =
+          `This deletes the library and its ${n} catalog${n === 1 ? '' : 's'} for everyone. ` +
+          `To take it off your own tabs instead, close it with the × on its tab.`;
+        modal.classList.add('open');
+        document.getElementById('confirmCancel').focus();
+      }
+      function closeModal() { modal.classList.remove('open'); }
+
+      function deleteLibrary() {
+        const id = activeId;
+        const index = openIds.indexOf(id);
+        INV.LIBRARIES.splice(INV.LIBRARIES.findIndex(l => l.id === id), 1);
+        openIds = openIds.filter(x => x !== id);
+        /* Never leave the page with no library showing. */
+        if (!openIds.length && INV.LIBRARIES.length) openIds = [INV.LIBRARIES[0].id];
+        commitView();
+        activeId = openIds[Math.min(Math.max(index, 0), openIds.length - 1)];
+        closeModal();
+        render();
+      }
+
+      document.getElementById('confirmDelete').addEventListener('click', deleteLibrary);
+      document.getElementById('confirmCancel').addEventListener('click', closeModal);
+      document.getElementById('confirmClose').addEventListener('click', closeModal);
+      modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+      /* ── Actions ───────────────────────────────────────────────── */
+      function addLibrary(id) {
+        if (!openIds.includes(id)) { openIds.push(id); commitView(); }
+        activeId = id;
+        closePicker();
+        render();
+      }
+
+      /* Nothing is lost here — the picker lists every library, so a
+         hidden one is one click from coming back. */
+      function hideLibrary(id) {
+        if (openIds.length === 1) return;
+        const index = openIds.indexOf(id);
+        openIds.splice(index, 1);
+        commitView();
+        if (activeId === id) activeId = openIds[Math.min(index, openIds.length - 1)];
+        render();
+      }
+
+      tabsEl.addEventListener('click', (e) => {
+        const hide = e.target.closest('[data-hide]');
+        if (hide) {
+          e.stopPropagation();
+          if (hide.getAttribute('aria-disabled') !== 'true') hideLibrary(hide.dataset.hide);
+          return;
+        }
+        if (e.target.closest('#pickerBtn')) {
+          pickerOpen() ? closePicker() : openPicker();
+          return;
+        }
+        const add = e.target.closest('[data-add]');
+        if (add) { addLibrary(add.dataset.add); return; }
+        if (e.target.closest('#pickerCreate')) {
+          /* Prototype: a real create would name the library and set who
+             it belongs to before it appears as a tab. */
+          closePicker();
+          return;
+        }
+        const tab = e.target.closest('[data-lib]');
+        if (tab && tab.dataset.lib !== activeId) {
+          activeId = tab.dataset.lib;
+          render();
+        }
+      });
+
+      /* ── Picker keyboard nav ────────────────────────────────────
+         Down from the field moves into the list and down again walks
+         it; up walks back and returns to the field from the top, so
+         typing is always one key away. Enter or Tab takes the option
+         that has focus — Tab is intercepted only while an option is
+         focused, so it still leaves the picker from the field.
+         --------------------------------------------------------- */
+      const options = () => [...tabsEl.querySelectorAll('.lib-option')];
+
+      function focusOption(i) {
+        const list = options();
+        if (!list.length) return;
+        list[Math.max(0, Math.min(i, list.length - 1))].focus();
+      }
+
+      tabsEl.addEventListener('keydown', (e) => {
+        const hide = e.target.closest('[data-hide]');
+        if (hide && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault(); e.stopPropagation();
+          if (hide.getAttribute('aria-disabled') !== 'true') hideLibrary(hide.dataset.hide);
+          return;
+        }
+
+        if (e.target.id === 'pickerInput') {
+          if (e.key === 'ArrowDown') { e.preventDefault(); focusOption(0); }
+          return;
+        }
+
+        const opt = e.target.closest('.lib-option');
+        if (!opt) return;
+        const list = options();
+        const i = list.indexOf(opt);
+
+        if (e.key === 'ArrowDown') { e.preventDefault(); focusOption(i + 1); }
+        else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (i === 0) document.getElementById('pickerInput')?.focus();
+          else focusOption(i - 1);
+        }
+        else if (e.key === 'Tab') { e.preventDefault(); addLibrary(opt.dataset.add); }
+        else if (e.key === 'Escape') {
+          e.preventDefault();
+          closePicker();
+          document.getElementById('pickerBtn')?.focus();
+        }
+      });
+
+      tabsEl.addEventListener('input', (e) => {
+        if (e.target.id !== 'pickerInput') return;
+        query = e.target.value;
+        renderPicker();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        if (modal.classList.contains('open')) { closeModal(); return; }
+        closePicker();
+      });
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.tab-add-wrap')) closePicker();
+      });
+
+      render();
+    </script>
   </body>
 </html>

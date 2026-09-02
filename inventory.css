@@ -1,8 +1,33 @@
 /* ============================================================
    Inventory Quantity Upgrade — page styles
-   Built on PL-SHARED design tokens. No hard-coded colors:
-   every value below resolves to a token in shared/css/design-tokens.css
+   Built on the shared design system: shared/css/design-tokens.css
+   supplies every color, space, type and radius value, plus the
+   shared .btn-*, .pill and .type-* recipes this file extends.
+   No primitives are referenced below the LOCAL TOKENS block.
    ============================================================ */
+
+/* ── Local tokens ──────────────────────────────────────────────
+   Gaps in design-tokens.css. Each maps to a primitive here and is
+   used semantically everywhere else, so promoting one upstream is
+   a one-line change. Candidates for the Figma collection:
+     --shadow-panel   (built like the existing --overlay-* tokens)
+     --duration-*     (no motion tokens in the system yet)
+   ------------------------------------------------------------- */
+:root {
+  --shadow-panel: -4px 0 24px rgb(from var(--color-black) r g b / .15);
+  --duration-fast: .15s;
+  --duration-panel: .2s;
+
+  /* Geometry off the 4px scale, shared by more than one component. */
+  --card-min-height: 134px;
+  --table-row-height: 51px;
+  /* Chip icons come from one fixed set — the global property icons plus
+     the create-property type icons — so every chip reserves the same
+     column and labels stay aligned whichever icon lands there. */
+  --chip-icon-column: 14px;
+  /* h5 line-height + .input padding + borders: the rename field's height. */
+  --title-row-min-height: 46px;
+}
 
 * { box-sizing: border-box; }
 
@@ -31,113 +56,339 @@ body {
   overflow: hidden;
 }
 
-/* ── Breadcrumb bar ────────────────────────────────────────── */
-.breadcrumb-bar {
-  height: var(--scale-1200);
-  flex-shrink: 0;
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-tertiary);
-  display: flex;
-  align-items: center;
-  padding: 0 var(--scale-800);
+/* ── Shared idioms ─────────────────────────────────────────────
+   Three recipes recur across otherwise unrelated components. They
+   are grouped here once rather than restated per component, so a
+   change to the house eyebrow or focus ring lands everywhere.
+   ------------------------------------------------------------- */
+
+/* Eyebrow: uppercase, tracked, semibold. Size and color per use. */
+.section-label,
+.field-label,
+.count-pill,
+.rollup-label,
+.unit-type-count,
+.add-row,
+table.data th {
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: .06em;
+  text-transform: uppercase;
 }
-.breadcrumbs {
-  width: 100%;
-  max-width: var(--container-workspace);
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  gap: var(--scale-200);
-  font-size: var(--fontsize-body-sm);
+
+/* Inset focus ring for fields that fill their own box. */
+.search-input:focus,
+.input:focus,
+.select:focus,
+.job-input:focus {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -1px;
 }
-.crumb {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--scale-100);
-  color: var(--text-tertiary);
-  text-decoration: none;
+
+/* Offset focus ring for controls that need room around them. */
+.unit-config-row:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
 }
-.crumb:hover { color: var(--text-interactive); }
-.crumb.current { color: var(--text-primary); font-weight: var(--font-weight-semibold); }
-.crumb-sep { color: var(--border-subtle); font-size: 9px; }
 
 /* ── Scrollable page body ──────────────────────────────────── */
 .page-scroll { flex: 1; overflow-y: auto; padding: var(--scale-800); }
 
 .page-card {
   width: 100%;
-  max-width: calc(var(--container-workspace) + (var(--scale-900) * 2));
+  max-width: var(--container-workspace);
   margin: 0 auto;
   background: var(--bg-surface);
   border: 1px solid var(--border-tertiary);
   border-radius: var(--border-radius-lg);
   padding: var(--scale-900);
 }
+/* A card whose own content supplies the padding — a flush table, or the
+   item header's self-padding rows. */
+.page-card.is-flush { padding: 0; }
+/* The one width wrapper: a workspace-width column, centred. Used on its
+   own where a page sits straight on the canvas, and .page-card is the
+   same width with a surface behind it. */
 .page-inner { max-width: var(--container-workspace); margin: 0 auto; }
 
-/* Page that sits directly on the canvas (item page — no card) */
-.page-bare {
+/* A name that is also the page's title: the field recipe at heading
+   size, so it reads as the title but is plainly editable. */
+.field:has(> .title-input) {
+  gap: var(--scale-200);
+  margin-bottom: var(--scale-600);
+}
+.input.title-input {
   width: 100%;
-  max-width: var(--container-workspace);
-  margin: 0 auto;
+  height: auto;
+  padding: var(--scale-200) var(--scale-300);
+  font-size: var(--fontsize-heading-h5);
+  line-height: var(--line-height-heading-h5);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
 }
 
-/* ── Tabs ──────────────────────────────────────────────────── */
-.tab-row { display: flex; align-items: center; gap: var(--scale-300); margin-bottom: var(--scale-800); }
+/* Item header card — name and edit action over the item's properties.
+   Follows the account card in customer maintenance and the job header:
+   the card itself carries no padding, each row pads itself, and the rule
+   between them is a border on the row, so it runs the full card width
+   rather than stopping inside a gutter. */
+.item-header {
+  border-color: var(--border-default);
+  border-radius: var(--border-radius-md);
+  /* so the properties band's corners are cut by the card's radius */
+  overflow: hidden;
+}
+.item-header-row {
+  display: flex;
+  align-items: center;
+  gap: var(--scale-300);
+  padding: var(--scale-400);
+}
+.item-header-row + .item-header-row {
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-muted);
+}
+.item-header-row h5 { margin-right: auto; }
+.item-header-row .icon-btn { flex-shrink: 0; }
 
-.tab {
+/* ── Tabs ──────────────────────────────────────────────────── */
+/* ── Tabs ───────────────────────────────────────────────────
+   The button itself is .tab-btn from design-tokens.css, shared with job
+   maintenance and the reports page. Only the row is local, because the
+   spacing is this page's business.
+
+   min-width:fit-content is the one addition: it stops a tab shrinking
+   below its own label, so a long set wraps to a second line instead of
+   being squeezed. It belongs to the wrapping row, so it is scoped to it.
+   ---------------------------------------------------------- */
+.tab-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--scale-300);
+  margin-bottom: var(--scale-800);
+}
+.tab-row .tab-btn { min-width: fit-content; }
+
+/* ── Library tabs ───────────────────────────────────────────
+   The browser-style folder tabs from the reports page refactor: the
+   active tab welds onto the panel below it — same surface, overlapping
+   border — so the tab and its contents read as one unit.
+
+   A library tab is a view this person keeps, not a document they own:
+   the X hides it from their tab strip and changes nothing for anyone
+   else. The picker at the end of the strip is where hidden libraries
+   come back from, so dismissing is always reversible.
+   ---------------------------------------------------------- */
+.lib-tabs {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: var(--scale-100);
+}
+
+.lib-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--scale-200);
+  padding: var(--scale-300) var(--scale-300) var(--scale-300) var(--scale-400);
+  background: var(--bg-muted);
+  border: 1px solid var(--border-default);
+  border-bottom: none;
+  border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: var(--fontsize-body-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: background var(--duration-fast), color var(--duration-fast);
+}
+.lib-tab:hover { color: var(--text-primary); }
+.lib-tab:focus-visible { outline: 2px solid var(--border-focus); outline-offset: -2px; }
+
+/* The weld: same surface as the panel, sitting over its top border. */
+.lib-tab.active {
+  position: relative;
+  z-index: 2;
+  margin-bottom: -1px;
+  padding-bottom: calc(var(--scale-300) + 1px);
+  background: var(--bg-surface);
+  color: var(--text-interactive);
+}
+
+.lib-tab .tab-close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: var(--scale-900);
-  padding: 0 var(--scale-500);
-  border-radius: var(--border-radius-md);
-  border: 1px solid var(--interactive-default);
-  background: var(--bg-surface);
-  color: var(--interactive-default);
-  font-family: inherit;
-  font-size: var(--fontsize-body-md);
-  font-weight: var(--font-weight-medium);
+  width: var(--scale-500);
+  height: var(--scale-500);
+  border-radius: var(--border-radius-sm);
+  color: var(--text-tertiary);
+  font-size: var(--fontsize-label);
   cursor: pointer;
-  text-decoration: none;
-  white-space: nowrap;
-  transition: background .15s, color .15s;
+  transition: background var(--duration-fast), color var(--duration-fast);
 }
-.tab:hover { background: var(--interactive-bg-subtle); color: var(--interactive-default); }
-.tab.active {
-  background: var(--interactive-default);
-  color: var(--color-white);
-  font-weight: var(--font-weight-semibold);
+.lib-tab .tab-close:hover { background: var(--overlay-panel); color: var(--text-primary); }
+/* The last library can't be hidden — the X stays visible so it can say why. */
+.lib-tab .tab-close[aria-disabled="true"] { opacity: .3; cursor: default; }
+.lib-tab .tab-close[aria-disabled="true"]:hover { background: none; }
+
+/* The picker button sizes to its icon and never carries a close. It is
+   tinted like the other add affordances on the page rather than reading
+   as an inactive library tab — no bottom border, so it still sits on the
+   panel's edge with the rest of the strip. */
+.tab-add-wrap { position: relative; }
+.lib-tab.add {
+  padding: var(--scale-300) var(--scale-400);
+  background: var(--interactive-bg-subtle);
+  border: 1px solid var(--status-info-border);
+  border-width: 1px 1px 0;
+  color: var(--text-interactive);
+  transition: transform var(--duration-fast) ease,
+              border-color var(--duration-fast),
+              color var(--duration-fast);
 }
-.tab.add {
-  background: var(--status-info-bg);
+/* Same hover move as .allocate-btn — the border firms up to the
+   interactive colour and the label lightens, per the shared a:hover —
+   plus a small lift. It can leave the panel edge on hover because it is
+   a control, not a library tab welded to the contents below. */
+.lib-tab.add:hover {
+  transform: translateY(calc(var(--scale-50) * -1));
+  border-color: var(--interactive-default);
+  color: var(--interactive-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lib-tab.add { transition: border-color var(--duration-fast), color var(--duration-fast); }
+  .lib-tab.add:hover { transform: none; }
+}
+/* While the picker is open the button reads as held down. */
+.lib-tab.add[aria-expanded="true"] {
+  border-color: var(--interactive-default);
+  color: var(--interactive-pressed);
+}
+
+.lib-panel {
+  position: relative;
+  z-index: 1;
+  padding: var(--scale-500);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 0 var(--border-radius-md) var(--border-radius-md) var(--border-radius-md);
+}
+.lib-panel .title-row { margin-bottom: var(--scale-500); }
+
+/* The library's own name and the two things you can do to it. The
+   rename swaps the heading for a field in place, the same way a job
+   number is edited on the item page. */
+.lib-name-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--scale-100);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.lib-panel .title-row { gap: var(--scale-300); }
+/* Hold the row at the height the rename field needs, so swapping the
+   heading for the input does not push the catalogs down the page. */
+.lib-panel .title-row { min-height: var(--title-row-min-height); }
+.lib-panel .title-row h5 { margin-right: auto; }
+
+/* ── Library picker ─────────────────────────────────────────
+   Anchored to the + so the tab lands where the reader is looking,
+   rather than in a search field parked elsewhere on the page.
+   ---------------------------------------------------------- */
+.lib-picker {
+  position: absolute;
+  top: calc(100% + var(--scale-200));
+  right: 0;
+  z-index: 200;
+  width: 320px;
+  max-width: 90vw;
+  padding: var(--scale-300);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-panel);
+}
+.lib-picker-input { width: 100%; }
+
+.lib-picker-body { margin-top: var(--scale-200); }
+.lib-picker-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.lib-option {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: var(--scale-200);
+  padding: var(--scale-200) var(--scale-300);
+  background: none;
+  border: 0;
+  border-radius: var(--border-radius-sm);
+  font-family: inherit;
   font-size: var(--fontsize-body-sm);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: .04em;
-  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+}
+.lib-option:hover { background: var(--interactive-bg-subtle); }
+.lib-option:focus-visible { outline: 2px solid var(--border-focus); outline-offset: -2px; }
+.lib-option-name { color: var(--text-primary); font-weight: var(--font-weight-medium); }
+.lib-option-meta { color: var(--text-tertiary); }
+/* Already in the view: shown, not hidden, so the list is the whole
+   picture of what this person has and could have. */
+.lib-option-on {
+  margin-left: auto;
+  color: var(--interactive-default);
+  font-size: var(--fontsize-label);
+  white-space: nowrap;
+}
+
+.lib-picker-none {
+  margin: var(--scale-200) var(--scale-300) var(--scale-300);
+  font-size: var(--fontsize-body-sm);
+  color: var(--text-tertiary);
+}
+
+/* ── Back link ─────────────────────────────────────────────────
+   The breadcrumb says where you are; this says how to get back one
+   step, at the top of the content where the reader's eye already is.
+   ------------------------------------------------------------- */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--scale-100);
+  margin-bottom: var(--scale-300);
+  color: var(--text-secondary);
+  font-size: var(--fontsize-body-sm);
+  text-decoration: none;
+  transition: color var(--duration-fast) ease;
+}
+.back-link:hover { color: var(--interactive-default); text-decoration: underline; }
+.back-link:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+  border-radius: var(--border-radius-sm);
 }
 
 /* ── Page title row ────────────────────────────────────────── */
 .title-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: var(--scale-400);
   margin-bottom: var(--scale-600);
 }
-.page-title {
-  font-size: 36px;
-  line-height: 44px;
-  font-weight: var(--font-weight-book);
-  color: var(--text-primary);
-  margin: 0;
-}
-.page-title-sm {
-  font-size: var(--fontsize-heading-h4);
-  line-height: var(--line-height-heading-h4);
-  font-weight: var(--font-weight-bold);
-  margin: 0;
-}
+/* Page titles are <h5>, as in customer maintenance and the job header:
+   the heading tag carries its own type from design-tokens.css, so
+   nothing here restates a size or a weight. */
+.title-row h5 { color: var(--text-primary); }
 
 /* ── Buttons (extend the shared .btn-* set) ────────────────── */
 .btn-pill {
@@ -152,110 +403,56 @@ body {
   align-items: center;
   justify-content: center;
   gap: var(--scale-200);
-  transition: background .15s, color .15s;
+  transition: background var(--duration-fast), color var(--duration-fast);
 }
 .btn-pill.solid {
   background: var(--interactive-default);
   border: 1px solid var(--interactive-default);
   color: var(--color-white);
 }
-.btn-pill.solid:hover { background: var(--interactive-hover); border-color: var(--interactive-hover); }
+.btn-pill.solid:hover:not(:disabled) { background: var(--interactive-hover); border-color: var(--interactive-hover); }
 .btn-pill.outline {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   color: var(--interactive-default);
 }
-.btn-pill.outline:hover { background: var(--interactive-bg-subtle); border-color: var(--interactive-default); }
+.btn-pill.outline:hover:not(:disabled) { background: var(--interactive-bg-subtle); border-color: var(--interactive-default); }
 .btn-pill.sm { padding: var(--scale-100) var(--scale-500); font-size: var(--fontsize-body-sm); }
-.btn-pill:disabled,
-.btn-pill.is-disabled {
+.btn-pill:disabled {
   background: var(--bg-subtle);
   border-color: var(--bg-subtle);
   color: var(--text-tertiary);
   cursor: default;
-  pointer-events: none;
 }
 
-/* ── Full-width "add" affordance ───────────────────────────── */
+/* ── "Add" affordances ─────────────────────────────────────────
+   A full-width row, and the trailing tile in either card grid.
+   All three are the same idea: an info-tinted surface whose only
+   content is an interactive label.
+   ------------------------------------------------------------- */
+.add-row {
+  background: var(--status-info-bg);
+  border: 1px solid var(--status-info-border);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+.add-row:hover { background: var(--interactive-bg-subtle); }
+
 .add-row {
   display: flex;
   align-items: center;
   width: 100%;
   min-height: var(--scale-1100);
   padding: 0 var(--scale-400);
-  background: var(--status-info-bg);
-  border: 1px solid var(--status-info-border);
   border-radius: var(--border-radius-md);
   color: var(--interactive-default);
-  font-family: inherit;
   font-size: var(--fontsize-body-sm);
-  font-weight: var(--font-weight-semibold);
   letter-spacing: .04em;
-  text-transform: uppercase;
-  cursor: pointer;
-  text-align: left;
-  transition: background .15s;
+  transition: background var(--duration-fast);
 }
-.add-row:hover { background: var(--interactive-bg-subtle); }
 
-/* ── Catalog cards ─────────────────────────────────────────── */
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--scale-300);
-}
-.card-grid .span-all { grid-column: 1 / -1; }
-
-.catalog-card {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  min-height: 134px;
-  padding: var(--scale-400);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-tertiary);
-  border-radius: var(--border-radius-md);
-}
-.catalog-card-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--scale-200);
-}
-.catalog-card-title {
-  font-size: var(--fontsize-heading-h5);
-  line-height: var(--line-height-heading-h5);
-  font-weight: var(--font-weight-book);
-  color: var(--text-primary);
-}
-.card-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--scale-200);
-  margin-top: var(--scale-500);
-}
-.kebab {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text-tertiary);
-  padding: var(--scale-100);
-  border-radius: var(--border-radius-sm);
-  font-size: var(--fontsize-body-lg);
-}
-.kebab:hover { background: var(--bg-subtle); color: var(--text-primary); }
-
-.catalog-card.add {
-  justify-content: flex-start;
-  background: var(--status-info-bg);
-  border-color: var(--status-info-border);
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
-}
-.catalog-card.add:hover { background: var(--interactive-bg-subtle); }
-.catalog-card.add .add-label {
+.add-label {
   display: inline-flex;
   align-items: center;
   gap: var(--scale-200);
@@ -264,33 +461,88 @@ body {
   font-weight: var(--font-weight-semibold);
 }
 
-/* count pill — reuses the shared .pill recipe */
+/* ── Catalog list ──────────────────────────────────────────────
+   Catalogs read as a list, not a wall of tiles: one row each, name at
+   the start, count and settings at the end, the whole row the way in.
+   ------------------------------------------------------------- */
+.catalog-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--scale-300);
+}
+
+.catalog-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--scale-400);
+  padding: var(--scale-400);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-tertiary);
+  border-radius: var(--border-radius-md);
+  text-decoration: none;
+  transition: background var(--duration-fast) ease,
+              border-color var(--duration-fast) ease;
+}
+.catalog-row:hover {
+  background: var(--interactive-bg-subtle);
+  border-color: var(--interactive-default);
+}
+.catalog-row:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+.catalog-row-title {
+  font-size: var(--fontsize-heading-h5);
+  line-height: var(--line-height-heading-h5);
+  font-weight: var(--font-weight-book);
+  color: var(--text-primary);
+}
+/* The count and the way into settings sit together at the end of the
+   row, so every row's actions land in the same column. */
+.catalog-row-end {
+  display: flex;
+  align-items: center;
+  gap: var(--scale-300);
+  flex-shrink: 0;
+}
+.catalog-row-end .icon-btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+
+
+/* Small square tag — the catalog item count. */
 .count-pill {
   font-size: var(--fontsize-label);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: .06em;
-  text-transform: uppercase;
   padding: var(--scale-50) var(--scale-200);
   border-radius: var(--border-radius-sm);
   background: var(--bg-subtle);
   color: var(--text-tertiary);
 }
 
-/* ── Filter / search panel ─────────────────────────────────── */
-.filter-panel {
-  padding: var(--scale-300);
-  border-bottom: 1px solid var(--border-tertiary);
+/* ── Search panel ──────────────────────────────────────────── */
+/* Search sits on the page, not on the table's surface — so no fill and
+   no rule under it, and no side padding, which keeps the field aligned
+   with the tabs above and the table below. */
+.search-panel {
+  padding: var(--scale-400) 0;
 }
-.filter-status {
-  text-align: center;
+/* Result count sits under the field, and only while searching. */
+.search-count {
+  margin-top: var(--scale-200);
   font-size: var(--fontsize-body-sm);
   color: var(--text-tertiary);
-  margin-bottom: var(--scale-300);
 }
-.search-input {
-  width: 100%;
-  height: var(--scale-700);
-  padding: 0 var(--scale-300);
+
+/* ── Form controls ─────────────────────────────────────────────
+   One field recipe; the search box and the inline job field are
+   size variants of it.
+   ------------------------------------------------------------- */
+.input,
+.select,
+.search-input,
+.job-input {
   border: 1px solid var(--border-subtle);
   border-radius: var(--border-radius-sm);
   background: var(--bg-surface);
@@ -298,8 +550,30 @@ body {
   font-family: inherit;
   font-size: var(--fontsize-body-sm);
 }
+
+.input, .select {
+  height: var(--scale-800);
+  padding: 0 var(--scale-200);
+}
+.input.invalid {
+  border-color: var(--status-error-border);
+  background: var(--status-error-bg);
+}
+.input[readonly] { background: var(--bg-muted); color: var(--text-tertiary); }
+.input.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.search-input {
+  width: 100%;
+  height: var(--scale-700);
+  padding: 0 var(--scale-300);
+}
 .search-input::placeholder { color: var(--text-tertiary); }
-.search-input:focus { outline: 2px solid var(--border-focus); outline-offset: -1px; }
+
+.field { display: flex; flex-direction: column; gap: var(--scale-50); }
+.field-label {
+  font-size: var(--fontsize-label);
+  color: var(--text-tertiary);
+}
 
 /* ── Data table ────────────────────────────────────────────── */
 .table-wrap { overflow-x: auto; }
@@ -310,9 +584,6 @@ table.data th {
   height: var(--scale-1200);
   padding: 0 var(--scale-300);
   font-size: var(--fontsize-body-sm);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: .06em;
-  text-transform: uppercase;
   color: var(--text-tertiary);
   text-align: center;
   white-space: nowrap;
@@ -320,8 +591,47 @@ table.data th {
 }
 table.data th.left, table.data td.left { text-align: left; }
 
+/* Sortable header — the whole cell is the target, so the button fills it
+   and inherits the header's own type. fa-sort rests at low contrast as
+   the affordance; it becomes a direction arrow once the column is
+   sorted, and aria-sort on the th carries the same fact to a reader. */
+table.data th:has(.th-sort) { padding: 0; }
+.th-sort {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--scale-100);
+  padding: 0 var(--scale-300);
+  background: none;
+  border: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--duration-fast);
+}
+table.data th.left .th-sort { justify-content: flex-start; }
+.th-sort:hover { color: var(--text-primary); }
+.th-sort:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+}
+.th-sort.is-sorted { color: var(--text-primary); }
+
+.sort-caret {
+  font-size: var(--fontsize-body-sm);
+  opacity: 0;
+  transition: opacity var(--duration-fast);
+}
+.th-sort:hover .sort-caret { opacity: .5; }
+.th-sort.is-sorted .sort-caret { opacity: 1; color: var(--interactive-default); }
+
 table.data td {
-  height: 51px;
+  height: var(--table-row-height);
   padding: 0 var(--scale-300);
   font-size: var(--fontsize-body-sm);
   color: var(--text-primary);
@@ -329,9 +639,12 @@ table.data td {
   border-bottom: 1px solid var(--border-tertiary);
 }
 table.data tbody tr:hover { background: var(--bg-muted); }
+/* A row that opens a record: the hover tint is already the affordance,
+   the cursor confirms it. The name inside keeps the real link. */
+table.data tbody tr.row-link { cursor: pointer; }
+table.data tbody tr.row-link:hover .item-link { color: var(--text-interactive); text-decoration: underline; }
 table.data tbody tr:last-child td { border-bottom: none; }
 
-.col-check { width: var(--scale-1200); }
 .col-swatch { width: 88px; }
 .col-num { width: 116px; }
 
@@ -340,18 +653,10 @@ td.swatch { font-weight: var(--font-weight-semibold); }
 .item-link { color: var(--text-primary); text-decoration: none; }
 .item-link:hover { color: var(--text-interactive); text-decoration: underline; }
 
-/* Read-only quantity cells. AVAILABLE is derived (in-house − allocated),
-   so a negative value is an oversell and reads as an error. */
+/* Read-only quantity cells. .strong is the column a reader is meant to
+   land on — the stock figure, not its inputs. */
 .qty { font-variant-numeric: tabular-nums; }
-.qty.derived { font-weight: var(--font-weight-semibold); }
-.qty.negative { color: var(--color-red-900); font-weight: var(--font-weight-semibold); }
-
-input[type="checkbox"] {
-  width: 14px; height: 14px;
-  accent-color: var(--interactive-default);
-  cursor: pointer;
-  margin: 0;
-}
+.qty.strong { font-weight: var(--font-weight-semibold); }
 
 .table-empty {
   min-height: 240px;
@@ -360,6 +665,15 @@ input[type="checkbox"] {
   justify-content: center;
   color: var(--text-tertiary);
   font-size: var(--fontsize-body-sm);
+}
+
+/* The shared design tokens ship .pill, .pill-success and .pill-warn but
+   no danger variant — this is the missing half of the pair, and another
+   candidate to promote into design-tokens.css. */
+.pill-danger {
+  background: var(--status-error-bg);
+  border: 1px solid var(--status-error-border);
+  color: var(--text-primary);
 }
 
 /* ── Chips (property / naming segment) ─────────────────────── */
@@ -378,11 +692,24 @@ input[type="checkbox"] {
   color: var(--text-tertiary);
   white-space: nowrap;
 }
-.chip .chip-icon { color: var(--text-tertiary); font-size: var(--fontsize-body-sm); width: 14px; text-align: center; }
+.chip .chip-icon {
+  color: var(--text-tertiary);
+  font-size: var(--fontsize-body-sm);
+  width: var(--chip-icon-column);
+  text-align: center;
+}
 .chip .chip-label { color: var(--text-tertiary); }
 .chip .chip-value { color: var(--text-primary); font-weight: var(--font-weight-medium); }
 
-/* Removable chips read as active/editable — white surface + border */
+/* The item's property chips read as status-neutral — the same surface and
+   border as the shared .pill, so a value on the item header sits in the
+   house neutral treatment rather than a plain grey fill. */
+.item-header .chip {
+  background: var(--bg-surface);
+  border-color: var(--status-neutral-border);
+}
+
+/* Removable chips read as active/editable — surface + border */
 .chip.removable {
   background: var(--bg-surface);
   border-color: var(--border-subtle);
@@ -398,7 +725,7 @@ input[type="checkbox"] {
   padding: 0 0 0 var(--scale-100);
   line-height: 1;
 }
-.chip-x:hover { color: var(--color-red-900); }
+.chip-x:hover { color: var(--text-primary); }
 
 /* ── Section blocks (settings + item page) ─────────────────── */
 .section { padding: var(--scale-800) 0; }
@@ -407,8 +734,6 @@ input[type="checkbox"] {
 .section-label {
   font-size: var(--fontsize-body-sm);
   font-weight: var(--font-weight-bold);
-  letter-spacing: .06em;
-  text-transform: uppercase;
   color: var(--text-primary);
   margin-bottom: var(--scale-100);
 }
@@ -419,82 +744,92 @@ input[type="checkbox"] {
 }
 .section-body { margin-top: var(--scale-400); display: flex; flex-direction: column; gap: var(--scale-400); }
 
-/* stubbed section — nothing designed here yet */
-.section-stub {
-  padding: var(--scale-600);
-  border: 1px dashed var(--border-subtle);
-  border-radius: var(--border-radius-md);
-  color: var(--text-tertiary);
-  font-size: var(--fontsize-body-sm);
-  background: var(--bg-muted);
-}
-
-/* ── Form controls ─────────────────────────────────────────── */
-.field { display: flex; flex-direction: column; gap: var(--scale-50); }
-.field-label {
-  font-size: var(--fontsize-label);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-}
-.input, .select {
-  height: var(--scale-800);
-  padding: 0 var(--scale-200);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--border-radius-sm);
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  font-family: inherit;
-  font-size: var(--fontsize-body-sm);
-}
-.input:focus, .select:focus { outline: 2px solid var(--border-focus); outline-offset: -1px; }
-.input[readonly] { background: var(--bg-muted); color: var(--text-tertiary); }
-.input.num { text-align: right; font-variant-numeric: tabular-nums; }
-
-/* ── Unit type editor (Catalog Settings → UNITS) ───────────── */
-.unit-type-card {
-  display: flex;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  gap: var(--scale-300);
-  padding: var(--scale-400);
+/* ── Unit type editor (Catalog Settings → UNITS) ───────────────
+   One row per unit type rather than a card each: a unit type is four
+   short facts, so a list states them in a fraction of the height and
+   lets the columns line up down the page. Editing is in the flyout,
+   so a row never holds a live form field.
+   ------------------------------------------------------------- */
+.unit-config-list {
   border: 1px solid var(--border-tertiary);
   border-radius: var(--border-radius-md);
+  overflow: hidden;
   background: var(--bg-surface);
 }
-.unit-type-card .grow { flex: 1 1 180px; min-width: 150px; }
-.unit-type-card .shrink { flex: 0 0 auto; }
 
-.check-toggle {
-  display: inline-flex;
+.unit-config-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 2.4fr) minmax(0, 1.6fr) auto;
   align-items: center;
-  gap: var(--scale-200);
-  height: var(--scale-800);
+  gap: var(--scale-400);
+  padding: var(--scale-300) var(--scale-400);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--border-tertiary);
+  font-family: inherit;
   font-size: var(--fontsize-body-sm);
-  color: var(--text-primary);
+  text-align: left;
   cursor: pointer;
-  white-space: nowrap;
+  transition: background var(--duration-fast) ease;
 }
-.check-toggle:has(input:focus-visible) {
-  outline: 2px solid var(--border-focus);
-  outline-offset: 2px;
-  border-radius: var(--border-radius-sm);
-}
+.unit-config-row:last-child { border-bottom: 0; }
+.unit-config-row:hover { background: var(--interactive-bg-subtle); }
 
-.meas-hint {
-  font-size: var(--fontsize-body-sm);
-  color: var(--text-tertiary);
-  flex-basis: 100%;
-  margin-top: calc(var(--scale-100) * -1);
+.unit-config-name {
+  font-size: var(--fontsize-body-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
 }
+/* The measurement shape and the example are supporting detail — the
+   name and the field list are what people scan for. */
+.unit-config-measure { color: var(--text-secondary); white-space: nowrap; }
+.unit-config-measure i { margin-right: var(--scale-100); color: var(--text-tertiary); }
+.unit-config-shape { color: var(--text-primary); }
+.unit-config-example { color: var(--text-tertiary); }
 
-.form-footer {
+.unit-config-actions {
+  justify-self: end;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding-top: var(--scale-800);
-  border-top: 1px solid var(--border-tertiary);
+  gap: var(--scale-50);
+  visibility: hidden;
+}
+.unit-config-row:hover .unit-config-actions,
+.unit-config-row:focus-within .unit-config-actions { visibility: visible; }
+/* A disabled delete still needs to explain itself on hover. */
+.unit-config-actions .icon-btn:disabled {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Pending delete — the row states what is going and offers the way out
+   first, so Delete is never the closer of the two to the cursor. */
+.unit-config-row.is-confirming {
+  grid-template-columns: minmax(0, 1fr) auto;
+  background: var(--status-error-bg);
+  cursor: default;
+}
+.unit-config-confirm { color: var(--text-primary); }
+.unit-config-row.is-confirming .unit-config-actions { visibility: visible; }
+.btn-pill.solid.is-danger {
+  background: var(--status-error-border);
+  border-color: var(--status-error-border);
+}
+.btn-pill.solid.is-danger:hover:not(:disabled) { opacity: .85; }
+
+/* Below the workspace column the four facts stop fitting on one line,
+   so the row stacks and the labels sit above their values. */
+@media (max-width: 900px) {
+  .unit-config-row {
+    grid-template-columns: 1fr auto;
+    gap: var(--scale-50) var(--scale-300);
+  }
+  .unit-config-name { grid-column: 1; }
+  .unit-config-actions { grid-column: 2; grid-row: 1; visibility: visible; }
+  .unit-config-measure,
+  .unit-config-shape,
+  .unit-config-example { grid-column: 1 / -1; }
 }
 
 /* ── Item page: unit type cards ────────────────────────────
@@ -517,91 +852,98 @@ input[type="checkbox"] {
 .unit-type-block table.data th.col-act,
 .unit-type-block table.data td.col-act { width: 60px; }
 
-.unit-type-head {
+.unit-type-meta { font-size: var(--fontsize-body-sm); color: var(--text-tertiary); white-space: nowrap; }
+.unit-type-meta i { margin-right: var(--scale-50); }
+
+/* ── Rollup band ────────────────────────────────────────────
+   A KPI row: four figures for the unit type, each in its own tile on
+   the card's own surface, sitting above the table.
+
+   The tiles are identical by default. Colour here is not decoration —
+   it appears only when the stock needs attention (see .is-low /
+   .is-over below), so a coloured tile always means the same thing.
+
+   Values use the font's proportional figures on purpose. tabular-nums
+   belongs in columns that align vertically (the table below, axis
+   ticks); at this size it makes a figure like 121 read loose.
+   ---------------------------------------------------------- */
+.unit-rollup {
+  padding: var(--scale-300) var(--scale-400) var(--scale-400);
+  background: var(--bg-muted);
+  border-bottom: 1px solid var(--border-tertiary);
+}
+
+/* What this stock is, and the way to add more of it. */
+.rollup-top {
   display: flex;
   align-items: center;
   gap: var(--scale-300);
-  padding: var(--scale-300) var(--scale-400);
-  border-bottom: 1px solid var(--border-subtle);
-  background: var(--bg-muted);
+  margin-bottom: var(--scale-300);
 }
-.unit-type-name {
-  font-size: var(--fontsize-body-md);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-}
-.unit-type-meta { font-size: var(--fontsize-body-sm); color: var(--text-tertiary); }
-.unit-type-head .icon-btn { margin-left: var(--scale-200); }
 
-/* Inline rollup — allocatable types carry their figures in the card
-   header as pills. Available comes last and is called out, since it
-   is the derived number people actually act on. */
-.unit-stats {
+/* Adding stock is the band's one action, so it spans it. */
+.unit-rollup .add-row { margin-top: var(--scale-300); }
+
+.rollup-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--scale-300);
+}
+
+.rollup-stat {
+  padding: var(--scale-300);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--border-radius-md);
+}
+
+.rollup-label {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: var(--scale-200);
-  margin-left: auto;
-}
-.unit-stat {
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--scale-200);
-  padding: var(--scale-100) var(--scale-200);
-  border-radius: var(--border-radius-sm);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-tertiary);
+  gap: var(--scale-100);
+  font-size: var(--fontsize-label);
+  color: var(--text-tertiary);
+  margin-bottom: var(--scale-100);
   white-space: nowrap;
 }
-.unit-stat-label {
-  font-size: var(--fontsize-label);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-}
-.unit-stat-value {
-  font-size: var(--fontsize-body-md);
+
+.rollup-value {
+  display: flex;
+  align-items: baseline;
+  gap: var(--scale-100);
+  font-size: var(--fontsize-heading-h5);
+  line-height: var(--line-height-heading-h5);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
 }
-.unit-stat-value .measure {
+.rollup-measure {
   font-size: var(--fontsize-body-sm);
   font-weight: var(--font-weight-book);
   color: var(--text-tertiary);
 }
-.unit-stat.derived {
-  background: var(--status-success-bg);
-  border-color: var(--status-success-border);
+
+/* ── Attention states ───────────────────────────────────────
+   One rule, wherever stock state appears: warning when it is running
+   low, error when the item is oversold. The rollup tints the whole
+   tile; the items table marks the figure with .pill / .pill-danger
+   below. Text stays text-primary in both. Each ships with an icon or a
+   tooltip, so the state never rests on colour alone.
+   ---------------------------------------------------------- */
+.rollup-stat.is-low {
+  background: var(--status-warning-bg);
+  border-color: var(--status-warning-border);
 }
-.unit-stat.derived .unit-stat-label { color: var(--text-primary); }
-.unit-stat.alert {
+.rollup-stat.is-low .rollup-label { color: var(--text-primary); }
+
+.rollup-stat.is-over {
   background: var(--status-error-bg);
   border-color: var(--status-error-border);
 }
-.unit-stat.alert .unit-stat-label,
-.unit-stat.alert .unit-stat-value { color: var(--color-red-900); }
+.rollup-stat.is-over .rollup-label { color: var(--text-primary); }
 
-/* ── Unit card layout ───────────────────────────────────────
-   Allocatable types carry more columns and a stat row, so they
-   hold the full width. The lean ones pair up once there's room,
-   which also stops their short tables reading as ragged.
-   ---------------------------------------------------------- */
-/* align-items:start so a short card keeps its footer snug instead of
-   stretching to match its taller neighbour. */
-.unit-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--scale-400);
-  align-items: start;
-}
-
-/* Pairing happens inside the workspace column — the page width stays
-   var(--container-workspace) like every other screen. */
-@media (min-width: 1200px) {
-  .unit-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .unit-type-block.is-allocatable { grid-column: 1 / -1; }
+/* Below the workspace column four figures stop fitting on one line. */
+@media (max-width: 900px) {
+  .rollup-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .unit-type-foot {
@@ -614,14 +956,7 @@ input[type="checkbox"] {
   color: var(--text-tertiary);
   font-size: var(--fontsize-body-sm);
 }
-.unit-type-count {
-  font-size: var(--fontsize-label);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: .06em;
-  text-transform: uppercase;
-}
-.unit-type-total { color: var(--text-primary); font-variant-numeric: tabular-nums; }
-.unit-type-total strong { font-weight: var(--font-weight-semibold); }
+.unit-type-count { font-size: var(--fontsize-label); }
 
 /* Table inside a unit card sits flush; header strip reads as chrome. */
 .unit-type-block table.data th { background: var(--bg-surface); }
@@ -629,33 +964,11 @@ input[type="checkbox"] {
 .unit-type-block table.data td:first-child { padding-left: var(--scale-400); }
 .unit-type-block table.data th:last-child,
 .unit-type-block table.data td:last-child { padding-right: var(--scale-400); }
-.unit-type-block table.data tbody tr:last-child td { border-bottom: none; }
 
 /* ── Inline job allocation ─────────────────────────────────
-   An unallocated unit offers a button in its Job Number cell;
+   An unallocated unit offers a plus in its Job Number cell;
    allocating swaps it for a six-digit field, saved in place.
    ---------------------------------------------------------- */
-.allocate-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--scale-100);
-  padding: var(--scale-50) var(--scale-200);
-  border: 1px dashed var(--border-subtle);
-  border-radius: var(--border-radius-sm);
-  background: transparent;
-  color: var(--text-interactive);
-  font-family: inherit;
-  font-size: var(--fontsize-body-sm);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  transition: background .15s, border-color .15s;
-}
-.allocate-btn:hover {
-  background: var(--interactive-bg-subtle);
-  border-color: var(--interactive-default);
-  border-style: solid;
-}
-
 .job-value {
   display: inline-flex;
   align-items: center;
@@ -671,21 +984,15 @@ tr:focus-within .job-value .icon-btn { visibility: visible; }
   width: 84px;
   height: var(--scale-700);
   padding: 0 var(--scale-200);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--border-radius-sm);
-  background: var(--bg-surface);
-  color: var(--text-primary);
   font-family: var(--font-family-mono);
-  font-size: var(--fontsize-body-sm);
   letter-spacing: .04em;
 }
-.job-input:focus { outline: 2px solid var(--border-focus); outline-offset: -1px; }
 .job-input.invalid { border-color: var(--status-error-border); background: var(--status-error-bg); }
 .job-error {
   display: block;
   margin-top: var(--scale-50);
   font-size: var(--fontsize-label);
-  color: var(--color-red-900);
+  color: var(--text-primary);
 }
 
 /* Row actions appear on hover, as in the shipping list. */
@@ -697,77 +1004,13 @@ tr:focus-within .job-value .icon-btn { visibility: visible; }
 }
 table.data tbody tr:hover .unit-actions,
 table.data tbody tr:focus-within .unit-actions { visibility: visible; }
-/* Matches the icon-btn in customer maintenance. */
-.icon-btn {
-  width: var(--scale-700); height: var(--scale-700);
-  display: inline-flex; align-items: center; justify-content: center;
-  background: transparent; cursor: pointer;
-  border: 1px solid transparent;
-  border-radius: var(--border-radius-sm);
-  color: var(--text-tertiary);
-  font-size: var(--fontsize-body-sm);
-  transition: background .15s, color .15s;
-}
-.icon-btn:hover {
-  background: var(--bg-muted);
-  color: var(--text-primary);
-  border-color: var(--border-subtle);
-}
-.icon-btn.danger:hover { color: var(--color-red-900); background: var(--status-error-bg); border-color: var(--status-error-border); }
-.icon-btn:disabled { opacity: .35; pointer-events: none; }
 
-/* ── Item page: quantity summary ───────────────────────────── */
-.rollup-group + .rollup-group { margin-top: var(--scale-300); }
-.rollup-title {
-  font-size: var(--fontsize-label);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  margin-bottom: var(--scale-100);
-}
-
-.qty-summary {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--scale-300);
-}
-.qty-stat {
-  padding: var(--scale-300) var(--scale-400);
-  border: 1px solid var(--border-tertiary);
-  border-radius: var(--border-radius-md);
-  background: var(--bg-surface);
-}
-.qty-stat-label {
-  font-size: var(--fontsize-body-sm);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  margin-bottom: var(--scale-50);
-}
-.qty-stat-value {
-  font-size: var(--fontsize-heading-h5);
-  line-height: var(--line-height-heading-h5);
-  font-weight: var(--font-weight-semibold);
+/* .icon-btn and its hover live in design-tokens.css; disabled is covered
+   by the shared button:disabled. Only the danger variant is local. */
+.icon-btn.danger:hover {
   color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
+  background: var(--status-error-bg);
+  border-color: var(--status-error-border);
 }
-.qty-stat.derived { background: var(--bg-muted); }
-.qty-stat.derived .qty-stat-value { color: var(--text-primary); }
-.qty-stat.alert { background: var(--status-error-bg); border-color: var(--status-error-border); }
-.qty-stat.alert .qty-stat-value { color: var(--color-red-900); }
 
 .divider { height: 1px; background: var(--border-tertiary); border: 0; margin: 0; }
-
-/* ── Prototype-only note ribbon ────────────────────────────── */
-.proto-note {
-  max-width: var(--container-workspace);
-  margin: var(--scale-400) auto 0;
-  padding: var(--scale-300) var(--scale-400);
-  border-left: 3px solid var(--accent-default);
-  background: var(--accent-bg);
-  font-size: var(--fontsize-body-sm);
-  color: var(--text-primary);
-  border-radius: var(--border-radius-sm);
-}

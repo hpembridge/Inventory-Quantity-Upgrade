@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=optional" rel="stylesheet" />
     <link rel="stylesheet" href="inventory.css" />
+    <link rel="stylesheet" href="components/breadcrumbs/breadcrumbs.css" />
     <script src="inventory-data.js"></script>
     <script>
       window.SIDEBAR_CONFIG = {
@@ -33,29 +34,41 @@
       </div>
 
       <div class="page-scroll">
-        <div class="page-inner" style="max-width: var(--container-workspace)">
+        <div class="page-inner">
 
-          <!-- One tab per unit type, plus Vendors. -->
+          <a class="back-link" href="inventory.html">
+            <i class="fa-regular fa-arrow-left"></i> Back to Materials
+          </a>
+
+          <!-- Catalog name, with the page-level link alongside it -->
+          <div class="title-row">
+            <h5 id="catalogName"></h5>
+            <a class="btn-pill outline sm" href="catalog-settings.html">
+              <i class="fa-regular fa-gear"></i> Catalog Settings
+            </a>
+          </div>
+
+          <!-- One tab per unit type -->
           <div class="tab-row" id="tabs"></div>
 
-          <div class="page-card" style="padding:0; max-width:none">
-            <!-- Filters -->
-            <div class="filter-panel">
-              <div class="filter-status" id="filterStatus">No active filters applied</div>
-              <input class="search-input" type="search" id="search" placeholder="Search items..." autocomplete="off" />
-            </div>
+          <!-- Search acts on the whole list, so it sits on the page beside
+               the tabs rather than on the table's own surface. -->
+          <div class="search-panel">
+            <input class="search-input" type="search" id="search"
+                   placeholder="Search by item name or swatch number" autocomplete="off" />
+            <div class="search-count" id="searchCount" hidden></div>
+          </div>
 
+          <div class="page-card is-flush">
             <!-- Quantity table (read-only — drill into an item to edit) -->
             <div class="table-wrap">
               <table class="data">
                 <thead><tr id="headRow"></tr></thead>
                 <tbody id="rows"></tbody>
               </table>
-              <div class="table-empty" id="emptyState" hidden>No items match that search.</div>
+              <div class="table-empty" id="emptyState" hidden>No items found. Try a different search.</div>
             </div>
           </div>
-
-          <p class="proto-note" id="protoNote"></p>
 
         </div>
       </div>
@@ -70,37 +83,85 @@
       const headEl   = document.getElementById('headRow');
       const rowsEl   = document.getElementById('rows');
       const emptyEl  = document.getElementById('emptyState');
-      const statusEl = document.getElementById('filterStatus');
+      const countEl  = document.getElementById('searchCount');
       const searchEl = document.getElementById('search');
-      const noteEl   = document.getElementById('protoNote');
 
       let activeId = cfg.unitTypes[0]?.id || null;
 
-      /* ── Tabs: one per unit type, then Vendors ──────────────── */
+      /* Tabs are views of the items table. The vendor list and catalog
+         settings act on the catalog itself, so they sit up beside its
+         name rather than in this row. */
       function renderTabs() {
-        tabsEl.innerHTML =
-          cfg.unitTypes.map(t =>
-            `<button class="tab${t.id === activeId ? ' active' : ''}" type="button" data-tab="${t.id}">${t.name}</button>`
-          ).join('') +
-          `<button class="tab" type="button" data-tab="vendors">Vendors</button>` +
-          `<a class="btn-pill outline sm" href="catalog-settings.html" style="margin-left:auto">
-             <i class="fa-regular fa-gear"></i> Catalog Settings
-           </a>`;
+        tabsEl.innerHTML = cfg.unitTypes.map(t =>
+          `<button class="tab-btn${t.id === activeId ? ' active' : ''}" type="button" data-tab="${t.id}">${t.name}</button>`
+        ).join('');
       }
+
+      document.getElementById('catalogName').textContent = cfg.catalog;
 
       tabsEl.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-tab]');
-        if (!btn || btn.dataset.tab === 'vendors' || btn.dataset.tab === activeId) return;
+        if (!btn || btn.dataset.tab === activeId) return;
         activeId = btn.dataset.tab;
         renderTabs();
         renderHead();
         render(searchEl.value);
       });
 
-      /* ── Columns depend on whether the tab's type is allocatable ─
-         A type that can't be committed to a job has no Allocated,
-         and therefore no Available to derive from it. */
+      /* Every unit type reports the same figures, so every tab shows
+         the same columns — only the measure in the header changes. */
       function activeType() { return INV.unitTypeById(cfg, activeId); }
+
+      /* ── Columns ────────────────────────────────────────────────
+         Declared once: the header, the cells and the sort comparison
+         all read from here, so a column can't drift between them.
+         `value` is what the cell shows and what sorting compares.
+         --------------------------------------------------------- */
+      const COLS = [
+        { key: 'swatch', label: 'Swatch', cls: 'col-swatch',
+          value: (it) => it.swatch,
+          cell:  (it) => `<td class="swatch">${it.swatch}</td>` },
+
+        { key: 'name', label: 'Item Name', cls: 'left', text: true,
+          value: (it) => it.name,
+          cell:  (it) => `<td class="left"><a class="item-link" href="item.html">${it.name}</a></td>` },
+
+        { key: 'onOrder', label: 'On Order', cls: 'col-num', measured: true,
+          value: (it, v) => v.onOrder,
+          cell:  (it, v) => `<td class="qty">${fmt(v.onOrder)}</td>` },
+
+        { key: 'inHouse', label: 'In-House', cls: 'col-num', measured: true,
+          value: (it, v) => v.inHouse,
+          cell:  (it, v) => `<td class="qty">${fmt(v.inHouse)}</td>` },
+
+        { key: 'allocated', label: 'Allocated', cls: 'col-num', measured: true,
+          value: (it, v) => v.allocated,
+          cell:  (it, v) => `<td class="qty">${fmt(v.allocated)}</td>` },
+
+        { key: 'available', label: 'Available', cls: 'col-num', measured: true,
+          title: 'Available stock',
+          value: (it, v) => v.available,
+          /* The state marks the figure, not the whole cell — a tinted cell
+             would read as a column of its own. Same rule as the item
+             page's rollup: warning when low, error when oversold. */
+          cell:  (it, v) => {
+            const flag = STATE_PILL[INV.stockState(v)];
+            const value = flag
+              ? `<span class="pill ${flag.cls}" title="${flag.note}">${fmt(v.available)}</span>`
+              : fmt(v.available);
+            return `<td class="qty strong">${value}</td>`;
+          } }
+      ];
+
+      /* Stock state, styled the same way here as on the item page. */
+      const STATE_PILL = {
+        low:  { cls: 'pill-warn',   note: 'Running low on available stock.' },
+        over: { cls: 'pill-danger', note: 'Allocated stock exceeds in-house stock.' }
+      };
+
+      /* No sort until the reader asks for one, so the table opens in the
+         order the catalog is kept in. */
+      let sort = { key: null, dir: 'asc' };
 
       function renderHead() {
         const t = activeType();
@@ -110,32 +171,40 @@
           ? ` <span style="font-weight:var(--font-weight-book); color:var(--border-subtle)">(${measure})</span>`
           : '';
 
-        /* Non-allocatable types are cut from the parent, not purchased,
-           so they have no On Order either — just what's on hand. */
-        let cols = `
-          <th class="col-check"><input type="checkbox" id="selectAll" title="Select all" /></th>
-          <th class="col-swatch">Swatch</th>
-          <th class="left">Item Name</th>`;
-        if (t.allocatable) cols += `<th class="col-num">On Order${suffix}</th>`;
-        cols += `<th class="col-num">In-House${suffix}</th>`;
-        if (t.allocatable) {
-          cols += `
-            <th class="col-num">Allocated${suffix}</th>
-            <th class="col-num" title="Derived: In-House minus Allocated">Available${suffix}</th>`;
-        }
-        headEl.innerHTML = cols;
+        headEl.innerHTML = COLS.map(c => {
+          const on  = sort.key === c.key;
+          const dir = on ? sort.dir : null;
+          /* fa-sort is the resting affordance; the arrow shows direction. */
+          const icon = on
+            ? (dir === 'asc' ? 'fa-sort-up' : 'fa-sort-down')
+            : 'fa-sort';
+          return `
+            <th class="${c.cls}"${c.title ? ` title="${c.title}"` : ''}
+                aria-sort="${on ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}">
+              <button class="th-sort${on ? ' is-sorted' : ''}" type="button" data-sort="${c.key}">
+                <span>${c.label}${c.measured ? suffix : ''}</span>
+                <i class="fa-solid ${icon} sort-caret"></i>
+              </button>
+            </th>`;
+        }).join('');
+      }
 
-        document.getElementById('selectAll').addEventListener('change', (e) => {
-          rowsEl.querySelectorAll('.row-check').forEach(c => { c.checked = e.target.checked; });
+      /* Blank figures sort to the bottom whichever way the column is
+         pointing — an unknown is not a small number. */
+      function sortRows(rows) {
+        if (!sort.key) return rows;
+        const col = COLS.find(c => c.key === sort.key);
+        const dir = sort.dir === 'asc' ? 1 : -1;
+        const blank = (x) => x === null || x === undefined || x === '';
+
+        return rows.slice().sort((a, b) => {
+          const av = col.value(a.it, a.v), bv = col.value(b.it, b.v);
+          if (blank(av) && blank(bv)) return 0;
+          if (blank(av)) return 1;
+          if (blank(bv)) return -1;
+          if (col.text) return String(av).localeCompare(String(bv), undefined, { numeric: true }) * dir;
+          return (av - bv) * dir;
         });
-
-        noteEl.innerHTML = t.allocatable
-          ? `Quantities are in <strong>${t.name}</strong>${measure ? ` (${measure})` : ''}. ` +
-            `<strong>Available</strong> is derived (In-House &minus; Allocated) and turns red when an item is ` +
-            `oversold — see <em>Majilite-Majilite-Attache-Silver</em>. Editing happens on the item page.`
-          : `<strong>${t.name}</strong> are cut from the parent item rather than purchased, so there's ` +
-            `nothing to order and nothing to allocate — In-House is all there is. That follows from the ` +
-            `<em>allocatable</em> setting in <a href="catalog-settings.html">Catalog Settings</a>.`;
       }
 
       /* ── Rows ───────────────────────────────────────────────── */
@@ -148,30 +217,42 @@
           ? ITEMS.filter(it => it.name.toLowerCase().includes(q) || String(it.swatch).includes(q))
           : ITEMS;
 
-        rowsEl.innerHTML = list.map(it => {
-          const v = INV.itemQty(it, t);
-          let cells = `
-            <td class="col-check"><input type="checkbox" class="row-check" /></td>
-            <td class="swatch">${it.swatch}</td>
-            <td class="left"><a class="item-link" href="item.html">${it.name}</a></td>`;
-          if (t.allocatable) cells += `<td class="qty">${fmt(v.onOrder)}</td>`;
-          cells += `<td class="qty">${fmt(v.inHouse)}</td>`;
-          if (t.allocatable) {
-            const neg = v.available < 0;
-            cells += `
-              <td class="qty">${fmt(v.allocated)}</td>
-              <td class="qty derived${neg ? ' negative' : ''}"${neg ? ' title="Oversold — allocated exceeds in-house"' : ''}>${fmt(v.available)}</td>`;
-          }
-          return `<tr>${cells}</tr>`;
-        }).join('');
+        /* Figures are worked out once per row, then shared by the cells
+           and the comparison. */
+        const rows = sortRows(list.map(it => ({ it, v: INV.itemQty(it, t) })));
 
-        emptyEl.hidden = list.length > 0;
-        statusEl.textContent = q
-          ? `Filtered — showing ${list.length} of ${ITEMS.length} items`
-          : 'No active filters applied';
-        const all = document.getElementById('selectAll');
-        if (all) all.checked = false;
+        rowsEl.innerHTML = rows.map(({ it, v }) =>
+          `<tr class="row-link" data-href="item.html">${
+            COLS.map(c => c.cell(it, v)).join('')
+          }</tr>`
+        ).join('');
+
+        emptyEl.hidden = rows.length > 0;
+        /* A count only earns its place while a search is narrowing the list. */
+        countEl.hidden = !q;
+        countEl.textContent = q ? `Showing ${rows.length} of ${ITEMS.length} items` : '';
       }
+
+      /* First click sorts ascending; clicking the same column flips it. */
+      headEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-sort]');
+        if (!btn) return;
+        const key = btn.dataset.sort;
+        sort = sort.key === key
+          ? { key, dir: sort.dir === 'asc' ? 'desc' : 'asc' }
+          : { key, dir: 'asc' };
+        renderHead();
+        render(searchEl.value);
+      });
+
+      /* The whole row opens the item. The name keeps its real link so
+         middle-click, keyboard and "open in new tab" still work; this
+         handler only covers clicks that land elsewhere in the row. */
+      rowsEl.addEventListener('click', (e) => {
+        if (e.target.closest('a')) return;
+        const row = e.target.closest('.row-link');
+        if (row) window.location.href = row.dataset.href;
+      });
 
       searchEl.addEventListener('input', e => render(e.target.value));
 

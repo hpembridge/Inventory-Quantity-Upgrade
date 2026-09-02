@@ -1,0 +1,101 @@
+/* ============================================================
+   Flyout — right-hand overlay panel, and the save/cancel footer
+   ------------------------------------------------------------
+   Extracted from inventory.css for handoff — the dev team has
+   its own component for this. Nothing here is specific to the
+   inventory prototype.
+
+   Depends on: shared/css/design-tokens.css
+   Also uses --shadow-panel and --duration-panel, declared in
+   inventory.css's local token block. Both are candidates to
+   promote into design-tokens.css; until then this file needs
+   inventory.css loaded, or those two values inlined.
+   ============================================================ */
+
+/* ── Flyout ───────────────────────────────────────────────────
+   Same overlay/panel recipe as the bindery calculator's Edit Job
+   Details and Settings flyouts (binding-type-section.css).
+   ------------------------------------------------------------- */
+.flyout-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay-panel);
+  z-index: 300;
+  display: flex;
+  justify-content: flex-end;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-panel) ease;
+}
+.flyout-overlay.open { opacity: 1; pointer-events: all; }
+
+.flyout-panel {
+  width: var(--container-aside);
+  max-width: 100vw;
+  height: 100vh;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-panel);
+  transform: translateX(var(--scale-600));
+  transition: transform var(--duration-panel) ease;
+  display: flex;
+  flex-direction: column;
+}
+.flyout-overlay.open .flyout-panel { transform: translateX(0); }
+
+.flyout-header,
+.flyout-footer {
+  padding: var(--scale-400) var(--scale-500);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.flyout-header {
+  border-bottom: 1px solid var(--border-subtle);
+  justify-content: space-between;
+}
+
+.flyout-title {
+  font-size: var(--fontsize-body-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+.flyout-body {
+  flex: 1;
+  padding: var(--scale-500);
+  display: flex;
+  flex-direction: column;
+  gap: var(--scale-500);
+  overflow-y: auto;
+}
+
+/* ── Footer ───────────────────────────────────────────────────
+   One rule for both places a cancel/primary pair appears: the foot of
+   the panel, and the foot of a form. Right-grouping is markup rather
+   than CSS — anything inside .footer-actions is pushed to the trailing
+   edge, so a footer can put a destructive or secondary action on the
+   left simply by leaving it outside that group.
+
+   Note for handoff: .form-footer is the settings page's own card
+   footer, not the flyout's. It lives here because it is the same
+   component.
+   ------------------------------------------------------------- */
+.flyout-footer,
+.form-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--scale-300);
+  flex-shrink: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.flyout-footer { padding: var(--scale-400) var(--scale-500); }
+
+/* Inside a form the card already supplies the side padding, and the
+   footer wants more air above it. */
+.form-footer { padding: var(--scale-800) 0 0; }
+
+.footer-actions {
+  display: flex;
+  gap: var(--scale-300);
+  margin-left: auto;
+}
