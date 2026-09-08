@@ -253,3 +253,94 @@ A unit with no location has not been put away yet: the stock is recorded but not
 | R17 | An unplaced unit is never Allocated, so Available can't go negative over stock that hasn't arrived. |
 
 This is why a newly added unit — which starts with no location, since locations are generated on creation — shows up as On Order until it is placed.
+
+## 12. Non-depletable stock
+
+A fourth stock form sits beside Roll, Sheet and Piece: **Non-Depletable**. It is
+the form for stock that is never used up — it is only ever somewhere. A
+non-depletable unit records no measurement and no quantity, because one laptop
+is one laptop and one die is one die. What it records is its identity and its
+location, and the location is the whole of the stock story.
+
+That makes **Tracking** a second setting on the unit type, because "many of the
+same thing" and "every one is unique" are different shapes of catalog:
+
+| Tracking | What it means |
+|---|---|
+| **Multiple units** | Many of the same item — laptops, mice, monitors. The item has its own page, its assets live on it, and the rollup reports the four standard figures for that item. |
+| **Single unit** | Every item is truly unique — dies. There are no units within an item, so there is no item page: the item carries the location itself, and the rollup moves up to the catalog. |
+
+### 12a. Locations are typed
+
+A location belongs to one of two groups, and that group is what makes an asset
+allocated or available — a machine in the cage can be handed to anyone, a
+machine on a desk cannot. The picker groups them, so the consequence of a
+choice is visible while it is being made.
+
+| Group | Examples |
+|---|---|
+| **Stock Room** | IT-CAGE-A1, IT-BENCH-1, DIE-RACK-1-A, DIE-VAULT |
+| **Assigned** | J. Roth — Estimating, On press — Kluge 4, Out to Ohio Die |
+
+The four figures then read exactly as they do for measured stock (R16, R17),
+with a count of assets standing in for a measured quantity:
+
+| Figure | Made of |
+|---|---|
+| **On Order** | Records with no location — recorded, not yet findable. |
+| **In-House** | Records with a location, wherever that location is. |
+| **Allocated** | That location is in the Assigned group. |
+| **Available** | In-House − Allocated. |
+
+A **Status** column says which of the three a row is in, rather than leaving it
+to be read off the location's name — "IT-CAGE-A1" only means available to
+someone who already knows the cage. The pill is neutral in every state: an
+assigned laptop is not a problem, it is simply not available to issue.
+
+### 12b. Catalog settings
+
+| Control | Intended action |
+|---|---|
+| **Stock form — Non-Depletable** | Replaces the flyout's whole measurement half. No width, no length, no unit selects. |
+| **Tracking** | Multiple units or Single unit, as two options on screen with their consequences written under them. It decides where the catalog is worked, not just what a row looks like, so it is not a line in a select. |
+| **Identity field** | What each record is called on its row — Asset Tag, Die Number, Serial. Defaults follow the tracking and are only overwritten while the field still carries the other one's default. |
+| **Default values** | Absent by design. A non-depletable unit's only two fields are exactly the two that never take a default (R13): its identity, which belongs to one asset, and its location, which is where it happens to be. |
+| **Summary row** | Reads `Non-Depletable · Multiple units` — the form and the tracking together are what decide the shape of the catalog, so the row states both. |
+
+### 12c. Editing
+
+The location cell is a select rather than a typed field, and rests the way
+`.cell-field` rests: plain text in its column until the row is hovered, caret
+and border only then. It commits on change — a select has nothing to type, so
+there is nothing to correct before committing — and a toast names the asset and
+where it went. Only the rollup is rebuilt; the table stands, so the cursor is
+never pulled out of a row mid-move.
+
+The identity field is a normal editable cell with one difference from a
+quantity: it cannot be emptied and it cannot be duplicated. Both refusals are
+rejections in the R9 sense — the field snaps back, the tint flashes, the toast
+says why.
+
+| # | Rule |
+|---|---|
+| R18 | A non-depletable unit has no quantity. One record is one asset, so nothing about it can be depleted — these pages carry no Show depleted switch and no depleted state. |
+| R19 | Location type decides Allocated: Stock Room is available, Assigned is not. Nothing else on a non-depletable row affects the figures. |
+| R20 | Single-unit tracking has no item page. The item is the unit, so the rollup belongs to the catalog. |
+| R21 | An identity — asset tag, die number — is required and unique within its catalog. |
+
+### 12d. Files
+
+Built as separate prototypes so the measured pages are untouched.
+
+| File | What it shows |
+|---|---|
+| `catalog-settings-nondepletable.html` | The fourth stock form and the tracking choice, on an IT catalog. |
+| `catalog-nondepletable-multi.html` | Laptops — the item list, four figures per item counted in `ea`. |
+| `item-nondepletable-multi.html` | One laptop model's assets: tag, location, status, and the rollup. |
+| `catalog-nondepletable-single.html` | Dies — the rollup on the catalog, one row per die, no drill-in. |
+| `nondepletable-data.js` | Typed locations, the seed assets and dies, and the rollup arithmetic. |
+| `nondepletable.css` | Additions only: the resting select, the status pill, the catalog-level rollup, the tracking choice cards. |
+
+**Settled.** A die needs no "last job run" column — that is a catalog property,
+and properties are where per-item facts belong. Locations stay seed data for
+now; a managed list per library is not in this scope.

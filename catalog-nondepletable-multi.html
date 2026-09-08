@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Laptops — Items</title>
+    <script src="https://kit.fontawesome.com/da08280601.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="shared/css/design-tokens.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=optional" rel="stylesheet" />
+    <link rel="stylesheet" href="inventory.css" />
+    <link rel="stylesheet" href="nondepletable.css" />
+    <link rel="stylesheet" href="components/breadcrumbs/breadcrumbs.css" />
+    <script src="inventory-data.js"></script>
+    <script src="nondepletable-data.js"></script>
+    <script>
+      window.SIDEBAR_CONFIG = {
+        activeItem: 'Inventory',
+        user: { name: 'Healey Pembridge', role: 'team member' }
+      };
+    </script>
+  </head>
+  <body>
+    <script src="shared/components/sidebar-component.js"></script>
+
+    <div class="main-content">
+      <div class="breadcrumb-bar">
+        <nav class="breadcrumbs">
+          <a class="crumb" href="inventory.html"><i class="fa-regular fa-pallet-boxes"></i> Inventory</a>
+          <i class="fa-regular fa-chevron-right crumb-sep"></i>
+          <a class="crumb" href="inventory.html"><i class="fa-regular fa-layer-group"></i> IT Library</a>
+          <i class="fa-regular fa-chevron-right crumb-sep"></i>
+          <span class="crumb current"><i class="fa-regular fa-book"></i> Laptops</span>
+        </nav>
+      </div>
+
+      <div class="page-scroll">
+        <div class="page-inner">
+
+          <a class="back-link" href="inventory.html">
+            <i class="fa-regular fa-arrow-left"></i> Back to IT Library
+          </a>
+
+          <div class="title-row">
+            <h5>Laptops</h5>
+            <a class="btn-pill outline sm" href="catalog-settings-nondepletable.html">
+              <i class="fa-regular fa-gear"></i> Catalog Settings
+            </a>
+          </div>
+
+          <!-- One unit type, so no tab row: a tab strip with a single
+               tab is a control that can't be used. -->
+
+          <div class="search-panel">
+            <input class="search-input" type="search" id="search"
+                   placeholder="Search by item name" autocomplete="off" />
+            <div class="search-count" id="searchCount" hidden></div>
+          </div>
+
+          <div class="page-card is-flush">
+            <div class="table-wrap">
+              <table class="data">
+                <thead><tr id="headRow"></tr></thead>
+                <tbody id="rows"></tbody>
+              </table>
+              <div class="table-empty" id="emptyState" hidden>No items found. Try a different search.</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script>
+      /* ────────────────────────────────────────────────────────────
+         Non-depletable, multiple units — the catalog.
+
+         Identical in shape to the measured catalog: an item per row,
+         the four standard figures across it, and the name drilling
+         into the item's own assets. The only difference is the
+         measure — assets are counted, so every column is "ea" and
+         no header carries a unit.
+         ──────────────────────────────────────────────────────────── */
+      const ND  = window.NONDEPLETABLE;
+      const INV = window.INVENTORY;
+      const LOC = ND.LOCATIONS;
+
+      const headEl   = document.getElementById('headRow');
+      const rowsEl   = document.getElementById('rows');
+      const emptyEl  = document.getElementById('emptyState');
+      const countEl  = document.getElementById('searchCount');
+      const searchEl = document.getElementById('search');
+
+      const ITEMS = ND.MULTI_ITEMS;
+
+      /* The detailed item's figures are summed from its real assets,
+         so this table and its item page cannot disagree. */
+      function qtyOf(it) {
+        if (it.detailed) return ND.rollup(ND.MULTI_UNITS, LOC);
+        return {
+          onOrder: it.onOrder, inHouse: it.inHouse, allocated: it.allocated,
+          available: it.inHouse - it.allocated
+        };
+      }
+
+      const STATE_PILL = {
+        low:  { cls: 'pill-warn',   note: 'Running low on available stock.' },
+        over: { cls: 'pill-danger', note: 'Allocated stock exceeds in-house stock.' }
+      };
+
+      const COLS = [
+        { key: 'name', label: 'Item Name', cls: 'left', text: true,
+          value: (it) => it.name,
+          cell:  (it) => `<td class="left"><a class="item-link" href="item-nondepletable-multi.html">${it.name}</a></td>` },
+
+        { key: 'onOrder', label: 'On Order', cls: 'col-num',
+          value: (it, v) => v.onOrder,
+          cell:  (it, v) => `<td class="qty">${v.onOrder}</td>` },
+
+        { key: 'inHouse', label: 'In-House', cls: 'col-num',
+          value: (it, v) => v.inHouse,
+          cell:  (it, v) => `<td class="qty">${v.inHouse}</td>` },
+
+        { key: 'allocated', label: 'Allocated', cls: 'col-num',
+          title: 'Assets out with an employee',
+          value: (it, v) => v.allocated,
+          cell:  (it, v) => `<td class="qty">${v.allocated}</td>` },
+
+        { key: 'available', label: 'Available', cls: 'col-num',
+          title: 'Assets in the stock room',
+          value: (it, v) => v.available,
+          cell:  (it, v) => {
+            const flag = STATE_PILL[INV.stockState(v)];
+            const value = flag
+              ? `<span class="pill ${flag.cls}" title="${flag.note}">${v.available}</span>`
+              : v.available;
+            return `<td class="qty strong">${value}</td>`;
+          } }
+      ];
+
+      let sort = { key: null, dir: 'asc' };
+
+      function renderHead() {
+        headEl.innerHTML = COLS.map(c => {
+          const on  = sort.key === c.key;
+          const icon = on ? (sort.dir === 'asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort';
+          return `
+            <th class="${c.cls}"${c.title ? ` title="${c.title}"` : ''}
+                aria-sort="${on ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}">
+              <button class="th-sort${on ? ' is-sorted' : ''}" type="button" data-sort="${c.key}">
+                <span>${c.label}</span>
+                <i class="fa-solid ${icon} sort-caret"></i>
+              </button>
+            </th>`;
+        }).join('');
+      }
+
+      function sortRows(rows) {
+        if (!sort.key) return rows;
+        const col = COLS.find(c => c.key === sort.key);
+        const dir = sort.dir === 'asc' ? 1 : -1;
+        return rows.slice().sort((a, b) => {
+          const av = col.value(a.it, a.v), bv = col.value(b.it, b.v);
+          if (col.text) return String(av).localeCompare(String(bv), undefined, { numeric: true }) * dir;
+          return (av - bv) * dir;
+        });
+      }
+
+      function render(query = '') {
+        const q = query.trim().toLowerCase();
+        const list = q ? ITEMS.filter(it => it.name.toLowerCase().includes(q)) : ITEMS;
+        const rows = sortRows(list.map(it => ({ it, v: qtyOf(it) })));
+
+        rowsEl.innerHTML = rows.map(({ it, v }) =>
+          `<tr class="row-link" data-href="item-nondepletable-multi.html">${COLS.map(c => c.cell(it, v)).join('')}</tr>`
+        ).join('');
+
+        emptyEl.hidden = rows.length > 0;
+        countEl.hidden = !q;
+        countEl.textContent = q ? `Showing ${rows.length} of ${ITEMS.length} items` : '';
+      }
+
+      headEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-sort]');
+        if (!btn) return;
+        const key = btn.dataset.sort;
+        sort = sort.key === key
+          ? { key, dir: sort.dir === 'asc' ? 'desc' : 'asc' }
+          : { key, dir: 'asc' };
+        renderHead();
+        render(searchEl.value);
+      });
+
+      rowsEl.addEventListener('click', (e) => {
+        if (e.target.closest('a')) return;
+        const row = e.target.closest('.row-link');
+        if (row) window.location.href = row.dataset.href;
+      });
+
+      searchEl.addEventListener('input', e => render(e.target.value));
+
+      renderHead();
+      render();
+    </script>
+  </body>
+</html>

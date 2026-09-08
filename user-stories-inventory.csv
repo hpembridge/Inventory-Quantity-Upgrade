@@ -1,0 +1,228 @@
+﻿ID,Work Item Type,Title 1,Title 2,Title 3,Description,Acceptance Criteria,Assigned To,State,Area Path,Iteration Path,Tags,Story Points,Priority
+,Epic,Libraries and catalogs,,,"Entry point for the tool. A library is a collection of catalogs; a catalog is a collection of items that share one set of properties and one set of unit types. Two scopes run through everything here and must never be confused: your view (which libraries are on your tabs, per user, non-destructive) and the data (shared by everyone).",,,New,,,Inventory; Libraries,,1
+,Feature,,Your library view,,"Which libraries a person keeps on their tabs, in the order they added them. Changing it never touches the data.",,,New,,,Inventory; Libraries,,2
+,User Story,,,Switch between my libraries with tabs,"As a user, I want my libraries as tabs above the catalog list, so that moving between the ones I use is one click rather than a navigation.","- The panel below the tabs is welded to the active tab, so the two read as one folder.
+- Selecting a tab shows that library's catalogs.
+- Which libraries are open, and which is active, are saved per user and restored on return.",,New,,,Inventory; Libraries,3,1
+,User Story,,,Take a library off my tabs without deleting it,"As a user, I want to dismiss a library from my own tabs, so that my view holds only what I use, without affecting anyone else.","- The x on a tab removes that library from my view only. Nothing is deleted and no one else is affected.
+- The x is disabled on the last open tab — the page always shows a library.
+- The dismissed library can be added back from the picker at any time.",,New,,,Inventory; Libraries,2,1
+,User Story,,,Add a library to my view from a picker,"As a user, I want a searchable picker of every library, so that I can pull one in when I occasionally need it.","- The + on the tab strip opens the picker with focus in the search field, so it is typeable immediately.
+- The list narrows as I type.
+- Libraries already on my tabs are marked 'In your view'.
+- Choosing an option adds it to my tabs and switches to it.
+- Escape or a click outside closes without changing my view.",,New,,,Inventory; Libraries,3,1
+,User Story,,,Create a library from the picker when none matches,"As a user, I want to create a library from the picker when my typed name matches nothing, so that I do not have to leave the flow to add one.","- A Create ""<name>"" option appears only when the typed name matches no existing library.
+- Choosing it creates the library and opens it.
+- The new library appears in the picker for everyone.",,New,,,Inventory; Libraries,3,2
+,User Story,,,Work the library picker from the keyboard,"As a user, I want to drive the picker without the mouse, so that adding a library stays as fast as typing its name.","- Down from the field enters the list, then walks it; Up walks back and returns to the field from the top.
+- Enter or Tab takes the focused option.
+- Tab is only intercepted while an option has focus, so it still leaves the picker from the field.
+- Escape closes the picker.",,New,,,Inventory; Libraries; Accessibility,2,2
+,Feature,,Managing a library,,"The library itself — its name, the stock forms it allows, its catalogs, and its deletion. These are shared data, so every destructive action names what goes with it.",,,New,,,Inventory; Libraries,,2
+,User Story,,,Rename a library in Library Settings,"As a user, I want to rename a library, so that it is findable by the name people actually use for it.","- The pencil beside the library name opens the Library Settings flyout.
+- Renaming updates the tab, the panel title and the picker.
+- An empty name is refused: the field takes the error tint and a toast says why.
+- Cancel, the overlay and Escape all discard the draft cleanly.",,New,,,Inventory; Libraries,3,2
+,User Story,,,Set which stock forms a library allows,"As a user, I want to say which physical forms stock takes in a library, so that a library of laptops is never offered 'roll'.","- Library Settings lists Roll, Piece, Sheet and Non-Depletable as switches.
+- Help text reads: the physical forms stock takes in this library. Catalog unit types can only use forms listed here.
+- A library needs at least one stock form — the last one on cannot be turned off, and says why (R14).
+- A form already in use by a unit type stays listed in that type's Stock Form select even if the library has since dropped it (R15).
+- The setting persists and is read by the catalog settings page.",,New,,,Inventory; Libraries; Configuration,5,1
+,User Story,,,Delete a library and be told what goes with it,"As a user, I want deleting a library to state its real scope before it happens, so that I never confuse hiding with deleting.","- The trash beside the pencil opens a confirmation modal.
+- The body states the catalog count and says the catalogs are deleted too, for everyone.
+- The modal points at the tab x as the way to only remove it from my own view (R4).
+- The trash is disabled when only one library exists.
+- Cancel, x, Escape and the overlay all close with nothing deleted.",,New,,,Inventory; Libraries,3,1
+,User Story,,,Add a catalog to a library,"As a user, I want to add a catalog to the open library, so that a new group of stock has somewhere to live.","- Add Catalog creates a catalog in the active library.
+- A catalog needs a name before it appears in the list.
+- A library needs at least one catalog — deleting the library is how the last one is removed (R2).",,New,,,Inventory; Libraries,3,2
+,User Story,,,Open a catalog or its settings from the library list,"As a user, I want the catalog row to open its items and the pencil to open its settings, so that both are reachable without a menu.","- The whole row opens the catalog's item list.
+- The pencil on the row opens that catalog's settings.
+- The count badge is read-only and shows how many items the catalog holds.",,New,,,Inventory; Libraries,2,2
+,Epic,Catalog configuration,,,Everything that defines what a catalog's items carry and how its stock is held. The page is a working copy: nothing is committed until Save Changes.,,,New,,,Inventory; Configuration,,1
+,Feature,,Catalog properties,,"The fields every item in a catalog carries, global and created.",,,New,,,Inventory; Configuration,,2
+,User Story,,,Keep the global properties on every catalog,"As a user, I want Vendor, Default Location, Product Line, Family and Color present and non-removable, so that the rest of Platinum always has something to join on.","- The five global property chips appear on every catalog.
+- They carry no remove affordance.
+- They are visually distinct from properties the catalog created.",,New,,,Inventory; Configuration,2,2
+,User Story,,,Add a catalog property with a type,"As a user, I want to add a property and choose its type, so that items can record the facts this catalog actually needs.","- Add Catalog Property takes a name and a type: True/False, Dropdown, Measurement, Number or Description.
+- A dropdown property also takes its options.
+- Each chip carries the icon of its type: toggle, diamond, square, hashtag, text.
+- Per-item facts such as a die's last job belong here rather than as bespoke columns.",,New,,,Inventory; Configuration,5,2
+,User Story,,,Remove a property and be told what is lost,"As a user, I want removing a property to say what goes with it, so that I do not silently discard recorded values.","- The x on a created chip removes the property from the catalog.
+- It states that values recorded on existing items are lost (R6).
+- Nothing is committed until Save Changes.",,New,,,Inventory; Configuration,3,2
+,User Story,,,Save or cancel the whole settings page at once,"As a user, I want the settings page to commit as one thing, so that a half-made change never reaches the catalog.","- Save Changes commits the title, properties, unit types and naming together.
+- The button is disabled until something actually changes.
+- It confirms in place, then returns to rest.
+- Cancel returns to the item list; nothing committed is lost, because nothing was committed.",,New,,,Inventory; Configuration,3,1
+,User Story,,,Rename a catalog where naming happens,"As a user, I want the catalog's name edited as a labeled field on its settings page, so that renaming is not hidden behind an edit affordance.","- Catalog Title is a normal field at the top of the settings page.
+- Renaming here renames the catalog on the item list and in its library once saved.",,New,,,Inventory; Configuration,2,2
+,Feature,,Unit types,,"A unit type is a named way an item is held. Its stock form is the shape behind it, and the shape decides which fields a unit records.",,,New,,,Inventory; Configuration,,2
+,User Story,,,Read a unit type's shape at a glance,"As a user, I want each unit type summarized in one line, so that I can see what a unit of it records without opening anything.","- The row shows name, stock form with its icon, the fields a unit records, and a worked example.
+- Rolls read as Roll Width (inches) x Length (yards), i.e. 64 yards.
+- Sheets read as Width x Height and Count, i.e. 35 sheets (8.5 x 11 inches).
+- Clicking the row is a shortcut to Edit; the buttons are the keyboard path.",,New,,,Inventory; Configuration,3,2
+,User Story,,,Add or edit a unit type in a flyout,"As a user, I want unit types edited in a flyout over a draft, so that backing out never leaves a half-made type behind.","- Add Unit Type opens the flyout empty, defaulted to a piece.
+- The flyout uses the same overlay and panel recipe as Edit Job Details.
+- Save Unit Type writes the draft into the page's working config — still not committed until Save Changes.
+- Cancel, x, Escape and the overlay discard the draft.",,New,,,Inventory; Configuration,5,1
+,User Story,,,"Name a unit type, or let the stock form name it","As a user, I want to call a unit type what we call it, and to get a sensible name if I do not, so that naming is never a blocker.","- Unit type name accepts anything — Rolls, Miscuts, Swatches.
+- Left blank, it falls back to the stock form's default name.
+- Switching the stock form renames the type if it still carries the old default name.",,New,,,Inventory; Configuration,2,2
+,User Story,,,Choose the units a roll or sheet records,"As a user, I want each dimension to carry its own unit, so that a 54 inch wide roll of 50 yards reads correctly.","- A roll takes a width unit and a length unit separately; stock is the length, not a headcount of rolls.
+- A sheet takes a width unit and a height unit separately, because 8.5 x 11 in and 40 x 60 in are both real; stock is the count.
+- A piece takes no units; stock is the count.
+- Switching the stock form swaps the whole field set.",,New,,,Inventory; Configuration,5,1
+,User Story,,,Give a unit type default values,"As a user, I want new units to start with the measurements most of them have, so that adding one is a confirmation rather than a transcription.","- Edit Unit Type has a Default Values group covering whatever the stock form measures: Width and Yardage for a roll, Width, Height and Count for a sheet, Count for a piece.
+- Job Number and Location never take a default (R13).
+- A field with no default starts empty on a new row, showing its placeholder.
+- Defaults are stored on unitType.defaults and saved with the rest of the config.
+- A dimension of zero is not a default and is dropped on save.",,New,,,Inventory; Configuration,5,2
+,User Story,,,Delete a unit type with an in-place confirmation,"As a user, I want deleting a unit type to confirm in the row and name what goes with it, so that a dialog is not needed for a small decision.","- The trash turns the row into a confirmation naming the unit type and how many recorded units go with it.
+- Delete removes it from the working copy; Cancel and Escape back out.
+- The trash is disabled on the last unit type — a catalog needs at least one way to hold stock (R1), and says why.",,New,,,Inventory; Configuration,3,2
+,User Story,,,Only offer stock forms the library allows,"As a user, I want a catalog's stock forms limited to its library's, so that unit types cannot drift outside what the library is for.","- The Stock Form select lists only the forms the library allows.
+- A form already in use by this unit type stays listed even if the library has since dropped it (R15).
+- A new unit type defaults to piece when the library allows it, otherwise to the library's first form.",,New,,,Inventory; Configuration,3,2
+,Feature,,Item naming,,"Item names are generated from a template of properties, never typed.",,,New,,,Inventory; Configuration,,2
+,User Story,,,Build item names from a segment template,"As a user, I want item names composed from properties in order, so that every item in a catalog is named the same way (R8).","- Segment chips show the template in order — Vendor, Product Line, Family, Color reads as Majilite-Majilite-Baby Ostrich-Cobalt Blue.
+- Add Naming Segment appends a property to the end of the template.
+- Only properties this catalog carries can be segments.
+- The x on a segment drops it from the template.
+- Item names are never typed by hand.",,New,,,Inventory; Configuration,5,2
+,Epic,Seeing what stock we have,,,"The item list and the rollup: the read surfaces that answer how much of something there is, and whether it needs attention.",,,New,,,Inventory; Reporting,,1
+,Feature,,Item list,,"One row per item, the four standard figures across it, per unit type.",,,New,,,Inventory; Reporting,,2
+,User Story,,,See every item's figures for one unit type,"As a user, I want the item list to report On Order, In-House, Allocated and Available, so that I can judge stock without opening an item.","- Unit type tabs switch which unit type the table reports on.
+- Every tab shows the same five columns; only the measure in the headers changes, because a roll is counted in yards and a piece is not counted in anything.
+- Available is derived as In-House minus Allocated and is never stored, so no figure can contradict another.
+- The item name opens the item page; the whole row is the target, and the name keeps a real link for middle-click and new-tab.",,New,,,Inventory; Reporting,5,1
+,User Story,,,Search the item list by name or swatch number,"As a user, I want to narrow the list as I type, so that finding one item in eight hundred is immediate.","- Search acts on the whole list, live, and sits on the page rather than on the table's surface.
+- A count appears only while the search is narrowing the list.
+- An empty result says so in the table.",,New,,,Inventory; Reporting,3,2
+,User Story,,,Sort the item list by any column,"As a user, I want to sort by a column, so that the lowest available or the largest on order comes to the top.","- A column header sorts ascending, then descending on a second click.
+- The caret shows direction; unsorted columns show the resting sort affordance so it is clear they can be clicked.
+- Blanks sort to the bottom in both directions — an unknown is not a small number.
+- The table opens unsorted, in the order the catalog is kept in.",,New,,,Inventory; Reporting,3,2
+,Feature,,Stock state,,"Colour on a figure means one thing only, and never appears as decoration.",,,New,,,Inventory; Reporting,,2
+,User Story,,,Be warned when an item is low or oversold,"As a user, I want low and oversold stock marked, so that a reprint is not planned against stock that is not there.","- Amber means running low: available at or under 20 percent of in-house. Red means oversold: available below zero (R5).
+- The state marks the figure, not the whole cell — a tinted cell would read as a column of its own.
+- Both states carry an icon and a tooltip saying which state it is, so neither relies on colour alone.
+- No other condition is ever shown in colour.",,New,,,Inventory; Reporting; Accessibility,3,1
+,User Story,,,See the four figures for the unit type on an item,"As a user, I want a rollup above each unit type's table, so that the headline figures sit with the rows they are made of.","- On Order, In-House, Allocated and Available appear as four tiles.
+- The tiles are identical by default; colour appears only on Available.
+- Each unit type has its own rollup and its own table, because their columns differ.
+- A commit in the table rebuilds the rollup in place, so the two can never disagree.",,New,,,Inventory; Reporting,5,1
+,User Story,,,Understand On Order as stock that is not yet findable,"As a user, I want a unit with no location to read as On Order, so that recorded stock is never counted as being on the shelf.","- On Order is the units of this type with no location.
+- In-House is the units with a location.
+- Allocated is units with a job number and a location — only stock in hand can be allocated against (R17).
+- A unit's quantity is counted once: On Order until it has a location, In-House after (R16).
+- A newly added unit shows as On Order until it is placed.",,New,,,Inventory; Reporting,5,1
+,Epic,Recording and moving stock,,,"The item page as a working surface: every value in a unit row is a field, and stock is corrected where it is read.",,,New,,,Inventory; Units,,1
+,Feature,,Editable unit rows,,"A field that reads as text at rest, becomes a field on hover, and is editable on focus.",,,New,,,Inventory; Units,,2
+,User Story,,,"Edit a unit value in place, with no edit mode","As a user, I want to click a value and type over it, so that correcting stock takes no more than reading it.","- At rest a field reads exactly as a static cell: no border, no fill, column alignment kept, measurements in settled form (1.50, not 1.5).
+- Hovering a row outlines every field in it at once; the field under the pointer takes the stronger edge.
+- Focus gives white fill, a focus ring, and selects the contents so typing replaces the value.
+- A second click, or a drag, positions the caret normally.
+- Commit is blur or Enter; Escape reverts. There are no save or cancel buttons.",,New,,,Inventory; Units,8,1
+,User Story,,,Be stopped from typing a value that cannot be right,"As a user, I want the field to refuse characters that do not belong, so that most mistakes never happen.","- Numeric fields accept digits only; decimals take a single point and two places. No steppers.
+- Job Number is digits-only and capped at six characters.
+- Location is free text, capped at a sensible length.
+- Characters that do not belong simply never land.",,New,,,Inventory; Units,5,2
+,User Story,,,Have an invalid entry rejected outright and told why,"As a user, I want a rejected value to snap back with a reason, so that I am never left with a half-accepted entry.","- The field returns to the value it held (R9).
+- The error tint flashes just long enough to point at which field refused.
+- A toast names the reason — for example, job numbers are six digits.
+- Empty placeholders read in the field's own shape (000000, 0.00, 0, Add location) in tertiary text, replacing the old plus button.",,New,,,Inventory; Units,5,1
+,User Story,,,"Have clearing a number left alone, and clearing a job mean something","As a user, I want an emptied number to revert silently and an emptied job number to release the allocation, so that each field does what its value means.","- Emptying a number is not an entry: it reverts to what it held, with no telling off.
+- Emptying Job Number releases the allocation, replacing the old x action.
+- Allocated and Available follow immediately.",,New,,,Inventory; Units,3,2
+,User Story,,,Tab through a row without the table moving underneath me,"As a user, I want the figures to follow my edits without the rows being re-rendered, so that I can work a row field by field.","- A commit rebuilds the rollup and the footer in place.
+- Neither the rollup nor the footer holds a field, so the table stands and focus is kept.
+- Tab moves to the next field in the row.",,New,,,Inventory; Units; Accessibility,5,1
+,Feature,,Allocation,,"Committing a unit to a job, and releasing it.",,,New,,,Inventory; Units,,2
+,User Story,,,Allocate a unit to a job,"As a user, I want to put a job number on a unit, so that stock committed to work is not offered to anyone else.","- A job number is exactly six digits (R7).
+- Committing a job number moves Allocated and Available immediately.
+- Only a placed unit can be allocated (R17).
+- Switching unit type tabs mid-edit abandons an open field, so it never reappears against a different unit type.",,New,,,Inventory; Units,5,1
+,User Story,,,Print a unit label,"As a user, I want to print a label for a unit, so that what is on the shelf carries its own identity.","- Every unit row has a print action at its trailing edge.
+- Row actions appear on hover and on focus-within.",,New,,,Inventory; Units,3,3
+,Feature,,Adding units,,"A new unit is entered in the same place, and the same way, an existing one is corrected.",,,New,,,Inventory; Units,,2
+,User Story,,,Add a unit as a row rather than a form,"As a user, I want Add to append a row and put the cursor in it, so that there is one way to enter stock, not two.","- Add Roll / Add Sheet / Add Swatch appends a row at the bottom of the table and focuses its first field.
+- There is no modal and no separate form.
+- The unit type's default values are filled in; fields with no default start empty.
+- Location starts empty, so a new unit reads as On Order until it is placed.
+- An un-entered quantity is not depletion, so the new row stays put while it is being filled.",,New,,,Inventory; Units,5,1
+,Feature,,Depleted units,,"A quantity of zero is depletion, not an error.",,,New,,,Inventory; Units,,2
+,User Story,,,Have used-up units leave the table without vanishing mid-edit,"As a user, I want a zeroed unit to dim where it stands and only leave once I am out of the row, so that a mistyped zero can be corrected.","- Zeroing a quantity dims the row immediately: still readable, still editable, plainly not part of what is on hand.
+- The row is only taken off screen once the cursor has left it (R12).
+- A toast says where it went.
+- Zero is a real quantity for Yardage and Count; dimensions must still be greater than zero (R10, R11).",,New,,,Inventory; Units,5,1
+,User Story,,,Bring depleted units back when I need them,"As a user, I want a Show depleted switch, so that recounting a unit zeroed by mistake is possible.","- Show depleted sits inline with the back link, above the first card, and defaults to off.
+- It is a labelled control over a real checkbox, so it is keyboard and screen-reader operable.
+- The footer says what is on screen and what is being kept off it — '2 units, 1 depleted hidden'.
+- Two different empty states: nothing here at all, versus nothing left that is not used up, which points at the switch.",,New,,,Inventory; Units; Accessibility,3,2
+,Epic,Non-depletable stock,,,"A fourth stock form for stock that is never used up and is only ever somewhere. It records no measurement and no quantity: one record is one asset, and its location is the whole of the stock story.",,,New,,,Inventory; Non-depletable,,1
+,Feature,,Configuring non-depletable stock,,"The stock form, its tracking setting, and the identity field.",,,New,,,Inventory; Non-depletable; Configuration,,2
+,User Story,,,Choose Non-Depletable as a stock form,"As a user, I want a stock form for things that are only ever moved, so that laptops and dies are not forced into a quantity they do not have.","- Non-Depletable appears beside Roll, Sheet and Piece wherever stock forms are listed.
+- Choosing it replaces the flyout's measurement fields entirely — no width, no length, no unit selects.
+- A note states that non-depletable stock records no quantity: one record is one asset, and its location is what makes it allocated or available.
+- Default Values are absent by design: the form's only two fields are the two that never take a default (R13).",,New,,,Inventory; Non-depletable; Configuration,5,1
+,User Story,,,Set whether a non-depletable type is single or multiple units,"As a user, I want to say whether a catalog holds many of the same item or many unique ones, so that the tool matches how the stock actually is.","- Tracking offers Multiple units and Single unit as two options on screen with their consequences written under them, not as a line in a select.
+- Multiple units: many of the same item — the item has a page, its assets live there, and the rollup is on the item.
+- Single unit: every item is unique — there is no item page, the item carries its own location, and the rollup sits on the catalog (R20).
+- The summary row reads 'Non-Depletable, Multiple units' — the form and the tracking together decide the shape of the catalog.",,New,,,Inventory; Non-depletable; Configuration,5,1
+,User Story,,,Name the identity field for a non-depletable type,"As a user, I want to call the identity what we call it, so that a row reads as an asset tag, a die number or a serial.","- Identity field takes a label and defaults by tracking: Asset Tag for multiple units, Item Number for single.
+- Changing the tracking updates the label only while it still carries the other one's default.
+- The label is used as the first column header on the item or catalog table.",,New,,,Inventory; Non-depletable; Configuration,3,2
+,Feature,,Location as the whole stock story,,"Locations are typed, and the type is what makes an asset allocated or available.",,,New,,,Inventory; Non-depletable,,2
+,User Story,,,Pick a location from a list grouped by what it means,"As a user, I want the location picker grouped into Stock Room and Assigned, so that the consequence of a choice is visible while I make it.","- The picker groups locations as Stock Room and Assigned, plus 'Not placed'.
+- The cell rests as plain text and only shows a border and caret once the row is hovered or focused.
+- It commits on change — a select has nothing to type, so there is nothing to correct first.
+- A toast names the asset and where it went.
+- Only the rollup is rebuilt; the table stands, so the cursor is never pulled out of a row mid-move.",,New,,,Inventory; Non-depletable,5,1
+,User Story,,,Get the four standard figures from locations alone,"As a user, I want On Order, In-House, Allocated and Available for non-depletable stock, so that it reports the same way everything else does.","- On Order is records with no location; In-House is records with one, wherever it is.
+- Allocated is records whose location is in the Assigned group; Available is In-House minus Allocated (R19).
+- Figures are counted in assets and shown in 'ea'.
+- Low and oversold marking on Available behaves exactly as it does for measured stock (R5).",,New,,,Inventory; Non-depletable; Reporting,5,1
+,User Story,,,See a status rather than infer it from a location name,"As a user, I want a status column, so that I do not have to know the cage to know a machine is available.","- Each row states On order, Allocated or Available (for dies: On order, In use, On the rack).
+- The pill is neutral in every state — an assigned laptop is not a problem, it is simply not available to issue.
+- The pill carries an icon and a tooltip explaining the state.",,New,,,Inventory; Non-depletable; Accessibility,3,1
+,Feature,,Multiple units — IT assets,,"Many of the same item, each one an asset in its own right.",,,New,,,Inventory; Non-depletable,,2
+,User Story,,,Track every laptop of one model on its item page,"As a user in IT, I want each machine of a model listed with its tag and location, so that I know how many are free and who has the rest.","- The item page shows the rollup and a table of Asset Tag, Location and Status.
+- There is no quantity column: the row exists, so the count is one (R18).
+- There is no Show depleted switch, because nothing here depletes.
+- Add Asset appends a row, focuses its tag, and starts it unplaced so it reads as On Order.",,New,,,Inventory; Non-depletable,5,1
+,User Story,,,Keep asset identities required and unique,"As a user, I want a tag that cannot be blank or duplicated, so that a row always names exactly one machine.","- An emptied identity is rejected: the field snaps back, the tint flashes, and a toast says every asset needs one (R21).
+- A tag already in use on another record is rejected the same way, naming the clash.
+- Typing is constrained to the identity's shape as it happens.",,New,,,Inventory; Non-depletable,3,1
+,User Story,,,See a non-depletable catalog list the same as any other,"As a user, I want the catalog of laptops to look like the catalog of bookcloth, so that nothing new has to be learned to read it.","- One row per item with On Order, In-House, Allocated and Available, counted in ea.
+- Search and sort behave as they do on a measured catalog.
+- The item name drills into that item's assets.
+- A catalog with one unit type shows no tab strip — a single tab is a control that cannot be used.",,New,,,Inventory; Non-depletable; Reporting,3,2
+,Feature,,Single unit — unique items,,"One item is one asset, so the item is the unit.",,,New,,,Inventory; Non-depletable,,2
+,User Story,,,Work a catalog of unique items without item pages,"As a user in bindery, I want the die catalog itself to be the working surface, so that I am not opening a page to see a single row.","- The rollup sits at the top of the catalog page, above the search that filters the table beneath it.
+- One row per item: identity, item name, location and status.
+- The item name is not a link — there is nowhere for it to go (R20).
+- Location is the one editable value on the page.",,New,,,Inventory; Non-depletable,5,1
+,User Story,,,"Find a unique item by number, name or where it is","As a user, I want to search a single-unit catalog by location too, so that 'what is on the Kluge' is one search.","- Search matches identity, item name and location label.
+- Sorting is available on every column; blanks sort to the bottom both ways.
+- A count appears only while the search is narrowing the list.",,New,,,Inventory; Non-depletable,3,2
+,User Story,,,Add a unique item as a row,"As a user, I want Add Die to append a row and focus its number, so that adding a unique item matches how everything else is entered.","- Add appends a row at the bottom and focuses the identity field.
+- The new item starts unplaced, so it reads as On Order.
+- Any search in force is cleared so the new row is visible.",,New,,,Inventory; Non-depletable,3,2
+,User Story,,,"Record per-item facts as catalog properties, not columns","As a user, I want facts like a die's last job or its size to be catalog properties, so that the table stays the same everywhere and each catalog still records what it needs.","- No bespoke columns are added for one catalog's facts.
+- A property added in Catalog Settings is available on the item.
+- This is the answer for anything a specific catalog wants to remember about an item.",,New,,,Inventory; Non-depletable; Configuration,3,3
+,Epic,Shared behaviour,,,Rules and components that hold across every surface of the tool.,,,New,,,Inventory; Platform,,1
+,User Story,,,Be told what a destructive action takes with it,"As a user, I want every deletion to name its scope first, so that I never learn what was lost afterwards.","- Deleting a library names its catalogs; deleting a unit type names its units; removing a property names the recorded values (R6).
+- Hiding is per user and reversible; deleting is for everyone and asks first (R4).
+- Nothing in the UI lets those two be confused.",,New,,,Inventory; Platform,3,1
+,User Story,,,Get feedback in a toast rather than an alert,"As a user, I want short, non-blocking feedback, so that a message never interrupts what I am typing.","- Toasts appear top-right in error, success and info kinds.
+- Each carries an icon plus a message, never colour alone.
+- They auto-dismiss.
+- Available to any page as window.toast(message, kind).",,New,,,Inventory; Platform; Accessibility,3,2
+,User Story,,,Operate every control from the keyboard,"As a user who works by keyboard, I want the pickers, switches, fields and tables reachable and operable, so that the tool does not require a mouse.","- Switches are labelled controls over real checkboxes.
+- Flyouts trap focus, return it on close, and close on Escape.
+- Sortable headers are buttons and carry aria-sort.
+- Every field carries an accessible label naming its column.
+- Motion respects prefers-reduced-motion.",,New,,,Inventory; Platform; Accessibility,5,1

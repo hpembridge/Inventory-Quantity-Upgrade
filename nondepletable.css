@@ -1,0 +1,135 @@
+/* ============================================================
+   Non-depletable stock — additions only
+   ------------------------------------------------------------
+   Everything else on these pages is inventory.css. What is new is
+   the one field a non-depletable asset actually has: where it is.
+   Because that field is a choice from a list rather than typed
+   text, it needs a select that rests the way .cell-field rests —
+   plain text in its column until the row is hovered.
+   ============================================================ */
+
+.cell-select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  height: var(--scale-700);
+  padding: 0 var(--scale-200) 0 0;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--fontsize-body-sm);
+  text-align: left;
+  appearance: none;
+  transition: border-color 90ms linear, background-color 90ms linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell-select { transition: none; }
+}
+
+/* The caret only appears when the row says its fields are editable,
+   so a resting row is a list of values, not a bank of controls. */
+table.data tbody tr:hover .cell-select:not(:focus),
+table.data tbody tr:focus-within .cell-select:not(:focus) {
+  border-color: var(--border-tertiary);
+  background: var(--bg-surface);
+  padding-left: var(--scale-200);
+}
+table.data tbody tr:hover .cell-select:hover:not(:focus) {
+  border-color: var(--border-subtle);
+}
+
+.cell-select:focus {
+  background: var(--bg-surface);
+  border-color: var(--border-focus);
+  outline: 2px solid var(--border-focus);
+  outline-offset: -1px;
+  padding-left: var(--scale-200);
+}
+
+/* Not placed is a real state, not an empty field: it is what On Order
+   is made of. It reads as tertiary text so the eye can find the rows
+   that still have to be put away. */
+.cell-select.is-unplaced { color: var(--text-tertiary); }
+
+.col-location { width: 260px; }
+.col-location .cell-select { max-width: 240px; }
+.col-tag { width: 160px; }
+.col-state { width: 150px; }
+
+/* The identity of a non-depletable asset — its tag or die number — is
+   read against a list far more often than it is typed, so it takes
+   the mono face the job number does. */
+.cell-field.is-tag {
+  font-family: var(--font-family-mono);
+  letter-spacing: .02em;
+}
+
+/* Where it is, said as a state rather than left to be inferred from
+   the location's name. Neutral both ways: an assigned laptop is not a
+   problem, it is just not available. */
+.state-pill { white-space: nowrap; }
+.state-pill .fa-regular,
+.state-pill .fa-solid { font-size: var(--fontsize-label); color: var(--text-tertiary); }
+
+/* A catalog whose items are the units carries its rollup at the top of
+   the page rather than inside a card, so it sits above the search that
+   filters the table beneath it. */
+.catalog-rollup {
+  margin-bottom: var(--scale-400);
+  padding: var(--scale-400);
+  background: var(--bg-muted);
+  border: 1px solid var(--border-tertiary);
+  border-radius: var(--border-radius-md);
+}
+
+/* A read-only identity in a table cell: same face as the editable
+   tag field, so a column doesn't change character when it can't be
+   typed in. */
+.mono-id {
+  font-family: var(--font-family-mono);
+  letter-spacing: .02em;
+}
+
+/* ── Tracking choice (catalog settings flyout) ──────────────
+   Single or multiple is not a preference, it changes where the whole
+   catalog is worked: multiple units gives each item a page, single
+   makes the item the unit and moves the rollup to the catalog. A
+   select would hide that behind one line of text, so both options
+   stay on screen with what they mean written under them.
+   ---------------------------------------------------------- */
+.choice-set {
+  display: grid;
+  gap: var(--scale-200);
+}
+
+.choice {
+  display: flex;
+  gap: var(--scale-300);
+  padding: var(--scale-300);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--border-radius-md);
+  background: var(--bg-surface);
+  cursor: pointer;
+}
+.choice:hover { border-color: var(--border-tertiary); }
+.choice:focus-within { outline: 2px solid var(--border-focus); outline-offset: -1px; }
+.choice.is-selected { border-color: var(--border-focus); background: var(--bg-subtle); }
+
+.choice input { margin-top: 3px; accent-color: var(--border-focus); }
+.choice-text { display: grid; gap: 2px; }
+.choice-title { font-size: var(--fontsize-body-sm); color: var(--text-primary); }
+.choice-help  { font-size: var(--fontsize-body-sm); color: var(--text-tertiary); }
+
+/* What a non-depletable unit type records, said once in the flyout
+   where the measurement fields would otherwise be. */
+.form-note {
+  padding: var(--scale-300);
+  border-radius: var(--border-radius-md);
+  background: var(--bg-muted);
+  font-size: var(--fontsize-body-sm);
+  color: var(--text-tertiary);
+}

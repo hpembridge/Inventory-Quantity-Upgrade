@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dies — Items</title>
+    <script src="https://kit.fontawesome.com/da08280601.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="shared/css/design-tokens.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=optional" rel="stylesheet" />
+    <link rel="stylesheet" href="inventory.css" />
+    <link rel="stylesheet" href="nondepletable.css" />
+    <link rel="stylesheet" href="components/breadcrumbs/breadcrumbs.css" />
+    <link rel="stylesheet" href="components/toast/toast.css" />
+    <script src="components/toast/toast.js"></script>
+    <script src="inventory-data.js"></script>
+    <script src="nondepletable-data.js"></script>
+    <script>
+      window.SIDEBAR_CONFIG = {
+        activeItem: 'Inventory',
+        user: { name: 'Healey Pembridge', role: 'team member' }
+      };
+    </script>
+  </head>
+  <body>
+    <script src="shared/components/sidebar-component.js"></script>
+
+    <div class="main-content">
+      <div class="breadcrumb-bar">
+        <nav class="breadcrumbs">
+          <a class="crumb" href="inventory.html"><i class="fa-regular fa-pallet-boxes"></i> Inventory</a>
+          <i class="fa-regular fa-chevron-right crumb-sep"></i>
+          <a class="crumb" href="inventory.html"><i class="fa-regular fa-layer-group"></i> Bindery Supplies</a>
+          <i class="fa-regular fa-chevron-right crumb-sep"></i>
+          <span class="crumb current"><i class="fa-regular fa-book"></i> Dies</span>
+        </nav>
+      </div>
+
+      <div class="page-scroll">
+        <div class="page-inner">
+
+          <a class="back-link" href="inventory.html">
+            <i class="fa-regular fa-arrow-left"></i> Back to Bindery Supplies
+          </a>
+
+          <div class="title-row">
+            <h5>Dies</h5>
+            <a class="btn-pill outline sm" href="catalog-settings-nondepletable.html">
+              <i class="fa-regular fa-gear"></i> Catalog Settings
+            </a>
+          </div>
+
+          <!-- Every die is unique, so there are no units inside an item
+               to roll up on an item page. The rollup for the catalog is
+               the only one there is, and it belongs here. -->
+          <div class="catalog-rollup" id="rollup"></div>
+
+          <div class="search-panel">
+            <input class="search-input" type="search" id="search"
+                   placeholder="Search by die number, name or location" autocomplete="off" />
+            <div class="search-count" id="searchCount" hidden></div>
+          </div>
+
+          <div class="page-card is-flush">
+            <div class="table-wrap">
+              <table class="data">
+                <thead><tr id="headRow"></tr></thead>
+                <tbody id="rows"></tbody>
+              </table>
+              <div class="table-empty" id="emptyState" hidden>No dies found. Try a different search.</div>
+            </div>
+            <div class="unit-type-foot" id="foot"></div>
+          </div>
+
+          <button class="add-row" type="button" id="addItem">
+            <i class="fa-regular fa-plus" style="margin-right: var(--scale-200)"></i> Add Die
+          </button>
+
+        </div>
+      </div>
+    </div>
+
+    <script>
+      /* ────────────────────────────────────────────────────────────
+         Non-depletable, single unit.
+
+         Each item is truly unique — one die, one plate, one tool — so
+         there is nothing inside an item to list. An item page here
+         would be a table with one row in it, which is why there isn't
+         one: the item carries its own location, and the catalog is
+         where the work happens.
+
+         That moves the rollup up with it. The four figures are the
+         catalog's, not an item's, and they read the same way as
+         everywhere else — an unplaced die is on order, a die on a
+         press or out to a vendor is allocated, a die on the rack is
+         available.
+         ──────────────────────────────────────────────────────────── */
+      const ND  = window.NONDEPLETABLE;
+      const INV = window.INVENTORY;
+      const LOC = ND.DIE_LOCATIONS;
+      const ITEMS = ND.SINGLE_ITEMS;
+      const t = ND.SINGLE_CONFIG.unitType;
+
+      const rollupEl = document.getElementById('rollup');
+      const headEl   = document.getElementById('headRow');
+      const rowsEl   = document.getElementById('rows');
+      const emptyEl  = document.getElementById('emptyState');
+      const countEl  = document.getElementById('searchCount');
+      const footEl   = document.getElementById('foot');
+      const searchEl = document.getElementById('search');
+
+      const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+
+      const STATE_FLAG = {
+        low:  { cls: 'is-low',  icon: 'fa-circle-exclamation',   note: 'Running low on available stock.' },
+        over: { cls: 'is-over', icon: 'fa-triangle-exclamation', note: 'Allocated stock exceeds in-house stock.' }
+      };
+
+      function renderRollup() {
+        const q    = ND.rollup(ITEMS, LOC);
+        const flag = STATE_FLAG[INV.stockState(q)];
+
+        const stat = (label, value, opts = {}) => `
+          <div class="rollup-stat${opts.cls ? ' ' + opts.cls : ''}"${opts.note ? ` title="${opts.note}"` : ''}>
+            <div class="rollup-label">
+              ${opts.icon ? `<i class="fa-solid ${opts.icon}"></i> ` : ''}${label}
+            </div>
+            <div class="rollup-value">${value}<span class="rollup-measure">ea</span></div>
+          </div>`;
+
+        rollupEl.innerHTML = `
+          <div class="rollup-stats">
+            ${stat('On Order', q.onOrder)}
+            ${stat('In-House', q.inHouse)}
+            ${stat('Allocated', q.allocated)}
+            ${stat('Available', q.available, flag || {})}
+          </div>`;
+      }
+
+      function stateOf(it) {
+        if (!it.location) return { label: 'On order', icon: 'fa-truck-clock', note: 'Recorded, but not yet placed anywhere.' };
+        const kind = ND.kindOf(LOC, it.location);
+        return kind === 'assigned'
+          ? { label: 'In use', icon: 'fa-arrow-right-from-bracket', note: 'On a press or out to a vendor.' }
+          : { label: 'On the rack', icon: 'fa-warehouse', note: 'In storage and free to pull.' };
+      }
+
+      function statePill(it) {
+        const s = stateOf(it);
+        return `<span class="pill state-pill" title="${s.note}"><i class="fa-regular ${s.icon}"></i> ${s.label}</span>`;
+      }
+
+      /* ── Columns ──────────────────────────────────────────────
+         The name is not a link: there is nowhere for it to go. The
+         location is the one editable value on the page, which is the
+         whole point of the form — for a unique item, where it is is
+         the only thing that changes.
+         ------------------------------------------------------- */
+      const COLS = [
+        { key: 'number', label: t.identityLabel, cls: 'left col-tag', text: true,
+          value: (it) => it.number,
+          cell:  (it) => `<td class="left col-tag">
+                            <input type="text" class="cell-field is-tag" value="${esc(it.number)}"
+                                   placeholder="D-0000" data-id="${it.id}" maxlength="12"
+                                   aria-label="${t.identityLabel}" />
+                          </td>` },
+
+        { key: 'name', label: 'Item Name', cls: 'left', text: true,
+          value: (it) => it.name,
+          cell:  (it) => `<td class="left">${esc(it.name)}</td>` },
+
+        { key: 'location', label: 'Location', cls: 'left col-location', text: true,
+          value: (it) => {
+            const l = ND.locationById(LOC, it.location);
+            return l ? l.label : '';
+          },
+          cell:  (it) => `<td class="left col-location">
+                            <select class="cell-select${it.location ? '' : ' is-unplaced'}"
+                                    data-id="${it.id}" aria-label="Location">
+                              ${ND.locationOptions(LOC, it.location)}
+                            </select>
+                          </td>` },
+
+        { key: 'state', label: 'Status', cls: 'left col-state', text: true,
+          value: (it) => stateOf(it).label,
+          cell:  (it) => `<td class="left col-state">${statePill(it)}</td>` }
+      ];
+
+      let sort = { key: null, dir: 'asc' };
+
+      function renderHead() {
+        headEl.innerHTML = COLS.map(c => {
+          const on   = sort.key === c.key;
+          const icon = on ? (sort.dir === 'asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort';
+          return `
+            <th class="${c.cls}"
+                aria-sort="${on ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}">
+              <button class="th-sort${on ? ' is-sorted' : ''}" type="button" data-sort="${c.key}">
+                <span>${c.label}</span>
+                <i class="fa-solid ${icon} sort-caret"></i>
+              </button>
+            </th>`;
+        }).join('') + '<th class="col-act"></th>';
+      }
+
+      /* Blanks sort to the bottom whichever way the column points — an
+         unplaced die is not the first thing on the rack. */
+      function sortRows(rows) {
+        if (!sort.key) return rows;
+        const col = COLS.find(c => c.key === sort.key);
+        const dir = sort.dir === 'asc' ? 1 : -1;
+        return rows.slice().sort((a, b) => {
+          const av = col.value(a), bv = col.value(b);
+          if (!av && !bv) return 0;
+          if (!av) return 1;
+          if (!bv) return -1;
+          return String(av).localeCompare(String(bv), undefined, { numeric: true }) * dir;
+        });
+      }
+
+      function matches(it, q) {
+        const l = ND.locationById(LOC, it.location);
+        return [it.number, it.name, l ? l.label : '']
+          .join(' ').toLowerCase().includes(q);
+      }
+
+      function render(query = '') {
+        const q    = query.trim().toLowerCase();
+        const list = q ? ITEMS.filter(it => matches(it, q)) : ITEMS;
+        const rows = sortRows(list);
+
+        rowsEl.innerHTML = rows.map(it => `
+          <tr data-row="${it.id}">
+            ${COLS.map(c => c.cell(it)).join('')}
+            <td class="qty col-act">
+              <div class="unit-actions">
+                <button class="icon-btn" type="button" title="Print die label"><i class="fa-regular fa-print"></i></button>
+              </div>
+            </td>
+          </tr>`).join('');
+
+        emptyEl.hidden = rows.length > 0;
+        countEl.hidden = !q;
+        countEl.textContent = q ? `Showing ${rows.length} of ${ITEMS.length} dies` : '';
+        footEl.innerHTML = `<span class="unit-type-count">${ITEMS.length} ${ITEMS.length === 1 ? 'die' : 'dies'}</span>`;
+        renderRollup();
+      }
+
+      headEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-sort]');
+        if (!btn) return;
+        const key = btn.dataset.sort;
+        sort = sort.key === key
+          ? { key, dir: sort.dir === 'asc' ? 'desc' : 'asc' }
+          : { key, dir: 'asc' };
+        renderHead();
+        render(searchEl.value);
+      });
+
+      /* Moving a die is the page's one edit. The row it sits in is
+         rebuilt where it stands rather than the table being
+         re-rendered underneath the pointer — a sort or a search would
+         otherwise pull the row out from under the cursor mid-move. */
+      rowsEl.addEventListener('change', (e) => {
+        const sel = e.target.closest('.cell-select');
+        if (!sel) return;
+        const it = ITEMS.find(i => i.id === sel.dataset.id);
+        it.location = sel.value || null;
+        sel.classList.toggle('is-unplaced', !it.location);
+        sel.closest('tr').querySelector('.col-state').innerHTML = statePill(it);
+        renderRollup();
+
+        const where = it.location ? ND.locationById(LOC, it.location).label : 'not placed';
+        window.toast(`${it.number} — ${where}.`, 'success');
+      });
+
+      /* The die number is an identity, not a quantity: it can be
+         corrected but not emptied, and no two dies may share one. */
+      rowsEl.addEventListener('input', (e) => {
+        const el = e.target.closest('.cell-field');
+        if (!el) return;
+        const cleaned = el.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+        if (cleaned !== el.value) {
+          const at = el.selectionStart - (el.value.length - cleaned.length);
+          el.value = cleaned;
+          el.setSelectionRange(at, at);
+        }
+        el.classList.remove('invalid');
+      });
+
+      rowsEl.addEventListener('focusin', (e) => {
+        if (e.target.matches('.cell-field')) e.target.select();
+      });
+
+      function reject(el, back, message) {
+        el.value = back || '';
+        el.classList.add('invalid');
+        clearTimeout(el._flash);
+        el._flash = setTimeout(() => el.classList.remove('invalid'), 900);
+        window.toast(message, 'error');
+      }
+
+      rowsEl.addEventListener('focusout', (e) => {
+        const el = e.target.closest('.cell-field');
+        if (!el) return;
+        const it  = ITEMS.find(i => i.id === el.dataset.id);
+        const raw = el.value.trim();
+        if (!raw) return reject(el, it.number, `Every die needs a ${t.identityLabel.toLowerCase()}.`);
+        if (ITEMS.some(o => o !== it && o.number === raw)) {
+          return reject(el, it.number, `${raw} is already in use on another die.`);
+        }
+        it.number = raw;
+      });
+
+      rowsEl.addEventListener('keydown', (e) => {
+        const el = e.target.closest('.cell-field');
+        if (!el) return;
+        if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          el.value = ITEMS.find(i => i.id === el.dataset.id).number || '';
+          el.classList.remove('invalid');
+          el.blur();
+        }
+      });
+
+      searchEl.addEventListener('input', e => render(e.target.value));
+
+      /* A new die is a new item, because here the item is the unit. */
+      let nextId = ITEMS.length + 1;
+      document.getElementById('addItem').addEventListener('click', () => {
+        ITEMS.push({ id: `d-new-${nextId++}`, number: '', name: 'New die', location: null });
+        searchEl.value = '';
+        render();
+        const row = rowsEl.querySelector('tr:last-child .cell-field');
+        if (row) row.focus();
+      });
+
+      renderHead();
+      render();
+    </script>
+  </body>
+</html>

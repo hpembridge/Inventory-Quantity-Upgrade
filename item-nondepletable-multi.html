@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dell-Latitude-7450-16GB</title>
+    <script src="https://kit.fontawesome.com/da08280601.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="shared/css/design-tokens.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=optional" rel="stylesheet" />
+    <link rel="stylesheet" href="inventory.css" />
+    <link rel="stylesheet" href="nondepletable.css" />
+    <link rel="stylesheet" href="components/breadcrumbs/breadcrumbs.css" />
+    <link rel="stylesheet" href="components/toast/toast.css" />
+    <script src="components/toast/toast.js"></script>
+    <script src="inventory-data.js"></script>
+    <script src="nondepletable-data.js"></script>
+    <script>
+      window.SIDEBAR_CONFIG = {
+        activeItem: 'Inventory',
+        user: { name: 'Healey Pembridge', role: 'team member' }
+      };
+    </script>
+  </head>
+  <body>
+    <script src="shared/components/sidebar-component.js"></script>
+
+    <div class="main-content">
+      <div class="breadcrumb-bar">
+        <nav class="breadcrumbs">
+          <a class="crumb" href="inventory.html"><i class="fa-regular fa-pallet-boxes"></i> Inventory</a>
+          <i class="fa-regular fa-chevron-right crumb-sep"></i>
+          <a class="crumb" href="inventory.html"><i class="fa-regular fa-layer-group"></i> IT Library</a>
+          <i class="fa-regular fa-chevron-right crumb-sep"></i>
+          <a class="crumb" href="catalog-nondepletable-multi.html"><i class="fa-regular fa-book"></i> Laptops</a>
+          <i class="fa-regular fa-chevron-right crumb-sep"></i>
+          <span class="crumb current">Dell-Latitude-7450-16GB</span>
+        </nav>
+      </div>
+
+      <div class="page-scroll">
+        <div class="page-inner">
+
+          <!-- Nothing here depletes, so the page has no Show depleted
+               switch: a laptop never reaches zero, it only moves. -->
+          <div class="page-top">
+            <a class="back-link" href="catalog-nondepletable-multi.html">
+              <i class="fa-regular fa-arrow-left"></i> Back to Laptops
+            </a>
+          </div>
+
+          <div class="page-card is-flush item-header">
+            <div class="item-header-row">
+              <h5>Dell-Latitude-7450-16GB</h5>
+              <button class="icon-btn" type="button"
+                      title="Edit item details" aria-label="Edit item details">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+            </div>
+
+            <div class="item-header-row chip-row">
+              <span class="chip"><i class="fa-regular fa-user chip-icon"></i><span class="chip-label">Vendor</span><span class="chip-value">Dell</span></span>
+              <span class="chip"><i class="fa-regular fa-sitemap chip-icon"></i><span class="chip-label">Product Line</span><span class="chip-value">Latitude</span></span>
+              <span class="chip"><i class="fa-regular fa-layer-group chip-icon"></i><span class="chip-label">Family</span><span class="chip-value">7450</span></span>
+              <span class="chip"><i class="fa-regular fa-memory chip-icon"></i><span class="chip-label">Memory</span><span class="chip-value">16GB</span></span>
+            </div>
+          </div>
+
+          <div class="section">
+            <div id="unitBlocks"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <script>
+      /* ────────────────────────────────────────────────────────────
+         Non-depletable, multiple units.
+
+         Many of the same item, each one an asset in its own right.
+         There is no quantity column, because a laptop is one laptop:
+         the row exists, so the count is one. What the row records is
+         which laptop it is and where it is — and the location is the
+         whole of the stock story, because a machine in the cage can
+         be handed to anyone and a machine on a desk cannot.
+         ──────────────────────────────────────────────────────────── */
+      const ND  = window.NONDEPLETABLE;
+      const cfg = ND.MULTI_CONFIG;
+      const t   = cfg.unitType;
+      const LOC = ND.LOCATIONS;
+
+      const units    = ND.MULTI_UNITS;
+      const blocksEl = document.getElementById('unitBlocks');
+
+      const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+
+      /* ── Rollup ───────────────────────────────────────────────
+         The same four figures as measured stock, counted in assets.
+         Colour still means one thing and appears only on Available.
+         ------------------------------------------------------- */
+      const STATE_FLAG = {
+        low:  { cls: 'is-low',  icon: 'fa-circle-exclamation',   note: 'Running low on available stock.' },
+        over: { cls: 'is-over', icon: 'fa-triangle-exclamation', note: 'Allocated stock exceeds in-house stock.' }
+      };
+
+      function rollupHtml() {
+        const q    = ND.rollup(units, LOC);
+        const flag = STATE_FLAG[window.INVENTORY.stockState(q)];
+
+        const stat = (label, value, opts = {}) => `
+          <div class="rollup-stat${opts.cls ? ' ' + opts.cls : ''}"${opts.note ? ` title="${opts.note}"` : ''}>
+            <div class="rollup-label">
+              ${opts.icon ? `<i class="fa-solid ${opts.icon}"></i> ` : ''}${label}
+            </div>
+            <div class="rollup-value">${value}<span class="rollup-measure">ea</span></div>
+          </div>`;
+
+        return `
+          <div class="unit-rollup">
+            <div class="rollup-stats">
+              ${stat('On Order', q.onOrder)}
+              ${stat('In-House', q.inHouse)}
+              ${stat('Allocated', q.allocated)}
+              ${stat('Available', q.available, flag || {})}
+            </div>
+            <button class="add-row" type="button" id="addUnit">
+              <i class="fa-regular fa-plus" style="margin-right: var(--scale-200)"></i> Add Asset
+            </button>
+          </div>`;
+      }
+
+      /* ── State ────────────────────────────────────────────────
+         Said outright rather than left to be read off the location's
+         name — "IT-CAGE-A1" only means available if you already know
+         the cage. Neutral in every state: an assigned laptop is not a
+         problem, it is simply not available to hand out.
+         ------------------------------------------------------- */
+      function stateOf(u) {
+        if (!u.location) return { label: 'On order', icon: 'fa-truck-clock', note: 'Recorded, but not yet placed anywhere.' };
+        const kind = ND.kindOf(LOC, u.location);
+        return kind === 'assigned'
+          ? { label: 'Allocated', icon: 'fa-user', note: 'Out with an employee.' }
+          : { label: 'Available', icon: 'fa-warehouse', note: 'In the stock room and free to allocate.' };
+      }
+
+      function statePill(u) {
+        const s = stateOf(u);
+        return `<span class="pill state-pill" title="${s.note}"><i class="fa-regular ${s.icon}"></i> ${s.label}</span>`;
+      }
+
+      function locationCell(u) {
+        return `<select class="cell-select${u.location ? '' : ' is-unplaced'}"
+                        data-uid="${u.id}" aria-label="Location">
+                  ${ND.locationOptions(LOC, u.location)}
+                </select>`;
+      }
+
+      function tagCell(u) {
+        return `<input type="text" class="cell-field is-tag" value="${esc(u.tag)}"
+                       placeholder="CM-LT-0000" data-uid="${u.id}"
+                       maxlength="16" aria-label="${t.identityLabel}" />`;
+      }
+
+      function render() {
+        const rows = units.map(u => `
+          <tr data-row="${u.id}">
+            <td class="left col-tag">${tagCell(u)}</td>
+            <td class="left col-location">${locationCell(u)}</td>
+            <td class="left col-state">${statePill(u)}</td>
+            <td class="qty col-act">
+              <div class="unit-actions">
+                <button class="icon-btn" type="button" title="Print unit label"><i class="fa-regular fa-print"></i></button>
+              </div>
+            </td>
+          </tr>`).join('');
+
+        blocksEl.innerHTML = `
+          <div class="unit-type-block">
+            ${rollupHtml()}
+            <table class="data">
+              <thead>
+                <tr>
+                  <th class="left col-tag">${t.identityLabel}</th>
+                  <th class="left col-location">Location</th>
+                  <th class="left col-state">Status</th>
+                  <th class="col-act"></th>
+                </tr>
+              </thead>
+              <tbody>${rows || `<tr><td class="left" colspan="4" style="color:var(--text-tertiary)">No assets yet. Add one to start tracking.</td></tr>`}</tbody>
+            </table>
+            <div class="unit-type-foot">
+              <span class="unit-type-count">${units.length} ${units.length === 1 ? 'asset' : 'assets'}</span>
+            </div>
+          </div>`;
+      }
+
+      /* Only the figures move when a location changes, and neither the
+         rollup nor the footer holds a field, so both can be rebuilt on
+         the spot while the table — and the cursor in it — stands. */
+      function refreshFigures() {
+        const rollup = blocksEl.querySelector('.unit-rollup');
+        if (rollup) rollup.outerHTML = rollupHtml();
+      }
+
+      const unitById = (id) => units.find(u => u.id === id);
+
+      /* ── Moving an asset ──────────────────────────────────────
+         Changing the location is the only stock movement there is
+         here. It commits on change: a select has nothing to type, so
+         there is nothing to correct before committing.
+         ------------------------------------------------------- */
+      blocksEl.addEventListener('change', (e) => {
+        const sel = e.target.closest('.cell-select');
+        if (!sel) return;
+        const u = unitById(sel.dataset.uid);
+        u.location = sel.value || null;
+        sel.classList.toggle('is-unplaced', !u.location);
+
+        const tr = sel.closest('tr[data-row]');
+        tr.querySelector('.col-state').innerHTML = statePill(u);
+        refreshFigures();
+
+        const where = u.location ? ND.locationById(LOC, u.location).label : 'not placed';
+        window.toast(`${u.tag} — ${where}.`, 'success');
+      });
+
+      /* The tag is an identity, not a quantity: it may be corrected,
+         but it may not be emptied, because a row with no tag names no
+         machine. */
+      blocksEl.addEventListener('input', (e) => {
+        const el = e.target.closest('.cell-field');
+        if (!el) return;
+        const cleaned = el.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+        if (cleaned !== el.value) {
+          const at = el.selectionStart - (el.value.length - cleaned.length);
+          el.value = cleaned;
+          el.setSelectionRange(at, at);
+        }
+        el.classList.remove('invalid');
+      });
+
+      blocksEl.addEventListener('focusin', (e) => {
+        if (e.target.matches('.cell-field')) e.target.select();
+      });
+
+      blocksEl.addEventListener('focusout', (e) => {
+        const el = e.target.closest('.cell-field');
+        if (!el) return;
+        const u   = unitById(el.dataset.uid);
+        const raw = el.value.trim();
+
+        if (!raw) {
+          el.value = u.tag || '';
+          el.classList.add('invalid');
+          clearTimeout(el._flash);
+          el._flash = setTimeout(() => el.classList.remove('invalid'), 900);
+          window.toast(`Every asset needs a ${t.identityLabel.toLowerCase()}.`, 'error');
+          return;
+        }
+
+        const clash = units.some(o => o !== u && o.tag === raw);
+        if (clash) {
+          el.value = u.tag || '';
+          el.classList.add('invalid');
+          clearTimeout(el._flash);
+          el._flash = setTimeout(() => el.classList.remove('invalid'), 900);
+          window.toast(`${raw} is already in use on another asset.`, 'error');
+          return;
+        }
+
+        u.tag = raw;
+      });
+
+      blocksEl.addEventListener('keydown', (e) => {
+        const el = e.target.closest('.cell-field');
+        if (!el) return;
+        if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          el.value = unitById(el.dataset.uid).tag || '';
+          el.classList.remove('invalid');
+          el.blur();
+        }
+      });
+
+      /* ── Adding an asset ──────────────────────────────────────
+         A new row goes to the bottom with the cursor in its tag, the
+         same place and the same way an existing one is corrected. It
+         starts unplaced, so it reads as On Order until it is put away.
+         ------------------------------------------------------- */
+      let nextId = units.length + 1;
+
+      blocksEl.addEventListener('click', (e) => {
+        if (!e.target.closest('#addUnit')) return;
+        const u = { id: `a-new-${nextId++}`, tag: '', location: null };
+        units.push(u);
+        render();
+        blocksEl.querySelector(`[data-row="${u.id}"] .cell-field`)?.focus();
+      });
+
+      render();
+    </script>
+  </body>
+</html>
