@@ -90,25 +90,83 @@
     /* Dev Notes */
     .notes-section { margin-bottom: 36px; }
 
-    /* Prototype cards */
-    .card-grid { display: flex; flex-direction: column; gap: 10px; }
-    .card {
-      background: #fff;
-      border-radius: 10px;
-      border: 1px solid #dde2ea;
-      text-decoration: none;
-      color: inherit;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 16px 20px;
-      transition: box-shadow .15s, transform .15s;
+    /* ── Structure map ──────────────────────────────────────────
+       An SVG diagram of every screen. Each node is an <a>, so the
+       whole box is a link and keyboard focus works without JS. */
+    .map-caption {
+      font-size: 13px;
+      color: #6b7280;
+      line-height: 1.6;
+      max-width: 62ch;
+      margin-bottom: 16px;
     }
-    .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); transform: translateY(-1px); }
-    .card h2 { font-size: 14px; font-weight: 600; flex: 1; }
-    .card-arrow { font-size: 12px; color: #9aa3b0; }
 
-    .status-msg { font-size: 13px; color: #8e9aab; }
+    .map {
+      background: #fff;
+      border: 1px solid #dde2ea;
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 36px;
+    }
+
+    .map svg { display: block; width: 100%; height: auto; }
+
+    /* Connectors */
+    .map-lines path {
+      stroke: #c6cdd8;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+    }
+    .map-arrows path { fill: #c6cdd8; }
+
+    /* Nodes — a page is solid, an aside is dashed and lighter */
+    .map-node rect {
+      fill: #fff;
+      stroke: #c6cdd8;
+      stroke-width: 1.5;
+      transition: fill .12s ease, stroke .12s ease;
+    }
+    .map-node text {
+      font-size: 14px;
+      font-weight: 600;
+      fill: #1a1d23;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+    }
+    .map-node .map-node-sub {
+      font-size: 11px;
+      font-weight: 500;
+      fill: #8e9aab;
+    }
+
+    .map-node.is-page rect   { fill: #fff; }
+    .map-node.is-aside rect  { fill: #f7f8fa; stroke-dasharray: 5 4; }
+    .map-node.is-aside text  { fill: #4b5563; }
+
+    .map-node:hover rect,
+    .map-node:focus-visible rect { fill: #eef0fe; stroke: #6366f1; }
+    .map-node:focus-visible rect { outline: none; stroke-width: 2; }
+
+    /* Key */
+    .map-key {
+      display: flex;
+      gap: 20px;
+      margin-top: 8px;
+      padding-top: 16px;
+      border-top: 1px solid #edf0f4;
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .map-key-item { display: inline-flex; align-items: center; gap: 8px; }
+    .map-swatch {
+      width: 22px;
+      height: 14px;
+      border-radius: 3px;
+      border: 1.5px solid #c6cdd8;
+      background: #fff;
+    }
+    .map-swatch.is-aside { background: #f7f8fa; border-style: dashed; }
 
     /* Inline markdown notes */
     .notes-inline-card {
@@ -209,15 +267,124 @@
         <a class="quick-link" id="lGithub" href="#" target="_blank">
           <i class="fa-brands fa-github"></i> Project Files
         </a>
+        <a class="quick-link" href="scanner.html">
+          <i class="fa-solid fa-barcode"></i> Handheld Scanner
+        </a>
       </div>
     </div>
   </header>
 
   <main>
-    <div class="section-label">Prototypes</div>
-    <div class="card-grid" id="cardGrid">
-      <span class="status-msg">Loading…</span>
+    <!-- ══ Structure map ════════════════════════════════════════════
+         Every screen in the prototype and how you get to it. Boxes are
+         links: a page opens that page, an aside opens its page with the
+         panel already open (?panel=…).
+         ───────────────────────────────────────────────────────────── -->
+    <div class="section-label">Structure</div>
+    <p class="map-caption">
+      Every screen, and how it is reached. Select a box to open it — an aside
+      opens its page with the panel showing.
+    </p>
+
+    <div class="map">
+      <svg viewBox="0 0 1200 600" role="img" aria-label="Prototype structure map">
+
+        <!-- connectors -->
+        <g class="map-lines" fill="none">
+          <!-- Library View splits to the two catalog kinds -->
+          <path d="M600 104 v36 q0 12 -12 12 H442 q-12 0 -12 12 v32" />
+          <path d="M600 104 v36 q0 12 12 12 H758 q12 0 12 12 v32" />
+          <!-- Catalog View to its asides -->
+          <path d="M330 224 q-24 0 -36 -12 -12 -12 -36 -12 H250" />
+          <path d="M330 246 q-24 0 -36 12 -12 12 -36 12 H250" />
+          <!-- Catalog View down to Item View -->
+          <path d="M430 270 v170" />
+          <!-- Item View to its aside -->
+          <path d="M330 475 H250" />
+          <!-- Single-unit catalog to its asides -->
+          <path d="M870 224 q24 0 36 -12 12 -12 36 -12 H950" />
+          <path d="M870 246 q24 0 36 12 12 12 36 12 H950" />
+        </g>
+
+        <g class="map-arrows">
+          <path d="M430 196 l-5 -9 h10 z" />
+          <path d="M770 196 l-5 -9 h10 z" />
+          <path d="M250 200 l9 -5 v10 z" transform="translate(-9,0)" />
+          <path d="M250 258 l9 -5 v10 z" transform="translate(-9,0)" />
+          <path d="M430 440 l-5 -9 h10 z" />
+          <path d="M250 475 l9 -5 v10 z" transform="translate(-9,0)" />
+          <path d="M950 200 l-9 -5 v10 z" transform="translate(9,0)" />
+          <path d="M950 258 l-9 -5 v10 z" transform="translate(9,0)" />
+        </g>
+
+        <!-- ── Library ── -->
+        <a class="map-node is-page" href="inventory.html">
+          <rect x="500" y="40" width="200" height="64" rx="6" />
+          <text x="600" y="76">Library View</text>
+        </a>
+
+        <!-- ── A measured catalog ── -->
+        <a class="map-node is-page" href="catalog.html">
+          <rect x="330" y="196" width="200" height="74" rx="6" />
+          <text x="430" y="238">Catalog View</text>
+        </a>
+
+        <a class="map-node is-aside" href="catalog.html?panel=add-item">
+          <rect x="50" y="170" width="200" height="60" rx="6" />
+          <text x="150" y="204">Add Item Aside</text>
+        </a>
+
+        <a class="map-node is-page" href="catalog-settings.html">
+          <rect x="50" y="240" width="200" height="60" rx="6" />
+          <text x="150" y="274">Catalog Settings</text>
+        </a>
+
+        <a class="map-node is-page" href="item.html">
+          <rect x="330" y="440" width="200" height="70" rx="6" />
+          <text x="430" y="480">Item View</text>
+        </a>
+
+        <a class="map-node is-aside" href="item.html?panel=edit-item">
+          <rect x="50" y="445" width="200" height="60" rx="6" />
+          <text x="150" y="472">Edit Item Details</text>
+          <text x="150" y="490" class="map-node-sub">Aside</text>
+        </a>
+
+        <!-- ── A single-unit catalog ── -->
+        <a class="map-node is-page" href="catalog-dies.html">
+          <rect x="670" y="196" width="200" height="74" rx="6" />
+          <text x="770" y="228">Catalog View</text>
+          <text x="770" y="248" class="map-node-sub">Single-Unit Items</text>
+        </a>
+
+        <a class="map-node is-aside" href="catalog-dies.html?panel=add-item">
+          <rect x="950" y="170" width="200" height="60" rx="6" />
+          <text x="1050" y="204">Add Item Aside</text>
+        </a>
+
+        <a class="map-node is-page" href="catalog-settings-dies.html">
+          <rect x="950" y="240" width="200" height="60" rx="6" />
+          <text x="1050" y="266">Catalog Settings</text>
+          <text x="1050" y="284" class="map-node-sub">Single-Unit Items</text>
+        </a>
+
+        <!-- ── The handheld ──
+             A separate app on the warehouse scanners, not a screen
+             reached from the desktop tool — so it hangs off nothing. -->
+        <a class="map-node is-page" href="scanner.html">
+          <rect x="670" y="440" width="200" height="70" rx="6" />
+          <text x="770" y="468">Handheld Scanner</text>
+          <text x="770" y="488" class="map-node-sub">Separate mobile app</text>
+        </a>
+
+      </svg>
+
+      <div class="map-key">
+        <span class="map-key-item"><span class="map-swatch is-page"></span> Page</span>
+        <span class="map-key-item"><span class="map-swatch is-aside"></span> Aside</span>
+      </div>
     </div>
+    <!-- ══ end Structure map ════════════════════════════════════════ -->
 
     <div class="notes-section" id="notesSection" style="display:none">
       <div class="section-label" style="margin-top:36px">Dev Notes</div>
@@ -236,28 +403,6 @@
     document.getElementById('lTracker').href = CONFIG.sprintTrackerUrl;
     document.getElementById('lGithub').href  = `https://github.com/${CONFIG.owner}/${CONFIG.repo}`;
 
-    // ── Utilities ──
-    function toTitle(str) {
-      return str
-        .replace(/\.[^.]+$/, '')
-        .replace(/^notes-/, '')
-        .split('-')
-        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(' ');
-    }
-
-    async function fetchTitle(filename) {
-      try {
-        const r = await fetch(filename);
-        const text = await r.text();
-        const m = text.match(/<title[^>]*>(.*?)<\/title>/i);
-        const t = m && m[1].trim();
-        return (t && t !== 'Document') ? t : toTitle(filename);
-      } catch {
-        return toTitle(filename);
-      }
-    }
-
     // ── Main build ──
     async function build() {
       const res = await fetch(
@@ -266,27 +411,7 @@
       if (!res.ok) throw new Error(`GitHub API ${res.status}`);
       const files = await res.json();
 
-      const htmlFiles  = files.filter(f => f.type === 'file' && f.name.endsWith('.html') && f.name !== 'index.html').map(f => f.name);
       const notesFiles = files.filter(f => f.type === 'file' && f.name.startsWith('notes-') && f.name.endsWith('.md')).map(f => f.name);
-
-      // Build prototype cards
-      const grid = document.getElementById('cardGrid');
-      grid.innerHTML = '';
-
-      if (htmlFiles.length === 0) {
-        grid.innerHTML = '<span class="status-msg">No prototype files found.</span>';
-      } else {
-        const entries = await Promise.all(
-          htmlFiles.map(async name => ({ name, title: await fetchTitle(name) }))
-        );
-        entries.forEach(({ name, title }) => {
-          const a = document.createElement('a');
-          a.className = 'card';
-          a.href = name;
-          a.innerHTML = `<h2>${title}</h2><i class="fa-solid fa-arrow-right card-arrow"></i>`;
-          grid.appendChild(a);
-        });
-      }
 
       // Build inline notes
       if (notesFiles.length > 0) {
@@ -315,10 +440,7 @@
       }
     }
 
-    build().catch(() => {
-      document.getElementById('cardGrid').innerHTML =
-        '<span class="status-msg">Could not load files. This page must be served over HTTP with access to the GitHub API.</span>';
-    });
+    build().catch(() => { /* notes are optional; the structure map is static */ });
   </script>
 
 </body>

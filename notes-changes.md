@@ -1,346 +1,434 @@
-# User Stories
+# Inventory — behavior specification
 
-Entry point is **Inventory** in the left rail. It opens the libraries page.
+What the tool does, and why it does it that way. This describes intended
+product behavior. For where a screen's markup and styles live, see
+`IMPLEMENTATION-NOTES.md`.
 
-Terms: a **library** is a collection of catalogs (Materials, IT, Shipping). A
-**catalog** is a collection of items that share one set of properties and one
-set of unit types (Bookcloth, Endsheet, Board). An **item** is one thing you
-stock — one vendor, product line, family and color. A **unit type** is a named
-way that item is held (Rolls, Swatches, Miscuts). A **measurement type** is the
-*shape* behind a unit type — roll, sheet or piece — and it decides which fields
-a unit records. A **unit** is one physical thing on a shelf: a roll, a stack of
-sheets, a count of pieces.
-
-Two scopes run through the whole tool and should never be confused:
-**your view** (which libraries are on your tabs — per user, non-destructive) and
-**the data** (libraries, catalogs, items, units — shared by everyone).
+Rules are numbered by section so they can be cited in review.
 
 ---
 
-## 1. Libraries page — your view
+## 1. The model
 
-| Control | Intended action |
+Five concepts. Everything else follows from them.
+
+| Concept | What it is |
 |---|---|
-| **Library tab** | Switches to that library. The panel below is welded to the active tab so the two read as one folder. |
-| **× on a tab** | Takes that library off *your* tabs. Nothing is deleted and no one else is affected. Disabled on the last open tab — the page always shows a library. |
-| **+ (tab strip)** | Opens the library picker. |
-| **Picker — search field** | Narrows the list as you type. Focus lands here on open, so the picker is typeable immediately. |
-| **Picker — option** | Adds that library to your tabs and switches to it. Options already open are marked *In your view*. |
-| **Picker — Create "<name>"** | Appears when the typed name matches nothing. Creates a new library under that name and opens it. |
-| **Picker — ↓ / ↑** | ↓ from the field enters the list, then walks it. ↑ walks back and returns to the field from the top, so typing is always one key away. |
-| **Picker — Enter / Tab** | Takes the focused option. Tab is only intercepted while an option has focus, so it still leaves the picker from the field. |
-| **Picker — Escape / click outside** | Closes without changing your view. |
+| **Library** | A collection of catalogs. Exists for the whole company. |
+| **Catalog** | A set of items that share properties and a naming template — Bookcloth, Laptops, Dies. |
+| **Item** | One thing the company buys or holds: a specific cloth, a laptop model, a die. |
+| **Unit type** | A way stock of an item is held — rolls, swatches, miscuts. Defined per catalog. |
+| **Unit** | One physical instance: this roll, at this location, with this much left. |
 
-**Persistence:** which libraries are open, and which one is active, are saved
-per user. Coming back to the page restores the tabs you left.
+The distinction that does the most work:
 
----
+- A **property** varies between **items**. One cloth is Cobalt Blue, another is Copper.
+- An **added field** varies between the **units of one item**. This roll is 54" wide, that one is 52".
 
-## 2. Libraries page — the library itself
-
-| Control | Intended action |
-|---|---|
-| **Pencil (title row)** | Renames in place: the heading becomes a field with save and cancel beside it, the same swap the item page uses for a job number. The row holds its height, so nothing below shifts. |
-| **Rename — Enter / check** | Commits the name. Empty is rejected — the field marks itself and stays open. |
-| **Rename — Escape / ×** | Leaves the name as it was. |
-| **Trash (title row)** | Opens a confirmation modal. Disabled when only one library exists. |
-| **Confirm modal — Delete** | Deletes the library **and its catalogs, for everyone**. The body states the catalog count, and points to the tab × as the way to just take it off your own view. |
-| **Confirm modal — Cancel / × / Escape / overlay** | Closes, nothing deleted. |
-| **Add Catalog** | Creates a catalog in this library. Needs a name before it appears in the list. |
-| **Catalog row** | Opens the catalog's item list. The whole row is the target. |
-| **Pencil (catalog row)** | Opens that catalog's settings. |
-| **Count badge** | Read-only. How many items the catalog holds. |
-
----
-
-## 3. Catalog page — the item list
-
-| Control | Intended action |
-|---|---|
-| **Back to <library>** | Returns to the libraries page with that library active. |
-| **Catalog Settings** | Opens settings for this catalog. |
-| **Unit type tabs** | Switches which unit type the table reports on. Every tab shows the same five columns; only the measure in the headers changes, because a roll is counted in yards and a piece is not counted in anything. |
-| **Search** | Narrows by item name or swatch number, live. Acts on the whole list, so it sits on the page rather than on the table's surface. A count appears once it is filtering; an empty result says so in the table. |
-| **Column header** | Sorts by that column, ascending then descending. The caret shows direction; unsorted columns show the resting sort affordance so it is clear they can be clicked. Blanks sort to the bottom in both directions — an unknown is not a small number. |
-| **Item name** | Opens the item page. |
-| **Available cell** | Read-only, but flagged: amber when the item is running low, red when it is oversold. Both carry a tooltip saying which. |
-
-Adding an item belongs here — see §7.
-
----
-
-## 4. Item page
-
-| Control | Intended action |
-|---|---|
-| **Back to <catalog>** | Returns to the item list. |
-| **Pencil (item header)** | Edits the item's own details — the property values that name it. |
-| **Property chips** | Read-only display of this item's property values. |
-| **Unit type tabs** | Switches which unit type is on screen. Each has its own rollup and its own table, because their columns differ. |
-| **Rollup tiles** | On Order / In-House / Allocated / Available for this unit type. Identical by default — colour is never decoration here. It appears only on Available, amber when low and red when oversold, each with an icon and a tooltip. |
-| **Add <form>** | Adds a unit of this type — a roll, a sheet stack, a count of pieces. |
-| **Job cell — +** | Allocates that unit to a job. Opens a six-digit field in place. |
-| **Job cell — pencil** | Changes the job the unit is allocated to. |
-| **Job field — Enter / check** | Commits. Non-six-digit input is refused in place with the reason, and the field stays open. Typing is digits-only and capped at six. |
-| **Job field — Escape / ×** | Leaves the allocation as it was. |
-| **Job cell — ×** | Releases the unit from its job. Allocated and Available follow immediately. |
-| **Print** | Prints that unit's label. |
-| **Switching tabs mid-edit** | Abandons an open job field, so it never reappears against a different unit type. |
-
----
-
-## 5. Catalog settings
-
-Everything on this page is a working copy. Nothing is committed until **Save
-Changes**, and the button is disabled until something actually changes.
-
-| Control | Intended action |
-|---|---|
-| **Catalog Title** | The catalog's name, edited directly as a labeled field rather than a heading with an edit affordance — this is the page where naming happens. Renaming here renames it on the item list and in its library. |
-| **Save Changes** | Commits the whole page — title, properties, unit types, naming. Confirms in place, then returns to rest. |
-| **Cancel** | Returns to the item list. Nothing committed is lost, because nothing was committed. |
-
-### 5a. Catalog properties
-
-Properties are the fields every item in this catalog carries.
-
-| Control | Intended action |
-|---|---|
-| **Global chips** (Vendor, Default Location, Product Line, Family, Color) | Present on every catalog and not removable — they are what the rest of Platinum joins on. |
-| **Created chips** | Properties this catalog added. Each carries the icon of its type: True/False → toggle, Dropdown → diamond, Measurement → square, Number → hashtag, Description → text. |
-| **× on a chip** | Removes that property from the catalog. It should say what goes with it — values recorded on existing items are lost. |
-| **Add Catalog Property** | Creates a property: name, type, and for a dropdown, its options. |
-
-### 5b. Units
-
-| Control | Intended action |
-|---|---|
-| **Unit type row** | Read-only summary — name, stock form, the fields a unit of this type records, and a worked example. Clicking the row is a shortcut to Edit. |
-| **Pencil** | Opens the unit type in the flyout. |
-| **Trash** | Asks in place: the row becomes a confirmation naming the unit type and how many recorded units go with it. Disabled on the last unit type — a catalog needs at least one way to hold stock. |
-| **Row confirm — Delete / Cancel / Escape** | Deletes the type from the working copy, or backs out. |
-| **Add Unit Type** | Opens the flyout empty, defaulted to a piece. |
-
-**Flyout** (same panel recipe as the bindery calculator's Edit Job Details):
-
-| Control | Intended action |
-|---|---|
-| **Unit type name** | What this collection is called — "Rolls", "Miscuts", "Swatches". Left blank, it falls back to the stock form's default name. |
-| **Stock form** | Roll, Sheet or Piece. Switching swaps the field set below, and renames the type if it still carries the old default name. |
-| **Width unit / Length unit** (roll) | The two units a roll records — 54 **in** wide, 50 **yd** long. Stock is the length, not a headcount of rolls. |
-| **Width unit / Height unit** (sheet) | The two units a sheet records, separately, because 8.5 in × 11 in and 40 in × 60 in are both real. Stock is the count. |
-| *(piece)* | No units. Stock is the count. |
-| **Save Unit Type** | Writes the draft back into the page's working config. Still not committed until Save Changes. |
-| **Cancel / × / Escape / overlay** | Discards the draft. |
-
-### 5c. Item naming
-
-| Control | Intended action |
-|---|---|
-| **Segment chips** | The template item names are built from, in order — Vendor-Product Line-Family-Color reads as *Majilite-Majilite-Baby Ostrich-Cobalt Blue*. |
-| **× on a segment** | Drops that segment from the template. |
-| **Add Naming Segment** | Adds a property to the end of the template. Only properties this catalog carries can be segments. |
-
----
-
-## 6. Rules that hold everywhere
+Putting a value in the wrong one is the most common way a catalog goes
+wrong. If every unit of an item shares the value, it is a property.
 
 | # | Rule |
 |---|---|
-| R1 | A catalog needs at least one unit type. The last one's delete is disabled and says why. |
-| R2 | A library needs at least one catalog — deleting the library is how you remove the last one. |
-| R3 | The page always shows a library. The last open tab's × is disabled. |
-| R4 | Hiding is per user and reversible; deleting is for everyone and asks first. Nothing in the UI should let those two be confused. |
-| R5 | Stock state is one thing only: amber = running low (available at or under 20% of in-house), red = oversold (available below zero). Colour never means anything else. |
-| R6 | Every destructive action names what goes with it before it happens — the catalogs in a library, the units in a unit type, the recorded values behind a property. |
-| R7 | A job number is exactly six digits. |
-| R8 | Item names are generated from the naming template, never typed. |
+| M1 | A catalog decides its own properties, naming template and unit types. Nothing is global except the dimension list. |
+| M2 | A unit belongs to exactly one item and one unit type. |
+| M3 | Items are named from a template, never typed. Two people cannot name the same thing two ways. |
 
 ---
-## 7. Editable unit rows (item page)
 
-Every value in a unit row is now a field rather than static text with an edit affordance bolted on.
+## 2. The four figures
 
-| Behaviour | Detail |
-|---|---|
-| **At rest** | A field reads exactly as the old static cell did — no border, no fill, column alignment kept. Measurements show their settled form (`1.50`, not `1.5`). |
-| **Hover** | The row is the unit of discovery: hovering anywhere in a row outlines every field in it at once, so the editable targets are findable from one place instead of cell by cell. The field under the pointer takes the stronger edge, to say which one a click lands on. |
-| **Focus** | White fill, focus ring, editable. The contents select on focus — one click and you can type over the value. A second click, or a drag, positions the caret normally. |
-| **Empty** | Placeholder text in the field's own shape (`000000` for Job Number, `0.00`, `0`, `Add location`) in `--text-tertiary` — this replaces the old plus button. |
-| **Size** | Two fields reading as one value: width `×` height. |
-| **Input** | Numeric fields accept digits only (decimals take a single point, two places); no steppers. Characters that don't belong simply never land. |
-| **Zero** | Zero is a real quantity for Yardage and Count — it says the unit is used up, not that the entry is wrong. Dimensions (Width, Height) still have to be greater than zero: a roll 0 inches wide is not a roll. |
-| **Clearing** | Emptying a number is not an entry, so it reverts silently to what it held. Emptying Job Number is a real instruction: it releases the allocation. |
-| **Commit** | Blur or Enter. Escape reverts. No save/cancel buttons. |
-| **Reject** | An invalid value is rejected outright — the field snaps back to the value it held, the error tint flashes to point at which field refused, and a toast says why. |
-| **Job Number** | Six digits, or empty — emptying the field releases the allocation (the old × action). |
-| **Rollup** | A commit rebuilds the rollup and the footer in place — neither holds a field — so the figures follow the rows without the table being re-rendered underneath the cursor. That's what makes it possible to tab through a row field by field. |
-
-New shared component: `components/toast/` — top-right, error/success/info, icon plus message (never colour alone), auto-dismisses, `window.toast(message, kind)`.
-
-| # | Rule |
-|---|---|
-| R9 | A rejected value is discarded, never half-accepted: the field returns to its previous value and the toast names the reason. |
-| R10 | Counts and measurements must be greater than zero. |
-
-## 8. Depleted units
-
-A quantity of zero is depletion, not an error. The quantity column is the one that says how much is on hand — Yardage for a roll, Count for anything else.
-
-| Behaviour | Detail |
-|---|---|
-| **Dim** | A depleted unit's row is dimmed: still readable, still editable, plainly not part of what is on hand. The zero in the quantity column is the fact; the dimming is reinforcement. |
-| **Hidden by default** | Depleted units are off screen unless asked for. **Show depleted** — a switch inline with the back link, above the first card — brings them back, and defaults to off. |
-| **Leaving, not vanishing** | Zeroing a quantity dims the row where it stands and only takes it off screen once the cursor has left it, so a zero entered by mistake can be corrected without the row disappearing mid-edit. A toast says where it went. |
-| **Footer** | Says what is on screen and what is being kept off it — "2 units · 1 depleted hidden". |
-| **Empty states** | Two different sentences: nothing here at all, versus nothing left that is not used up (which points at the switch). |
-
-New shared component: `components/switch/` — a labelled on/off control over a real checkbox, so it is keyboard- and screen-reader-operable for free.
-
-## 9. Adding a unit
-
-**Add Roll / Add Sheet / Add Swatch** appends a row to the bottom of the table and puts the cursor in its first field. A new unit is entered in the same place, and the same way, as an existing one is corrected — no modal, no separate form. An un-entered quantity is not depletion, so the new row stays put while it is being filled.
-
-### Default values
-
-Every measured field a unit of a given stock form records can be given a default in **Edit Unit Type → Default Values**. Those values are filled in when a new unit of that type is added, so adding one is a confirmation rather than a transcription — most rolls of a cloth come 54 inches wide.
-
-| Behaviour | Detail |
-|---|---|
-| **Which fields** | Whatever the stock form measures: Width / Yardage for a roll, Width / Height / Count for a sheet, Count for a piece. Changing the stock form swaps the field set. |
-| **No default** | Job Number, because an allocation belongs to one unit and not to the form; and Location, which is generated when the unit is created. |
-| **Blank** | A field with no default starts empty on a new row, showing its placeholder. |
-| **Stored** | On `unitType.defaults`, saved with the rest of the catalog config on Save Changes. A dimension of zero is not a default and is dropped. |
-
-| # | Rule |
-|---|---|
-| R11 | Zero is a quantity, never an error. Dimensions must still be greater than zero. |
-| R12 | A row is only taken off screen when the cursor is not in it. |
-| R13 | A default belongs to a stock form's measured fields. Job Number and Location never have one. |
-
-## 10. Library Settings
-
-The pencil beside a library's name opens a **Library Settings** flyout — the same `.flyout-overlay` / `.flyout-panel` recipe as Edit Unit Type — instead of the old in-place rename. It edits a draft, so Cancel, the overlay and Esc all discard cleanly.
-
-| Field | Detail |
-|---|---|
-| **Library name** | Renames the library everywhere: the tab, the panel title, the picker. An empty name is refused (it would be unfindable in the picker) — the field takes the error tint and a toast says so. |
-| **Stock forms** | Which of Roll / Piece / Sheet stock can take in this library, as switches. "The physical forms stock takes in this library. Catalog unit types can only use forms listed here." |
-
-| # | Rule |
-|---|---|
-| R14 | A library needs at least one stock form. The last one on cannot be turned off, and says why. |
-| R15 | A stock form already in use by a unit type stays listed in that type's Stock Form select even if the library has since dropped it — hiding it would silently rewrite the unit type on the next save. |
-
-Deleting a library is unchanged: still the trash beside the pencil, still confirmed, still says what is lost.
-
-**Data.** `library.stockForms` joins `library.name` as an editable setting, and both now persist (`iqu.libraries`) so the catalog settings page can read them — `libraryOfCatalog()` finds a catalog's library, `stockFormsOf()` reads its forms and falls back to all three. Catalogs themselves stay in the seed data. The seeds are realistic: the IT Library and Sample Room hold pieces only, Foils & Films rolls and sheets.
-
-## 11. Location decides On Order vs In-House
-
-A unit with no location has not been put away yet: the stock is recorded but not findable, so it reads as **On Order**. Giving it a location is what brings it into stock.
+Every unit type in every catalog reports the same four. A figure means
+the same thing everywhere it appears.
 
 | Figure | Made of |
 |---|---|
-| **On Order** | Units of this type with no location. |
-| **In-House** | Units with a location. |
-| **Allocated** | Units with a job number **and** a location — only stock in hand can be allocated against. |
+| **On Order** | Quantity on units with no location — recorded, not yet findable. |
+| **In-House** | Quantity on units that have a location. |
+| **Allocated** | Quantity on located units committed to a job or a person. |
 | **Available** | In-House − Allocated. |
+
+**A location is what brings stock into the building.** A unit recorded
+without one is on its way; giving it a location is the act of receiving
+it. This is why a newly added unit reads as On Order until it is placed.
+
+**Available is always derived, never stored.** No stored number can
+contradict the other two.
+
+**Only located stock can be allocated against.** Stock that has not
+arrived is counted once, as On Order, so Available never goes negative
+over a delivery that is still on a truck.
 
 | # | Rule |
 |---|---|
-| R16 | A unit's quantity is counted once: On Order until it has a location, In-House after. |
-| R17 | An unplaced unit is never Allocated, so Available can't go negative over stock that hasn't arrived. |
+| F1 | The four figures are defined once and reported identically everywhere. |
+| F2 | Every figure states its unit of measure. |
+| F3 | Available is derived at read time. |
+| F4 | Colour appears on a figure only when it needs attention — amber when running low, red when Allocated exceeds In-House — and never alone: each state also carries an icon or a tooltip. |
+| F5 | The low-stock threshold is a reorder point set per catalog or per unit type. It is not a fixed fraction. |
 
-This is why a newly added unit — which starts with no location, since locations are generated on creation — shows up as On Order until it is placed.
+---
 
-## 12. Non-depletable stock
+## 3. Libraries
 
-A fourth stock form sits beside Roll, Sheet and Piece: **Non-Depletable**. It is
-the form for stock that is never used up — it is only ever somewhere. A
-non-depletable unit records no measurement and no quantity, because one laptop
-is one laptop and one die is one die. What it records is its identity and its
-location, and the location is the whole of the stock story.
+A library exists for the whole company. What differs per person is which
+libraries they keep as tabs.
 
-That makes **Tracking** a second setting on the unit type, because "many of the
-same thing" and "every one is unique" are different shapes of catalog:
+**Organise libraries by what things are, not by who uses them.** The tab
+view already handles who sees what, so a Die library serves Print and
+Bindery without either owning it. Splitting by department would mean the
+same physical die existing in two catalogs with two locations and two
+allocation states.
 
-| Tracking | What it means |
+### Your view
+
+| Behavior | Detail |
 |---|---|
-| **Multiple units** | Many of the same item — laptops, mice, monitors. The item has its own page, its assets live on it, and the rollup reports the four standard figures for that item. |
-| **Single unit** | Every item is truly unique — dies. There are no units within an item, so there is no item page: the item carries the location itself, and the rollup moves up to the catalog. |
+| **Tabs** | One per library in this person's view. The active tab is joined to the panel below it, so the two read as one folder. |
+| **Dismiss** | The × takes a library off *this person's* tabs. Nothing is deleted and nobody else is affected. |
+| **Last tab** | Cannot be dismissed. The page always shows a library. |
+| **Add a Library** | Opens a panel listing every library in the company, with catalog counts, searchable. |
+| **Option is a toggle** | Not in your view: adds it and switches to it. Already in your view: takes it back out. The mark reads *In your view* at rest and *Remove* on hover. |
+| **Panel stays open** | Several libraries get added or dropped in one trip. |
+| **Keyboard** | ↓ from the search field enters the list and walks it; ↑ walks back and returns to the field from the top. Escape closes and returns focus to the +. |
+| **No match** | Offers to create a library under the typed name. |
+| **Persistence** | Which libraries are open, and which is active, are remembered per user. |
 
-### 12a. Locations are typed
+### The library itself
 
-A location belongs to one of two groups, and that group is what makes an asset
-allocated or available — a machine in the cage can be handed to anyone, a
-machine on a desk cannot. The picker groups them, so the consequence of a
-choice is visible while it is being made.
-
-| Group | Examples |
+| Behavior | Detail |
 |---|---|
-| **Stock Room** | IT-CAGE-A1, IT-BENCH-1, DIE-RACK-1-A, DIE-VAULT |
-| **Assigned** | J. Roth — Estimating, On press — Kluge 4, Out to Ohio Die |
+| **Rename** | Changes the tab, the panel title and the breadcrumb above every catalog inside it. |
+| **Empty name** | Refused — a library with no name is unfindable in the picker. |
+| **Delete** | Confirmed, and the confirmation names how many catalogs go with it and says the action cannot be undone. |
+| **Last library** | Cannot be deleted. |
 
-The four figures then read exactly as they do for measured stock (R16, R17),
-with a count of assets standing in for a measured quantity:
-
-| Figure | Made of |
-|---|---|
-| **On Order** | Records with no location — recorded, not yet findable. |
-| **In-House** | Records with a location, wherever that location is. |
-| **Allocated** | That location is in the Assigned group. |
-| **Available** | In-House − Allocated. |
-
-A **Status** column says which of the three a row is in, rather than leaving it
-to be read off the location's name — "IT-CAGE-A1" only means available to
-someone who already knows the cage. The pill is neutral in every state: an
-assigned laptop is not a problem, it is simply not available to issue.
-
-### 12b. Catalog settings
-
-| Control | Intended action |
-|---|---|
-| **Stock form — Non-Depletable** | Replaces the flyout's whole measurement half. No width, no length, no unit selects. |
-| **Tracking** | Multiple units or Single unit, as two options on screen with their consequences written under them. It decides where the catalog is worked, not just what a row looks like, so it is not a line in a select. |
-| **Identity field** | What each record is called on its row — Asset Tag, Die Number, Serial. Defaults follow the tracking and are only overwritten while the field still carries the other one's default. |
-| **Default values** | Absent by design. A non-depletable unit's only two fields are exactly the two that never take a default (R13): its identity, which belongs to one asset, and its location, which is where it happens to be. |
-| **Summary row** | Reads `Non-Depletable · Multiple units` — the form and the tracking together are what decide the shape of the catalog, so the row states both. |
-
-### 12c. Editing
-
-The location cell is a select rather than a typed field, and rests the way
-`.cell-field` rests: plain text in its column until the row is hovered, caret
-and border only then. It commits on change — a select has nothing to type, so
-there is nothing to correct before committing — and a toast names the asset and
-where it went. Only the rollup is rebuilt; the table stands, so the cursor is
-never pulled out of a row mid-move.
-
-The identity field is a normal editable cell with one difference from a
-quantity: it cannot be emptied and it cannot be duplicated. Both refusals are
-rejections in the R9 sense — the field snaps back, the tint flashes, the toast
-says why.
+A library carries a name and its catalogs. It does not constrain what
+its catalogs may contain: unit types are built from the same controlled
+dimension list everywhere, so there is nothing for a library to gate.
 
 | # | Rule |
 |---|---|
-| R18 | A non-depletable unit has no quantity. One record is one asset, so nothing about it can be depleted — these pages carry no Show depleted switch and no depleted state. |
-| R19 | Location type decides Allocated: Stock Room is available, Assigned is not. Nothing else on a non-depletable row affects the figures. |
-| R20 | Single-unit tracking has no item page. The item is the unit, so the rollup belongs to the catalog. |
-| R21 | An identity — asset tag, die number — is required and unique within its catalog. |
+| L1 | Hiding a library changes one person's view. Deleting one changes the company's data. The two are never the same control. |
+| L2 | The last library in a view, and the last library in the company, are both protected, and both say why. |
 
-### 12d. Files
+---
 
-Built as separate prototypes so the measured pages are untouched.
+## 4. Catalog page
 
-| File | What it shows |
+One row per item. **One column per unit type**, each carrying that
+type's Available figure.
+
+A reader should be able to answer *is this item short of anything* in
+one look, rather than by visiting four tabs and holding four numbers in
+their head.
+
+| Behavior | Detail |
 |---|---|
-| `catalog-settings-nondepletable.html` | The fourth stock form and the tracking choice, on an IT catalog. |
-| `catalog-nondepletable-multi.html` | Laptops — the item list, four figures per item counted in `ea`. |
-| `item-nondepletable-multi.html` | One laptop model's assets: tag, location, status, and the rollup. |
-| `catalog-nondepletable-single.html` | Dies — the rollup on the catalog, one row per die, no drill-in. |
-| `nondepletable-data.js` | Typed locations, the seed assets and dies, and the rollup arithmetic. |
-| `nondepletable.css` | Additions only: the resting select, the status pill, the catalog-level rollup, the tracking choice cards. |
+| **Columns** | Swatch, Item Name, then one per unit type in the order the catalog defines them. Adding a unit type adds a column. |
+| **Unit of measure** | In the column header. A catalog can hold a type counted in yards beside one counted in each, so a bare figure would be two different things. |
+| **Only Available** | On Order, In-House and Allocated are how Available was arrived at, not what anyone acts on. They are on the item page, where the units they are summed from live. |
+| **State** | Marks the figure, not the cell — a tinted cell would read as a column of its own. |
+| **Sort** | Any column. First click ascending, clicking again reverses. Blanks sort to the bottom either way: an unknown is not a small number. |
+| **Search** | Item name or swatch number, reporting how many of the total are showing. |
+| **Open an item** | The whole row. The item name stays a real link so middle-click and open-in-new-tab work. |
+| **Add Item** | Above the table, matching every other add affordance. |
 
-**Settled.** A die needs no "last job run" column — that is a catalog property,
-and properties are where per-item facts belong. Locations stay seed data for
-now; a managed list per library is not in this scope.
+| # | Rule |
+|---|---|
+| C1 | The list opens unsorted, in the order the catalog is kept in. |
+| C2 | A caption states that the unit type columns are Available, because no column header can. |
+
+---
+
+## 5. Catalog configuration
+
+Two levels of setting, and the difference matters:
+
+- **Single-Unit Items** belongs to the **catalog**. It is a claim about what a row on the catalog page *is*.
+- Everything in the **unit type builder** belongs to a **unit type**. It describes how one kind of stock is held.
+
+### 5.1 Properties and naming
+
+Properties are what an item records about itself. Each has a kind — text,
+number, true/false, or a list — which decides how it is edited and how it
+is shown.
+
+The **naming template** is an ordered list of properties. An item's name
+is those values joined. Editing a property that feeds the template
+renames the item.
+
+| # | Rule |
+|---|---|
+| P1 | Properties belong to the catalog, so they are added and removed in Catalog Settings. Adding one from inside a single item would hide that it lands on every item. |
+| P2 | Properties with no value are skipped in the name rather than leaving empty separators. |
+
+### 5.2 Single-Unit Items
+
+**On when each item in this catalog IS one physical object** — a die, a
+press plate. The item is not a catalog entry that has a die; it *is* the
+die. Its name, its properties and its location all describe one thing.
+
+An item cannot be one die and also hold 48 yards of itself, which is why
+this is a catalog-level claim rather than a unit type setting.
+
+| When on | Consequence |
+|---|---|
+| Unit types | Exactly one. More than one would be the item claiming to be two different objects. |
+| That type | No quantity dimension and no added fields. |
+| Allocation | Forced to User. The question a table of unique records answers is *who has it*, and a job number cannot answer that. |
+| Item page | None. The catalog page carries the records and the rollup. |
+
+| # | Rule |
+|---|---|
+| S1 | The setting cannot be turned on while the catalog has more than one unit type. Turning it on would have to discard the others, and a switch that silently deletes work is not a switch. The reason is stated on the control. |
+| S2 | Turning it off restores the quantity and the previous allocation choice. |
+
+### 5.3 Unit types
+
+A unit type is **built**, not chosen from a fixed list. It is:
+
+| Part | Detail |
+|---|---|
+| **Name** | What this collection is called — "Rolls", "Miscuts", "Sample Boards". |
+| **Allocation** | Job or User (§5.4). |
+| **Quantity** | A dimension, its unit of measure, and an optional default. This is the figure all four rollup tiles report. |
+| **Added fields** | Any number, each a dimension, unit of measure and optional default. |
+
+**Dimensions are a controlled list**: Length, Width, Height, Count. Each
+carries the units it can be measured in — the linear three take in / ft /
+yd / mm / cm / m, Count takes only *each*. Free text here would make two
+catalogs incomparable: "Width" in one and "width" in another are two
+columns that should have been one.
+
+This one builder covers every shape of stock:
+
+| Stock | Built as |
+|---|---|
+| A roll of cloth | Quantity **Length (yd)**, added field **Width (in)** |
+| A stack of miscuts | Quantity **Count (ea)**, added fields **Width**, **Height** |
+| Swatches | Quantity **Count (ea)** |
+| Laptops | Quantity **Count (ea)** |
+| A mounted sample board | Quantity **Count (ea)**, default **1** |
+| A die | A single-unit catalog (§5.2) |
+
+Stock that is never consumed needs no special case. One mounted board is
+Count (ea) with a default of 1: in-house 1, allocated 1 when it is off
+the wall, available 0.
+
+**Added fields track variance between the units of one item** — roll
+width occasionally varies across bookcloth rolls, so Width is a field on
+Rolls rather than a property of the cloth. Each becomes a column on that
+type's table.
+
+**A dimension is used once per unit type.** A Width beside a Width is two
+columns of the same measurement with nothing to tell them apart, and the
+second is always a mistake — so a dimension already taken by the quantity
+or another field is not offered. With four dimensions, a type can carry a
+quantity and three fields; at that point Add Field is spent and says so.
+
+| # | Rule |
+|---|---|
+| U1 | A dimension's units belong to the dimension. Changing a dimension pulls its unit of measure onto the new list rather than leaving an impossible pairing. |
+| U7 | A dimension can be used once per unit type. Taking one for the quantity takes it off the fields, and releasing one gives it back. |
+| U2 | A catalog needs at least one unit type. The last one cannot be deleted. |
+| U3 | Deleting a unit type names it and states how many recorded units go with it. |
+| U4 | Saving a unit type files its shape as a **preset**, keyed by name, offered to every other catalog. Choosing a preset copies the shape; later edits never reach back. |
+| U5 | A preset carries the shape only, never a catalog's Single-Unit claim. |
+| U6 | A unit type's summary states what a unit of it records and gives a worked example, using each field's own default where one is set. |
+
+### 5.4 Allocation
+
+**Job or User, set per unit type.** Rolls of cloth go out on jobs, sample
+boards go out to people, and both can live in one catalog. Deciding it
+per unit would put a question on every row that only ever has one answer,
+and let two rows in one table mean different things by the same column.
+
+| Setting | Column | A value is | Empty means |
+|---|---|---|---|
+| **Job** | Job Number | Six digits, validated | Unallocated |
+| **User** | Allocated to | A name | Unallocated |
+
+Presented as two named options, not an on/off switch: "Allocate to user:
+off" does not read as "job".
+
+**Changing what a unit type allocates to releases everything it holds.**
+A job number is not a person's name under another heading, so the values
+cannot carry over — reinterpreting them would turn job 487712 into a
+person called "487712". The panel states how many units the change will
+release before it happens, and nothing is released until the unit type is
+saved: cancelling leaves the allocations alone. Each released unit
+records the reason in its log.
+
+| # | Rule |
+|---|---|
+| A1 | The setting decides that type's column header, field kind and validation. |
+| A2 | Allocation is recorded against the unit. It is never inferred from the name of the location it sits in. |
+| A3 | Emptying the field releases the unit and is recorded in its log. |
+| A4 | A single-unit catalog is always User, and its unit type has no allocation control. |
+| A5 | A single-unit record can be allocated to several people at once; each adds one to Allocated. Everything else takes exactly one. |
+| A6 | Changing what a unit type allocates to releases every allocation of that type. The change is stated before it is made and applied only on save. |
+
+---
+
+## 6. Items
+
+### Add and edit
+
+Adding an item and editing one are the **same panel** — adding is
+editing a blank. Two panels taking the same values would be two things
+to keep in step.
+
+| Behavior | Detail |
+|---|---|
+| **Every property** | One field per property the catalog has, typed by the property: a vendor is a list, a flag is a switch, a number takes digits only. |
+| **Generated name** | Shown as it will be saved, updating as the values that feed it are typed, so a rename is visible before saving rather than arriving as a surprise after. |
+| **Identifier** | Handed out on add, not asked for. It has to be unique, and asking someone to know the next free one is asking them to do the system's job. It stays editable. |
+| **Discard** | Cancel, the overlay and Escape all discard the draft. |
+| **On save** | Updates the heading, breadcrumb, browser title and property chips. |
+
+### On the item page
+
+Properties with a value are shown as chips under the item name. A
+property with no value shows no chip: an empty property is not a fact
+about the item, and a row of blanks pushes the ones that matter off the
+line.
+
+| # | Rule |
+|---|---|
+| I1 | The name, the chips and the editor all read the same list, so a chip can never state something the editor cannot change. |
+| I2 | A new item enters the catalog with its figures at zero — that is what a catalog entry with no stock recorded against it is. |
+
+---
+
+## 7. Units
+
+The units of one item, one tab per unit type.
+
+**Fixed columns in every catalog** — Location, Allocated to, Quantity —
+then one column per added field, in the order the unit type defines them.
+A reader who has learned one unit table has learned all of them.
+
+### Editing
+
+Every value in a row is editable where it is read. **There are no save
+buttons in a table.**
+
+| Behavior | Detail |
+|---|---|
+| **Commit** | On blur or Enter. |
+| **Revert** | On Escape. |
+| **Focus** | Selects the field's contents, so typing replaces rather than appends. |
+| **Row hover** | Outlines every editable field in the row, so the targets are findable from one place rather than hunted cell by cell. |
+| **After a commit** | The figures above the table rebuild; the table itself stands, so the cursor is never pulled out of a row mid-edit. |
+
+### Refusals
+
+An invalid entry is **rejected outright**: the field returns to the value
+it held, a message says what was expected, and the field flashes so it is
+obvious which one refused. Nothing is silently accepted or silently
+changed.
+
+| Entry | Treated as |
+|---|---|
+| A cleared number | Not an entry. The field returns to its value, with no error. |
+| A cleared allocation | An instruction — release this unit. The one blank that is not a slip. |
+| A job number that is not six digits | Refused, with the expected format stated. |
+| A measurement of zero | Refused. Something 0 inches wide is not a thing. |
+| A quantity of zero | Accepted. It means the unit is used up (§7.2). |
+
+### 7.1 Adding a unit
+
+Add places an empty row at the bottom of the table and puts the cursor in
+its first field, so a new unit is entered in the same place and the same
+way an existing one is corrected.
+
+Each field starts at the unit type's **default** where one is set — most
+rolls of a cloth come 54 inches wide, so adding one is a confirmation
+rather than a transcription. Fields with no default start empty.
+
+Location never takes a default: it is where the unit happens to be, and
+a unit without one is On Order until it is placed.
+
+### 7.2 Depleted units
+
+A unit whose quantity has reached zero is **depleted** — used up, not
+wrong. A quantity not yet entered is neither.
+
+| Behavior | Detail |
+|---|---|
+| **Hidden by default** | A depleted unit is history, not stock. |
+| **Show depleted** | Brings them back, including to recount one zeroed by mistake. |
+| **Footer** | States how many units are showing and how many are hidden. |
+| **On depletion** | The row dims in place and is only removed once focus has left it, so a mistyped zero can be corrected without the row vanishing mid-edit. |
+
+| # | Rule |
+|---|---|
+| N1 | Quantity is whatever the unit type counts in — yards for a roll, each for a swatch. Depletion is that figure reaching zero, whatever it is. |
+| N2 | A single-unit catalog has no depleted state and no Show depleted control: nothing about a unique record can run down. |
+
+---
+
+## 8. Single-unit catalogs
+
+For catalogs where the item **is** the object. There is nothing within
+the item to drill into, so the catalog page carries the records.
+
+| Behavior | Detail |
+|---|---|
+| **Columns** | ID, Name, Location, Allocated to. No quantity column: a unique record is worth 1 while it exists. |
+| **No item page** | The item is the unit. Following a stale link to one says so and points back. |
+| **No tabs** | One unit type is not a choice. |
+| **Rollup** | The same four figures, as a catalog total: records with no location are On Order, records with a location are In-House, each person holding one adds to Allocated. |
+| **Editing** | Location and Allocated to are edited in the table, with the same commit and revert behavior as any unit. The one catalog where a row IS the object should not be the one catalog whose rows are edited elsewhere. |
+| **Properties** | Reached from the row, in the same panel that adds and edits any item. |
+
+**Two people claiming one record reads as oversold.** Available goes
+negative for that item and the catalog rollup nets it against the rest.
+That is the intended reading, not an error state: two people believe they
+have the same die, and the figures should say so.
+
+---
+
+## 9. Activity log
+
+A quantity is typed over, so the number on screen is the whole of what a
+unit can say about itself. The table cannot answer the question people
+actually bring to it — *where did the other 24 yards go?*
+
+Every unit and every unique record carries a log.
+
+| Event | Recorded when |
+|---|---|
+| Received | Stock is booked in. |
+| Allocation removed — unit type changed | The unit type changed what it allocates to (§5.4). |
+| Scanned to *location* | A location is entered on a unit that had none. |
+| QTY *n* entered | A quantity is committed — every entry, including the one that depletes the unit. |
+| Allocated to *job / person* | An allocation is committed. |
+| Allocation removed | The allocation is cleared. |
+
+| # | Rule |
+|---|---|
+| H1 | Oldest first. The log reads as the story of the record, not a stack of the most recent thing; the first event is where the record came from and is emphasised. |
+| H2 | Opens beside the table, not inside it. A log is read top to bottom, and expanding a row would move every row the reader was just looking at. |
+| H3 | Names the record it belongs to, because the panel covers the row that would otherwise say so. |
+| H4 | Append-only, and never the source of a figure. It says what happened; the unit says what is true now. |
+
+---
+
+## 10. Patterns that hold everywhere
+
+These are what let someone who has learned one screen use the next one
+without being taught again.
+
+| # | Rule |
+|---|---|
+| G1 | **Substantial work happens in the aside.** Editing a unit type, adding or editing an item, adding a library, library settings and the activity log all open in the same panel. |
+| G2 | **Every panel edits a draft.** Cancel, the overlay and Escape discard cleanly, and nothing is committed until saved. |
+| G3 | **Nothing that belongs in a row moves into a panel.** A value read in a table is edited in that table. |
+| G4 | **Add affordances sit above the thing they add to**, and read the same on every screen. |
+| G5 | **Destructive actions state their cost** — what is being deleted and what goes with it — and say when they cannot be undone. |
+| G6 | **A protected control says why it is protected.** The last library, the last unit type, and a setting that would have to discard work all state their reason rather than simply refusing. |
+| G7 | **A consequence is stated where the choice is made**, in the help line under the control that causes it, not in a note elsewhere on the page. |
+| G8 | **Colour is never decoration and never alone.** It appears only on a figure needing attention, and always with an icon or a tooltip. |
+

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Majilite-Majilite-Baby Ostrich-Cobalt Blue</title>
+    <title>Item</title>
     <script src="https://kit.fontawesome.com/da08280601.js" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="shared/css/design-tokens.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -11,10 +11,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=optional" rel="stylesheet" />
     <link rel="stylesheet" href="inventory.css" />
     <link rel="stylesheet" href="components/breadcrumbs/breadcrumbs.css" />
+    <link rel="stylesheet" href="components/flyout/flyout.css" />
     <link rel="stylesheet" href="components/toast/toast.css" />
     <link rel="stylesheet" href="components/switch/switch.css" />
     <script src="components/toast/toast.js"></script>
     <script src="inventory-data.js"></script>
+    <script src="components/item-editor/item-editor.js"></script>
+    <script src="components/activity-log/activity-log.js"></script>
     <script>
       window.SIDEBAR_CONFIG = {
         activeItem: 'Inventory',
@@ -26,6 +29,8 @@
     <script src="shared/components/sidebar-component.js"></script>
 
     <div class="main-content">
+
+      <!-- ══ Breadcrumbs ══════════════════════════════════════════ -->
       <div class="breadcrumb-bar">
         <nav class="breadcrumbs">
           <a class="crumb" href="inventory.html"><i class="fa-regular fa-pallet-boxes"></i> Inventory</a>
@@ -34,15 +39,13 @@
           <i class="fa-regular fa-chevron-right crumb-sep"></i>
           <a class="crumb" href="catalog.html"><i class="fa-regular fa-book"></i> Bookcloth</a>
           <i class="fa-regular fa-chevron-right crumb-sep"></i>
-          <span class="crumb current">Majilite-Majilite-Baby Ostrich-Cobalt Blue</span>
+          <span class="crumb current" id="crumbItem"></span>
         </nav>
       </div>
 
       <div class="page-scroll">
         <div class="page-inner">
 
-          <!-- The back link shares its line with the page's one view
-               control: whether used-up units are on screen. -->
           <div class="page-top">
             <a class="back-link" href="catalog.html">
               <i class="fa-regular fa-arrow-left"></i> Back to Bookcloth
@@ -55,524 +58,786 @@
             </label>
           </div>
 
-          <!-- Item header: name, the edit action, and the item's properties -->
+          <!-- ══ Item header ══════════════════════════════════════
+               The name and the chips are both rendered from the item's
+               property values, so the editor that changes those values
+               is the only place either can change.
+               ─────────────────────────────────────────────────── -->
           <div class="page-card is-flush item-header">
             <div class="item-header-row">
-              <h5>Majilite-Majilite-Baby Ostrich-Cobalt Blue</h5>
-              <button class="icon-btn" type="button"
+              <h5 id="itemName"></h5>
+              <button class="icon-btn" type="button" id="editItem"
                       title="Edit item details" aria-label="Edit item details">
                 <i class="fa-solid fa-pen"></i>
               </button>
             </div>
 
-            <div class="item-header-row chip-row">
-              <span class="chip"><i class="fa-regular fa-user chip-icon"></i><span class="chip-label">Vendor</span><span class="chip-value">Majilite</span></span>
-              <span class="chip"><i class="fa-regular fa-sitemap chip-icon"></i><span class="chip-label">Product Line</span><span class="chip-value">Majilite</span></span>
-              <span class="chip"><i class="fa-regular fa-layer-group chip-icon"></i><span class="chip-label">Family</span><span class="chip-value">Baby Ostrich</span></span>
-              <span class="chip"><i class="fa-regular fa-palette chip-icon"></i><span class="chip-label">Color</span><span class="chip-value">Cobalt Blue</span></span>
-              <span class="chip"><i class="fa-regular fa-toggle-on chip-icon"></i><span class="chip-label">House / Stocking</span><span class="chip-value">*</span></span>
-            </div>
+            <div class="item-header-row chip-row" id="itemChips"></div>
           </div>
+          <!-- ══ end Item header ══════════════════════════════════ -->
 
-          <!-- Item units: one tab per unit type, as on the items table -->
+          <!-- ══ Unit type tabs ═══════════════════════════════════ -->
           <div class="section">
             <div class="tab-row" id="unitTabs"></div>
-            <div id="unitBlocks"></div>
-          </div>
 
+            <!-- ══ Unit type block ════════════════════════════════
+                 Rollup, add row, and the units table. The four figures
+                 are fixed, so all four tiles are in the markup and
+                 JavaScript writes only their values.
+                 ───────────────────────────────────────────────── -->
+            <div class="unit-type-block" id="unitBlock">
+
+              <div class="unit-rollup">
+                <div class="rollup-stats">
+
+                  <div class="rollup-stat" title="Quantity on units with no location yet.">
+                    <div class="rollup-label">On Order</div>
+                    <div class="rollup-value"><span data-figure="onOrder">0</span><span class="rollup-measure" data-measure></span></div>
+                  </div>
+
+                  <div class="rollup-stat" title="Quantity on every unit that has a location.">
+                    <div class="rollup-label">In-House</div>
+                    <div class="rollup-value"><span data-figure="inHouse">0</span><span class="rollup-measure" data-measure></span></div>
+                  </div>
+
+                  <div class="rollup-stat" title="Quantity on located units committed to a job or a user.">
+                    <div class="rollup-label">Allocated</div>
+                    <div class="rollup-value"><span data-figure="allocated">0</span><span class="rollup-measure" data-measure></span></div>
+                  </div>
+
+                  <div class="rollup-stat" id="availableStat" title="In-House minus Allocated.">
+                    <div class="rollup-label">
+                      <i class="fa-solid" id="availableIcon" hidden></i>
+                      Available
+                    </div>
+                    <div class="rollup-value"><span data-figure="available">0</span><span class="rollup-measure" data-measure></span></div>
+                  </div>
+
+                </div>
+
+                <button class="add-row" type="button" id="addUnit">
+                  <i class="fa-regular fa-plus add-row__icon"></i>
+                  <span id="addUnitLabel">Add Unit</span>
+                </button>
+              </div>
+
+              <div class="table-wrap">
+                <table class="data">
+                  <thead><tr id="headRow"></tr></thead>
+                  <tbody id="rows"></tbody>
+                </table>
+              </div>
+
+              <div class="unit-type-foot">
+                <span class="unit-type-count" id="unitCount"></span>
+                <span class="unit-type-hidden" id="unitHidden" hidden></span>
+              </div>
+
+            </div>
+            <!-- ══ end Unit type block ════════════════════════════ -->
+
+            <!-- Shown instead of the block when this catalog has no unit
+                 types that hold units within an item. -->
+            <div class="page-card" id="noUnitsState" hidden>
+              This is a single-unit catalog — the item is the unit, so there are no units
+              within it. Its rows and its rollup are on the
+              <a class="item-link" href="catalog-dies.html">catalog page</a>.
+            </div>
+
+          </div>
         </div>
       </div>
     </div>
 
+    <!-- ══ Item page templates ══════════════════════════════════════
+         Angular: the chip and tab become @for blocks; the unit row
+         becomes an @for with a nested @for over the type's fields.
+         ───────────────────────────────────────────────────────────── -->
+    <template id="chipTemplate">
+      <span class="chip">
+        <i class="fa-regular chip-icon" data-chip-icon></i>
+        <span class="chip-label" data-chip-label></span>
+        <span class="chip-value" data-chip-value></span>
+      </span>
+    </template>
+
+    <template id="tabTemplate">
+      <button class="tab-btn" type="button" data-tab></button>
+    </template>
+
+    <template id="columnHeaderTemplate">
+      <th data-column></th>
+    </template>
+
+    <template id="unitRowTemplate">
+      <tr data-row>
+        <td class="left col-loc">
+          <input type="text" class="cell-field" data-field="location"
+                 placeholder="Add location" aria-label="Location" maxlength="24" />
+        </td>
+        <td class="left col-alloc">
+          <input type="text" class="cell-field" data-field="allocation" />
+        </td>
+        <td class="qty strong">
+          <input type="text" class="cell-field is-num" data-field="qty" placeholder="0" />
+        </td>
+        <!-- one cell per added field appended here -->
+        <td class="qty col-act">
+          <div class="unit-actions">
+            <button class="icon-btn" type="button" data-history
+                    title="Activity log" aria-label="Activity log">
+              <i class="fa-regular fa-clock-rotate-left"></i>
+            </button>
+            <button class="icon-btn" type="button" title="Print unit label" aria-label="Print unit label">
+              <i class="fa-regular fa-print"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    </template>
+
+    <template id="fieldCellTemplate">
+      <td class="qty">
+        <input type="text" class="cell-field is-num" placeholder="0.00" />
+      </td>
+    </template>
+
+    <template id="emptyRowTemplate">
+      <tr class="table-empty-row"><td data-empty></td></tr>
+    </template>
+
+    <!-- ══ Item Editor ══════════════════════════════════════════════
+         Adds an item and edits one — adding is editing a blank.
+         HTML: this block + the four field templates below
+         CSS:  inventory.css → .field, .field-group, .generated-name
+         JS:   components/item-editor/item-editor.js
+         ───────────────────────────────────────────────────────────── -->
+    <div class="flyout-overlay" id="itemEditor">
+      <div class="flyout-panel" role="dialog" aria-modal="true" aria-labelledby="itemEditorTitle">
+
+        <div class="flyout-header">
+          <span class="flyout-title" id="itemEditorTitle" data-editor-title>Edit Item Details</span>
+          <button class="icon-btn" type="button" data-close aria-label="Close">
+            <i class="fa-regular fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="flyout-body" data-editor-body>
+
+          <!-- Generated name — not a field. Shows what the item will be
+               saved as while the values that feed it are typed. -->
+          <div class="field-group field-group--first">
+            <div class="field-group-title">Generated name</div>
+            <div class="field-group-help">
+              Built from <span data-editor-name-source></span>, in that order.
+              Catalog Settings decides the template.
+            </div>
+            <div class="generated-name" data-editor-name></div>
+          </div>
+
+          <!-- One field per catalog property. Angular: @for over the
+               catalog's properties, with a template per property kind. -->
+          <div class="field-list" data-editor-fields></div>
+
+        </div>
+
+        <div class="flyout-footer">
+          <div class="footer-actions">
+            <button class="btn-pill outline sm" type="button" data-close>Cancel</button>
+            <button class="btn-pill solid sm" type="button" data-editor-done>Save Item</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Field templates — one per property kind. -->
+    <template id="fieldTextTemplate">
+      <div class="field">
+        <label class="field-label" data-field-label></label>
+        <input class="input" type="text" autocomplete="off" placeholder="None" data-field-input />
+      </div>
+    </template>
+
+    <template id="fieldNumberTemplate">
+      <div class="field">
+        <label class="field-label" data-field-label></label>
+        <input class="input num" type="text" inputmode="numeric" autocomplete="off"
+               placeholder="None" data-field-input />
+      </div>
+    </template>
+
+    <template id="fieldSelectTemplate">
+      <div class="field">
+        <label class="field-label" data-field-label></label>
+        <select class="select" data-field-input>
+          <option value="">None</option>
+        </select>
+      </div>
+    </template>
+
+    <template id="fieldBooleanTemplate">
+      <div class="field">
+        <label class="field-label" data-field-label></label>
+        <label class="switch">
+          <input type="checkbox" />
+          <span class="switch-track" aria-hidden="true"></span>
+          <span data-field-state>No</span>
+        </label>
+      </div>
+    </template>
+    <!-- ══ end Item Editor ══════════════════════════════════════════ -->
+
+    <!-- ══ Activity Log ═════════════════════════════════════════════
+         One record's history, oldest first. The same timeline as the
+         job detail page's Scan History.
+         HTML: this block + #timelineRowTemplate
+         CSS:  inventory.css → "Activity log"
+         JS:   components/activity-log/activity-log.js
+         ───────────────────────────────────────────────────────────── -->
+    <div class="flyout-overlay" id="activityLog">
+      <div class="flyout-panel" role="dialog" aria-modal="true" aria-labelledby="activityLogTitle">
+
+        <div class="flyout-header">
+          <span class="flyout-title" id="activityLogTitle">Activity Log</span>
+          <button class="icon-btn" type="button" data-close aria-label="Close">
+            <i class="fa-regular fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="flyout-body" data-log-body>
+          <div class="activity-timeline">
+            <!-- Names the record, because the panel covers the row that
+                 would otherwise say which record this is. -->
+            <div class="activity-scope" data-log-caption></div>
+            <div class="timeline-scroll" data-log-list></div>
+            <div class="timeline-empty" data-log-empty hidden>
+              Nothing recorded against this yet.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <template id="timelineRowTemplate">
+      <div class="timeline-row">
+        <div class="timeline-date type-body-sm" data-log-date></div>
+        <div class="timeline-connector">
+          <div class="timeline-line"><div class="timeline-tick"></div></div>
+        </div>
+        <div class="timeline-event type-body-md" data-log-event></div>
+      </div>
+    </template>
+    <!-- ══ end Activity Log ═════════════════════════════════════════ -->
+
     <script>
-      const INV = window.INVENTORY;
-      const { MEASUREMENT_TYPES, fmt } = INV;
+      /* ============================================================
+         Item page — one item's units
+         ------------------------------------------------------------
+         Fixed columns on every tab and in every catalog — Location,
+         Allocated to, Quantity — then one column per added field, in
+         the order the unit type defines them. A reader who has learned
+         one unit table has learned all of them.
 
-      const cfg   = INV.loadConfig();
-      const units = INV.DEFAULT_UNITS;
+         Prototype-only: the mock data, the depleted filter, and the
+         fact that adding a unit invents an id.
+         Would become Angular: the tabs as a selected-index, the row
+         template as an @for, and each .cell-field as an input with
+         (blur) / (keydown.enter) / (keydown.escape) handlers.
+         ============================================================ */
+      const INV  = window.INVENTORY;
+      const cfg  = INV.loadConfig();
+      const ITEM = INV.ITEMS.find(item => item.detailed);
+      const UNITS = INV.DEFAULT_UNITS;
 
-      const ITEM = INV.ITEMS.find(i => i.detailed);
+      /* A single-unit catalog has no item page at all — the item IS the
+         unit. Reaching this page for one is a stale link, which the
+         empty state below says. */
+      const TYPES = cfg.singleUnit ? [] : cfg.unitTypes;
 
-      /* ── Rollup ─────────────────────────────────────────────────
-         A KPI row: four headline figures for this unit type, each in its
-         own tile. The tiles are identical by default — colour is not
-         decoration. It appears only on Available, and only to say the
-         stock needs attention:
-         amber when it is running low, red when the item is oversold.
-         Neither state relies on colour alone; both carry an icon and a
-         tooltip saying what the state is.
-         --------------------------------------------------------- */
-      const STATE_FLAG = {
-        low:  { cls: 'is-low',  icon: 'fa-circle-exclamation',   note: 'Running low on available stock.' },
-        over: { cls: 'is-over', icon: 'fa-triangle-exclamation', note: 'Allocated stock exceeds in-house stock.' }
+      const templates = {
+        chip:   document.getElementById('chipTemplate'),
+        tab:    document.getElementById('tabTemplate'),
+        header: document.getElementById('columnHeaderTemplate'),
+        row:    document.getElementById('unitRowTemplate'),
+        cell:   document.getElementById('fieldCellTemplate'),
+        empty:  document.getElementById('emptyRowTemplate')
       };
 
-      function rollupFor(t) {
-        const spec    = MEASUREMENT_TYPES[t.measurementType];
-        const measure = INV.quantityUnitLabel(t);
-        const q       = INV.itemQty(ITEM, t);
-        const flag    = STATE_FLAG[INV.stockState(q)];
+      const tabsEl    = document.getElementById('unitTabs');
+      const headRow   = document.getElementById('headRow');
+      const rowsEl    = document.getElementById('rows');
+      const blockEl   = document.getElementById('unitBlock');
+      const noUnitsEl = document.getElementById('noUnitsState');
 
-        const stat = (label, value, opts = {}) => `
-          <div class="rollup-stat${opts.cls ? ' ' + opts.cls : ''}"${opts.note ? ` title="${opts.note}"` : ''}>
-            <div class="rollup-label">
-              ${opts.icon ? `<i class="fa-solid ${opts.icon}"></i> ` : ''}${label}
-            </div>
-            <div class="rollup-value">${fmt(value)}<span class="rollup-measure">${measure}</span></div>
-          </div>`;
+      let activeId = TYPES[0] ? TYPES[0].id : null;
+      let showDepleted = false;
 
-        return `
-          <div class="unit-rollup">
-            <div class="rollup-stats">
-              ${stat('On Order', q.onOrder)}
-              ${stat('In-House', q.inHouse)}
-              ${stat('Allocated', q.allocated)}
-              ${stat('Available', q.available, flag || {})}
-            </div>
-            <button class="add-row" type="button" data-add="${t.id}">
-              <i class="fa-regular fa-plus" style="margin-right: var(--scale-200)"></i> Add ${spec.label}
-            </button>
-          </div>`;
+      const activeType = () => INV.unitTypeById(cfg, activeId);
+      const unitById   = (id) => UNITS.find(unit => unit.id === id);
+
+      /* ── Item header ───────────────────────────────────────────
+         Name, breadcrumb, title and chips all read the catalog's
+         properties and this item's values for them. A property with no
+         value shows no chip: an empty property is not a fact about the
+         item, and a row of blanks would push the ones that matter off
+         the line. ------------------------------------------------- */
+      const chipsEl = document.getElementById('itemChips');
+
+      function renderHeader() {
+        const name = INV.itemName(ITEM);
+        document.getElementById('itemName').textContent = name;
+        document.getElementById('crumbItem').textContent = name;
+        document.title = name;
+
+        chipsEl.replaceChildren();
+
+        INV.CATALOG_PROPERTIES.forEach(property => {
+          const value = (ITEM.props || {})[property.id];
+          const shown = property.kind === 'boolean'
+            ? (value ? 'Yes' : '')
+            : (value === null || value === undefined || value === '' ? '' : String(value));
+          if (!shown) return;
+
+          const chip = templates.chip.content.firstElementChild.cloneNode(true);
+          chip.querySelector('[data-chip-icon]').classList.add(property.icon);
+          chip.querySelector('[data-chip-label]').textContent = property.label;
+          chip.querySelector('[data-chip-value]').textContent = shown;
+          chipsEl.appendChild(chip);
+        });
       }
 
-      /* ── Per-measurement-type table shapes ────────────────────
-         Every column names the field behind it: `kind` decides what
-         the input will accept, `field` which property it writes.
-         ------------------------------------------------------- */
-      function columnsFor(t) {
-        const spec = MEASUREMENT_TYPES[t.measurementType];
-        const base = [
-          { key: 'location', label: 'Location', left: true, cls: 'col-loc', kind: 'text' },
-          { key: 'job',      label: 'Job Number', left: true, cls: 'col-job', kind: 'job' }
-        ];
-        if (spec.key === 'roll') {
-          return base.concat([
-            { key: 'width',  label: `Width (${t.widthUnit})`, kind: 'measure' },
-            { key: 'length', label: `Yardage (${t.lengthUnit})`, strong: true, kind: 'quantity' }
-          ]);
-        }
-        if (spec.key === 'sheet') {
-          /* Width and height take their own units, so name both unless
-             they happen to match. */
-          const size = t.widthUnit === t.heightUnit
-            ? `Size (${t.widthUnit})`
-            : `Size (${t.widthUnit} &times; ${t.heightUnit})`;
-          return base.concat([
-            { key: '_size', label: size, kind: 'size' },
-            { key: 'count', label: 'Count', strong: true, kind: 'count' }
-          ]);
-        }
-        return base.concat([{ key: 'count', label: 'Count', strong: true, kind: 'count' }]);
+      /* ── Columns ───────────────────────────────────────────────
+         Three fixed, then one per added field. --------------------- */
+      function columnsFor(type) {
+        const allocation = INV.allocationKind(type);
+        return [
+          { key: 'location',   label: 'Location',   cls: 'left col-loc' },
+          { key: 'allocation', label: allocation.column, cls: 'left col-alloc' },
+          { key: 'qty',        label: `Quantity (${INV.quantityUnitLabel(type)})` }
+        ].concat(type.fields.map(field => ({
+          key: field.id,
+          label: `${INV.dimension(field.dimension).label} (${field.uom})`,
+          field
+        })));
       }
 
-      /* ── Field rules ──────────────────────────────────────────
+      function renderHead(type) {
+        headRow.replaceChildren();
+
+        columnsFor(type).forEach(column => {
+          const th = templates.header.content.firstElementChild.cloneNode(true);
+          th.textContent = column.label;
+          if (column.cls) th.className = column.cls;
+          headRow.appendChild(th);
+        });
+
+        const actions = templates.header.content.firstElementChild.cloneNode(true);
+        actions.className = 'col-act';
+        headRow.appendChild(actions);
+      }
+
+      /* ── Field rules ───────────────────────────────────────────
          One place to say, per kind of value, what may be typed, what
-         counts as valid, and what to say when it does not. Rejecting
-         an entry keeps it on screen to be corrected and raises a
-         toast, so the reason is never left to the field alone.
-         ------------------------------------------------------- */
-      /* Digits and a single decimal point, to two places. */
-      function decimals(v) {
-        const cleaned = v.replace(/[^\d.]/g, '');
+         counts as valid, and what to say when it does not. An invalid
+         entry is rejected outright: the field goes back to what it
+         held, a toast says why, and the tint flashes long enough to
+         point at which field refused. --------------------------------*/
+      function decimals(value) {
+        const cleaned = value.replace(/[^\d.]/g, '');
         const [whole, ...rest] = cleaned.split('.');
         return rest.length
           ? `${whole.slice(0, 5)}.${rest.join('').slice(0, 2)}`
           : whole.slice(0, 5);
       }
 
-      const FIELD_RULES = {
-        text: {
-          placeholder: 'Add location',
-          filter: v => v.slice(0, 24),
-          valid:  () => true,
-          parse:  v => v.trim() || null
-        },
-        job: {
-          placeholder: '000000',
-          inputmode: 'numeric',
-          maxlength: 6,
-          cls: 'is-job',
-          /* Empty releases the allocation; anything else must be a
-             whole six-digit job number. */
-          filter: v => v.replace(/\D/g, '').slice(0, 6),
-          valid:  v => v === '' || INV.isValidJob(v),
-          error:  'Job numbers are six digits — for example 487712.',
-          parse:  v => v === '' ? null : v
-        },
-        /* A physical dimension: a roll 0 inches wide is not a roll. */
-        measure: {
-          placeholder: '0.00',
-          inputmode: 'decimal',
-          cls: 'is-num',
-          filter: decimals,
-          valid:  v => Number(v) > 0,
-          error:  'Enter a measurement greater than zero.',
-          parse:  v => Number(v)
-        },
+      const RULES = {
+        text:  { placeholder: 'Add location',
+                 filter: v => v.slice(0, 24), valid: () => true,
+                 parse: v => v.trim() || null },
+
+        job:   { placeholder: '000000', numeric: true, maxlength: 6,
+                 filter: v => v.replace(/\D/g, '').slice(0, 6),
+                 valid: v => v === '' || INV.isValidJob(v),
+                 error: 'Job numbers are six digits — for example 487712.',
+                 parse: v => v === '' ? null : v },
+
+        user:  { placeholder: 'Add name',
+                 filter: v => v.slice(0, 32), valid: () => true,
+                 parse: v => v.trim() || null },
+
+        /* A physical dimension: something 0 inches wide is not a thing. */
+        measure: { placeholder: '0.00', decimal: true,
+                   filter: decimals, valid: v => Number(v) > 0,
+                   error: 'Enter a measurement greater than zero.',
+                   parse: Number },
+
         /* A quantity on hand. Zero is not an error — it says the unit
            has been used up, which is what marks it depleted. */
-        quantity: {
-          placeholder: '0.00',
-          inputmode: 'decimal',
-          cls: 'is-num',
-          filter: decimals,
-          valid:  v => Number(v) >= 0,
-          error:  'Enter a quantity of zero or more.',
-          parse:  v => Number(v)
-        },
-        count: {
-          placeholder: '0',
-          inputmode: 'numeric',
-          cls: 'is-num',
-          filter: v => v.replace(/[^\d]/g, '').slice(0, 6),
-          valid:  v => Number(v) >= 0,
-          error:  'Enter a whole count of zero or more.',
-          parse:  v => Number(v)
-        }
+        quantity: { placeholder: '0.00', decimal: true,
+                    filter: decimals, valid: v => Number(v) >= 0,
+                    error: 'Enter a quantity of zero or more.',
+                    parse: Number },
+
+        count: { placeholder: '0', numeric: true,
+                 filter: v => v.replace(/[^\d]/g, '').slice(0, 6),
+                 valid: v => Number(v) >= 0,
+                 error: 'Enter a whole count of zero or more.',
+                 parse: Number }
       };
 
-      /* ── Depletion ────────────────────────────────────────────
-         The quantity column is the one that says how much is on hand:
-         yardage for a roll, count for anything else. A unit whose
-         quantity has reached zero is depleted — used up, not wrong. A
-         quantity not yet entered (a row just added) is neither.
-         ------------------------------------------------------- */
-      function quantityKey(t) {
-        return MEASUREMENT_TYPES[t.measurementType].key === 'roll' ? 'length' : 'count';
+      function kindOf(type, column) {
+        if (column.key === 'location')   return 'text';
+        if (column.key === 'allocation') return INV.allocationKind(type).key;
+        if (column.key === 'qty')        return type.qty.dimension === 'count' ? 'count' : 'quantity';
+        return column.field.dimension === 'count' ? 'count' : 'measure';
       }
 
-      function isDepleted(u, t) {
-        const v = u[quantityKey(t)];
-        return v !== null && v !== undefined && v !== '' && Number(v) === 0;
+      function readValue(unit, key) {
+        if (key === 'location')   return unit.location;
+        if (key === 'allocation') return unit.allocation ? unit.allocation.value : null;
+        if (key === 'qty')        return unit.qty;
+        return (unit.values || {})[key];
       }
 
-      /* Depleted units are out of the way unless asked for. */
-      let showDepleted = false;
-
-      /* How a settled value is written into a field. */
       function displayValue(kind, raw) {
         if (raw === null || raw === undefined || raw === '') return '';
-        return (kind === 'measure' || kind === 'quantity') ? fmt(raw) : String(raw);
+        return (kind === 'measure' || kind === 'quantity') ? INV.fmt(raw) : String(raw);
       }
 
-      function fieldInput(u, key, kind, extraCls = '') {
-        const r    = FIELD_RULES[kind];
-        /* Measurements show their settled form — 1.50, not 1.5 — so a
-           field at rest reads exactly as the old static cell did. */
-        const val = displayValue(kind, u[key]);
-        const attrs = [
-          `class="cell-field${r.cls ? ' ' + r.cls : ''}${extraCls ? ' ' + extraCls : ''}"`,
-          `value="${val}"`,
-          `placeholder="${r.placeholder}"`,
-          `data-uid="${u.id}"`,
-          `data-field="${key}"`,
-          `data-kind="${kind}"`,
-          r.inputmode ? `inputmode="${r.inputmode}"` : '',
-          r.maxlength ? `maxlength="${r.maxlength}"` : '',
-          `aria-label="${FIELD_LABELS[key] || key}"`
-        ].filter(Boolean).join(' ');
-        return `<input type="text" ${attrs} />`;
+      /* ── Depletion ─────────────────────────────────────────────
+         A unit whose quantity has reached zero is depleted — used up,
+         not wrong. A quantity not yet entered is neither. ------------ */
+      function isDepleted(unit) {
+        const value = unit.qty;
+        return value !== null && value !== undefined && value !== '' && Number(value) === 0;
       }
 
-      const FIELD_LABELS = {
-        location: 'Location',
-        job:      'Job number, six digits',
-        width:    'Width',
-        height:   'Height',
-        length:   'Yardage',
-        count:    'Count'
+      /* ── Rows ──────────────────────────────────────────────────── */
+      function renderRows(type) {
+        const columns = columnsFor(type);
+        const mine    = UNITS.filter(unit => unit.unitTypeId === type.id);
+        const spent   = mine.filter(isDepleted);
+        const shown   = showDepleted ? mine : mine.filter(unit => !isDepleted(unit));
+
+        rowsEl.replaceChildren();
+
+        if (!shown.length) {
+          const row = templates.empty.content.firstElementChild.cloneNode(true);
+          const cell = row.querySelector('[data-empty]');
+          cell.colSpan = columns.length + 1;
+          cell.textContent = mine.length
+            ? `Every ${type.name.toLowerCase().replace(/s$/, '')} here is depleted. Turn on Show depleted to see ${spent.length === 1 ? 'it' : 'them'}.`
+            : `No ${type.name.toLowerCase()} yet. Add one to start tracking stock.`;
+          rowsEl.appendChild(row);
+        }
+
+        shown.forEach(unit => {
+          const row = templates.row.content.firstElementChild.cloneNode(true);
+          row.dataset.row = unit.id;
+          row.classList.toggle('is-depleted', isDepleted(unit));
+          row.querySelector('[data-history]').dataset.history = unit.id;
+
+          /* The three fixed inputs are in the template; the added-field
+             cells are cloned in before the actions cell. */
+          const actionsCell = row.querySelector('.col-act');
+
+          columns.forEach(column => {
+            const kind = kindOf(type, column);
+            const rule = RULES[kind];
+            let input = row.querySelector(`[data-field="${column.key}"]`);
+
+            if (!input) {
+              const cell = templates.cell.content.firstElementChild.cloneNode(true);
+              input = cell.querySelector('input');
+              input.dataset.field = column.key;
+              row.insertBefore(cell, actionsCell);
+            }
+
+            input.dataset.unit = unit.id;
+            input.dataset.kind = kind;
+            input.placeholder  = rule.placeholder;
+            input.value        = displayValue(kind, readValue(unit, column.key));
+            input.setAttribute('aria-label', column.label);
+            input.classList.toggle('is-job', kind === 'job');
+            input.classList.toggle('is-num', kind !== 'text' && kind !== 'user' && kind !== 'job');
+            if (rule.numeric) input.setAttribute('inputmode', 'numeric');
+            if (rule.decimal) input.setAttribute('inputmode', 'decimal');
+            if (rule.maxlength) input.setAttribute('maxlength', rule.maxlength);
+          });
+
+          rowsEl.appendChild(row);
+        });
+
+        const visible = showDepleted ? mine.length : mine.length - spent.length;
+        document.getElementById('unitCount').textContent =
+          `${visible} ${visible === 1 ? 'unit' : 'units'}`;
+
+        const hiddenEl = document.getElementById('unitHidden');
+        hiddenEl.hidden = showDepleted || !spent.length;
+        hiddenEl.textContent = `${spent.length} depleted hidden`;
+      }
+
+      /* ── Rollup ────────────────────────────────────────────────
+         Tiles are in the markup; this writes their figures and moves
+         the state modifier onto Available. ------------------------- */
+      const availableStat = document.getElementById('availableStat');
+      const availableIcon = document.getElementById('availableIcon');
+
+      const STATE = {
+        low:  { cls: 'is-low',  icon: 'fa-circle-exclamation',   note: 'Running low on available stock.' },
+        over: { cls: 'is-over', icon: 'fa-triangle-exclamation', note: 'Allocated stock exceeds in-house stock.' }
       };
 
-      /* Which unit type is on screen. */
-      let activeId = cfg.unitTypes[0]?.id || null;
-      function activeType() { return INV.unitTypeById(cfg, activeId); }
+      function renderRollup(type) {
+        const figures = INV.itemQty(ITEM, type);
+        const measure = INV.quantityUnitLabel(type);
 
-      function cellValue(u, col) {
-        if (col.key === '_size') {
-          return `<span class="size-field">
-                    ${fieldInput(u, 'width', 'measure')}
-                    <span class="size-x" aria-hidden="true">&times;</span>
-                    ${fieldInput(u, 'height', 'measure')}
-                  </span>`;
+        Object.keys(figures).forEach(key => {
+          document.querySelector(`[data-figure="${key}"]`).textContent = INV.fmt(figures[key]);
+        });
+        document.querySelectorAll('[data-measure]').forEach(el => { el.textContent = measure; });
+
+        const state = STATE[INV.stockState(figures)];
+        availableStat.classList.remove('is-low', 'is-over');
+        availableIcon.classList.remove('fa-circle-exclamation', 'fa-triangle-exclamation');
+
+        if (state) {
+          availableStat.classList.add(state.cls);
+          availableStat.title = state.note;
+          availableIcon.classList.add(state.icon);
+          availableIcon.hidden = false;
+        } else {
+          availableStat.title = 'In-House minus Allocated.';
+          availableIcon.hidden = true;
         }
-        return fieldInput(u, col.key, col.kind);
+
+        document.getElementById('addUnitLabel').textContent =
+          `Add ${type.name.replace(/s$/, '')}`;
       }
 
-      /* The footer says what is on screen and what is being kept off
-         it, and is cheap enough to rebuild on its own after an edit. */
-      function footHtml(t) {
-        const mine   = units.filter(u => u.unitTypeId === t.id);
-        const spent  = mine.filter(u => isDepleted(u, t));
-        const shown  = showDepleted ? mine.length : mine.length - spent.length;
-        const hidden = showDepleted ? 0 : spent.length;
-        return `
-          <span class="unit-type-count">${shown} ${shown === 1 ? 'unit' : 'units'}</span>
-          ${hidden ? `<span class="unit-type-hidden">${hidden} depleted hidden</span>` : ''}`;
-      }
-
-      /* ── Tabs ───────────────────────────────────────────────── */
+      /* ── Tabs ──────────────────────────────────────────────────── */
       function renderTabs() {
-        document.getElementById('unitTabs').innerHTML = cfg.unitTypes.map(t =>
-          `<button class="tab-btn${t.id === activeId ? ' active' : ''}" type="button" data-tab="${t.id}">${t.name}</button>`
-        ).join('');
+        tabsEl.replaceChildren();
+        TYPES.forEach(type => {
+          const tab = templates.tab.content.firstElementChild.cloneNode(true);
+          tab.textContent = type.name;
+          tab.dataset.tab = type.id;
+          tab.classList.toggle('active', type.id === activeId);
+          tabsEl.appendChild(tab);
+        });
       }
 
-      /* ── Active unit type ───────────────────────────────────────
-         The tab already names the type, so the card header carries only
-         the stock form, the rollup and the add action.
-         --------------------------------------------------------- */
-      function renderBlocks() {
-        const t = activeType();
-        const host = document.getElementById('unitBlocks');
-        if (!t) { host.innerHTML = ''; return; }
+      function render() {
+        const type = activeType();
+        blockEl.hidden = !type;
+        noUnitsEl.hidden = !!type;
+        if (!type) return;
 
-        {
-          const cols    = columnsFor(t);
-          const mine    = units.filter(u => u.unitTypeId === t.id);
-          const spent   = mine.filter(u => isDepleted(u, t));
-          const shown   = showDepleted ? mine : mine.filter(u => !isDepleted(u, t));
-
-          const row = (u) => `
-            <tr${isDepleted(u, t) ? ' class="is-depleted"' : ''} data-row="${u.id}">
-              ${cols.map(c => `<td class="${c.left ? 'left' : 'qty'}${c.strong ? ' strong' : ''}${c.cls ? ' ' + c.cls : ''}">${cellValue(u, c)}</td>`).join('')}
-              <td class="qty col-act">
-                <div class="unit-actions">
-                  <button class="icon-btn" type="button" title="Print unit label"><i class="fa-regular fa-print"></i></button>
-                </div>
-              </td>
-            </tr>`;
-
-          /* Two different kinds of empty: nothing here at all, or
-             nothing left that is not used up. They need different
-             sentences. */
-          const empty = mine.length
-            ? `Every ${t.name.toLowerCase().replace(/s$/, '')} here is depleted. Turn on Show depleted to see ${spent.length === 1 ? 'it' : 'them'}.`
-            : `No ${t.name.toLowerCase()} yet. Add one to start tracking stock.`;
-
-          const body = shown.length
-            ? shown.map(row).join('')
-            : `<tr><td class="left" colspan="${cols.length + 1}" style="color:var(--text-tertiary)">${empty}</td></tr>`;
-
-          host.innerHTML = `
-            <div class="unit-type-block">
-              ${rollupFor(t)}
-              <table class="data">
-                <thead>
-                  <tr>
-                    ${cols.map(c => `<th class="${c.left ? 'left' : ''}${c.cls ? ' ' + c.cls : ''}">${c.label}</th>`).join('')}
-                    <th class="col-act"></th>
-                  </tr>
-                </thead>
-                <tbody>${body}</tbody>
-              </table>
-              <div class="unit-type-foot">${footHtml(t)}</div>
-            </div>`;
-        }
-      }
-
-      /* ── Tab switching ────────────────────────────────────── */
-      document.getElementById('unitTabs').addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-tab]');
-        if (!btn || btn.dataset.tab === activeId) return;
-        activeId = btn.dataset.tab;
         renderTabs();
-        renderBlocks();
-      });
-
-      /* ── Editing ──────────────────────────────────────────────
-         Fields commit on blur or Enter and revert on Escape; there
-         are no save buttons, so the only thing to learn is that
-         leaving the field keeps the value. A commit that changes a
-         figure re-renders the block, so the rollup above the table
-         can never disagree with the rows beneath it.
-         ------------------------------------------------------- */
-      const blocksEl = document.getElementById('unitBlocks');
-
-      function unitById(id) { return units.find(u => u.id === id); }
-
-      /* A committed value changes the figures above the table and the
-         count below it, but re-rendering the rows would throw away the
-         focus — and with it the ability to tab through a row one field
-         at a time. Neither the rollup nor the footer holds a field, so
-         both can be rebuilt on the spot while the table stands. */
-      function refreshFigures() {
-        const t      = activeType();
-        const rollup = blocksEl.querySelector('.unit-rollup');
-        const foot   = blocksEl.querySelector('.unit-type-foot');
-        if (rollup) rollup.outerHTML = rollupFor(t);
-        if (foot)   foot.innerHTML   = footHtml(t);
+        renderHead(type);
+        renderRows(type);
+        renderRollup(type);
       }
 
-      /* Typing is constrained as it happens — the field simply will
-         not hold a character it cannot accept. */
-      blocksEl.addEventListener('input', (e) => {
-        const el = e.target;
-        if (!el.matches('.cell-field')) return;
-        const filtered = FIELD_RULES[el.dataset.kind].filter(el.value);
-        if (filtered !== el.value) {
-          const at = el.selectionStart - (el.value.length - filtered.length);
-          el.value = filtered;
-          el.setSelectionRange(at, at);
+      /* ── Editing ───────────────────────────────────────────────
+         Commits on blur or Enter, reverts on Escape. A commit rebuilds
+         the rollup and the footer but leaves the table standing, so the
+         cursor is never pulled out of a row mid-edit. ---------------- */
+      function writeValue(unit, key, next, type) {
+        if (key === 'allocation') {
+          const kind = INV.allocationKind(type).key;
+          if (!next) {
+            if (unit.allocation) INV.logEvent(unit, 'Allocation removed');
+            unit.allocation = null;
+          } else {
+            unit.allocation = { kind, value: next };
+            INV.logEvent(unit, kind === 'job' ? `Allocated to job ${next}` : `Allocated to ${next}`);
+          }
+          return;
         }
-        el.classList.remove('invalid');
-      });
+        if (key === 'qty') {
+          unit.qty = next;
+          INV.logEvent(unit, `QTY ${next} ${INV.quantityUnitLabel(type)} entered`);
+          return;
+        }
+        if (key === 'location') {
+          unit.location = next;
+          if (next) INV.logEvent(unit, `Scanned to ${next}`);
+          return;
+        }
+        unit.values = unit.values || {};
+        unit.values[key] = next;
+      }
 
-      function commit(el) {
-        const rule = FIELD_RULES[el.dataset.kind];
-        const unit = unitById(el.dataset.uid);
-        const key  = el.dataset.field;
-        const raw  = el.value.trim();
-        const was  = unit[key];
+      function commit(input) {
+        const kind = input.dataset.kind;
+        const rule = RULES[kind];
+        const unit = unitById(input.dataset.unit);
+        const key  = input.dataset.field;
+        const raw  = input.value.trim();
+        const was  = readValue(unit, key);
+        const type = activeType();
 
-        /* Clearing a number is not an entry, so it needs no telling
-           off — the field simply returns to what it held. (An emptied
-           job number is a real instruction: release the allocation.)
-           */
-        if (raw === '' && el.dataset.kind !== 'job' && el.dataset.kind !== 'text') {
-          el.value = displayValue(el.dataset.kind, was);
-          return true;
+        /* Clearing a number is not an entry, so it needs no telling off
+           — the field simply returns to what it held. An emptied
+           allocation is a real instruction: release the unit. */
+        if (raw === '' && kind !== 'text' && kind !== 'job' && kind !== 'user') {
+          input.value = displayValue(kind, was);
+          return;
         }
 
-        /* An invalid entry is rejected outright: the field goes back to
-           the value it held, the toast says why, and the error tint
-           flashes just long enough to point at which field refused. */
         if (!rule.valid(raw)) {
-          el.value = displayValue(el.dataset.kind, was);
-          el.classList.add('invalid');
-          clearTimeout(el._flash);
-          el._flash = setTimeout(() => el.classList.remove('invalid'), 900);
+          input.value = displayValue(kind, was);
+          input.classList.add('invalid');
+          clearTimeout(input._flash);
+          input._flash = setTimeout(() => input.classList.remove('invalid'), 900);
           window.toast(rule.error, 'error');
-          return false;
+          return;
         }
 
         const next = rule.parse(raw);
-        el.classList.remove('invalid');
-        el.value = displayValue(el.dataset.kind, next);
-        if (String(next ?? '') === String(was ?? '')) return true;
+        input.classList.remove('invalid');
+        input.value = displayValue(kind, next);
+        if (String(next ?? '') === String(was ?? '')) return;
 
-        unit[key] = next;
-
-        /* A depleted unit dims where it stands. It is only taken off
-           screen once the cursor has left the row, so a zero entered
-           by mistake can still be corrected without the row vanishing
-           mid-edit. */
-        const tr = el.closest('tr[data-row]');
-        if (tr) tr.classList.toggle('is-depleted', isDepleted(unit, activeType()));
-
-        refreshFigures();
-        return true;
+        writeValue(unit, key, next, type);
+        input.closest('[data-row]').classList.toggle('is-depleted', isDepleted(unit));
+        renderRollup(type);
+        renderRows.footerOnly = true;
+        renderFooter(type);
       }
 
-      /* One click puts the whole value in hand: focusing a field selects
-         its contents, so typing replaces rather than appends. The mouse
-         would otherwise drop a caret at the click point on release, so
-         that first selection is held through mouseup — a second click,
-         or a drag, still positions the caret normally. */
-      let claiming = null;
+      function renderFooter(type) {
+        const mine  = UNITS.filter(unit => unit.unitTypeId === type.id);
+        const spent = mine.filter(isDepleted);
+        const visible = showDepleted ? mine.length : mine.length - spent.length;
+        document.getElementById('unitCount').textContent =
+          `${visible} ${visible === 1 ? 'unit' : 'units'}`;
+        const hiddenEl = document.getElementById('unitHidden');
+        hiddenEl.hidden = showDepleted || !spent.length;
+        hiddenEl.textContent = `${spent.length} depleted hidden`;
+      }
 
-      blocksEl.addEventListener('mousedown', (e) => {
-        const el = e.target.closest('.cell-field');
-        if (el && el !== document.activeElement) claiming = el;
+      rowsEl.addEventListener('input', (e) => {
+        const input = e.target.closest('.cell-field');
+        if (!input) return;
+        const filtered = RULES[input.dataset.kind].filter(input.value);
+        if (filtered !== input.value) {
+          const at = input.selectionStart - (input.value.length - filtered.length);
+          input.value = filtered;
+          input.setSelectionRange(at, at);
+        }
+        input.classList.remove('invalid');
       });
 
-      blocksEl.addEventListener('focusin', (e) => {
+      /* One click puts the whole value in hand: focusing selects the
+         contents, so typing replaces rather than appends. */
+      rowsEl.addEventListener('focusin', (e) => {
         if (e.target.matches('.cell-field')) e.target.select();
       });
 
-      blocksEl.addEventListener('mouseup', (e) => {
-        if (!claiming || e.target !== claiming) { claiming = null; return; }
-        const el = claiming;
-        claiming = null;
-        /* A drag is a deliberate selection — leave it alone. */
-        if (el.selectionStart !== el.selectionEnd) return;
-        e.preventDefault();
-        el.select();
-      });
-
-      blocksEl.addEventListener('focusout', (e) => {
+      rowsEl.addEventListener('focusout', (e) => {
         if (!e.target.matches('.cell-field')) return;
         commit(e.target);
 
-        const tr = e.target.closest('tr[data-row]');
+        const row = e.target.closest('[data-row]');
         /* Wait a tick: focus may only be moving to the next field in
            the same row. */
         setTimeout(() => {
-          if (!tr || !tr.isConnected || tr.contains(document.activeElement)) return;
-          if (showDepleted || !tr.classList.contains('is-depleted')) return;
-
-          const t = activeType();
+          if (!row || !row.isConnected || row.contains(document.activeElement)) return;
+          if (showDepleted || !row.classList.contains('is-depleted')) return;
           window.toast('Unit depleted — hidden. Turn on Show depleted to see it.', 'info');
-          /* Losing the last visible row means the table needs its
-             empty state, which only a full render can give it. */
-          if (blocksEl.querySelectorAll('tbody tr[data-row]').length === 1) {
-            renderBlocks();
-          } else {
-            tr.remove();
-            blocksEl.querySelector('.unit-type-foot').innerHTML = footHtml(t);
-          }
+          renderRows(activeType());
         }, 0);
       });
 
-      blocksEl.addEventListener('keydown', (e) => {
-        const el = e.target;
-        if (!el.matches('.cell-field')) return;
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          commit(el);
-          el.blur();
-        }
+      rowsEl.addEventListener('keydown', (e) => {
+        const input = e.target.closest('.cell-field');
+        if (!input) return;
+        if (e.key === 'Enter') { e.preventDefault(); commit(input); input.blur(); }
         if (e.key === 'Escape') {
           e.preventDefault();
-          el.value = displayValue(el.dataset.kind, unitById(el.dataset.uid)[el.dataset.field]);
-          el.classList.remove('invalid');
-          el.blur();
+          const unit = unitById(input.dataset.unit);
+          input.value = displayValue(input.dataset.kind, readValue(unit, input.dataset.field));
+          input.classList.remove('invalid');
+          input.blur();
         }
       });
 
-      /* ── Show depleted ────────────────────────────────────────
-         Off by default: a depleted unit is history, not stock. The
-         toggle is the way back to it — including to recount one that
-         was zeroed by mistake.
-         ------------------------------------------------------- */
+      /* ── Row actions and adding ────────────────────────────────── */
+      function historyCaption(unit, type) {
+        const bits = [unit.location || 'No location yet'];
+        if (unit.qty !== null && unit.qty !== undefined && unit.qty !== '') {
+          bits.push(`${INV.fmt(unit.qty)} ${INV.quantityUnitLabel(type)}`);
+        }
+        if (unit.allocation) {
+          bits.push(unit.allocation.kind === 'job'
+            ? `Job ${unit.allocation.value}` : unit.allocation.value);
+        }
+        return `${type.name.replace(/s$/, '')} — ${bits.join(' · ')}`;
+      }
+
+      rowsEl.addEventListener('click', (e) => {
+        const button = e.target.closest('[data-history]');
+        if (!button) return;
+        const unit = unitById(button.dataset.history);
+        ActivityLog.open({
+          caption: historyCaption(unit, activeType()),
+          entries: unit.history || []
+        });
+      });
+
+      /* Add puts an empty row at the bottom with the unit type's
+         defaults already in it, and the cursor in its first field. */
+      let nextId = UNITS.length + 1;
+
+      document.getElementById('addUnit').addEventListener('click', () => {
+        const type = activeType();
+        const unit = {
+          id: `u-new-${nextId++}`,
+          unitTypeId: type.id,
+          location: null,
+          allocation: null,
+          qty: type.qty.default ?? null,
+          values: {},
+          history: [{ at: INV.today(), text: 'Unit created' }]
+        };
+        type.fields.forEach(field => { unit.values[field.id] = field.default ?? null; });
+
+        UNITS.push(unit);
+        renderRows(type);
+        renderRollup(type);
+        rowsEl.querySelector(`[data-row="${unit.id}"] .cell-field`)?.focus();
+      });
+
+      tabsEl.addEventListener('click', (e) => {
+        const tab = e.target.closest('[data-tab]');
+        if (!tab || tab.dataset.tab === activeId) return;
+        activeId = tab.dataset.tab;
+        render();
+      });
+
       document.getElementById('showDepleted').addEventListener('change', (e) => {
         showDepleted = e.target.checked;
-        renderBlocks();
+        renderRows(activeType());
       });
 
-      /* ── Adding a unit ────────────────────────────────────────
-         Add puts an empty row at the bottom of the table and puts the
-         cursor in its first field, so a new unit is entered in the
-         same place and the same way as an existing one is corrected.
-         ------------------------------------------------------- */
-      let nextId = units.length + 1;
-
-      blocksEl.addEventListener('click', (e) => {
-        const add = e.target.closest('[data-add]');
-        if (!add) return;
-
-        const t   = INV.unitTypeById(cfg, add.dataset.add);
-        const def = t.defaults || {};
-        const u   = { id: `u-new-${nextId++}`, unitTypeId: t.id, job: null };
-
-        /* The unit type's default measurements are the starting point —
-           most rolls of a cloth are the same width, so adding one is a
-           confirmation, not a transcription. Location is generated on
-           creation, and a field with no default starts empty. */
-        const fill = (key) => { u[key] = def[key] ?? null; };
-        u.location = null;
-        columnsFor(t).forEach(c => {
-          if (c.key === '_size') { fill('width'); fill('height'); }
-          else if (c.kind !== 'text' && c.kind !== 'job') fill(c.key);
-        });
-        units.push(u);
-        renderBlocks();
-
-        const first = blocksEl.querySelector(`[data-row="${u.id}"] .cell-field`);
-        if (first) first.focus();
+      document.getElementById('editItem').addEventListener('click', () => {
+        ItemEditor.open({ item: ITEM, cfg, onSave: renderHeader });
       });
 
-      renderTabs();
-      renderBlocks();
+      renderHeader();
+      render();
+
+      /* ── Deep link ─────────────────────────────────────────────
+         ?panel=edit-item opens the aside on load, so the structure map
+         on the index page can point at a panel and not just a page.
+         --------------------------------------------------------- */
+      if (new URLSearchParams(location.search).get('panel') === 'edit-item') {
+        ItemEditor.open({ item: ITEM, cfg, onSave: renderHeader });
+      }
     </script>
   </body>
 </html>

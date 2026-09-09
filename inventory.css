@@ -238,7 +238,6 @@ table.data th {
    tinted like the other add affordances on the page rather than reading
    as an inactive library tab — no bottom border, so it still sits on the
    panel's edge with the rest of the strip. */
-.tab-add-wrap { position: relative; }
 .lib-tab.add {
   padding: var(--scale-300) var(--scale-400);
   background: var(--interactive-bg-subtle);
@@ -296,31 +295,15 @@ table.data th {
 .lib-panel .title-row h5 { margin-right: auto; }
 
 /* ── Library picker ─────────────────────────────────────────
-   Anchored to the + so the tab lands where the reader is looking,
-   rather than in a search field parked elsewhere on the page.
+   In the aside. Adding is a browse — every library in the company is
+   listed, and several may be added in a row — and a list that long has
+   no business floating over the page it is adding to. The flyout
+   supplies the surface, so what is left here is the list.
    ---------------------------------------------------------- */
-.lib-picker {
-  position: absolute;
-  top: calc(100% + var(--scale-200));
-  right: 0;
-  z-index: 200;
-  width: 320px;
-  max-width: 90vw;
-  padding: var(--scale-300);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--border-radius-md);
-  box-shadow: var(--shadow-panel);
-}
-.lib-picker-input { width: 100%; }
-
-.lib-picker-body { margin-top: var(--scale-200); }
 .lib-picker-list {
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: 260px;
-  overflow-y: auto;
 }
 
 .lib-option {
@@ -342,13 +325,26 @@ table.data th {
 .lib-option-name { color: var(--text-primary); font-weight: var(--font-weight-medium); }
 .lib-option-meta { color: var(--text-tertiary); }
 /* Already in the view: shown, not hidden, so the list is the whole
-   picture of what this person has and could have. */
+   picture of what this person has and could have — and the row is the
+   way back out again. The mark states what is true at rest and what a
+   click will do on hover, so a toggle needs no second control beside
+   it. */
 .lib-option-on {
   margin-left: auto;
   color: var(--interactive-default);
   font-size: var(--fontsize-label);
   white-space: nowrap;
 }
+.lib-option-act { display: none; }
+.lib-option.is-on:hover .lib-option-rest,
+.lib-option.is-on:focus-visible .lib-option-rest { display: none; }
+.lib-option.is-on:hover .lib-option-act,
+.lib-option.is-on:focus-visible .lib-option-act { display: inline; color: var(--text-secondary); }
+
+/* The last library open keeps its mark and loses its hover: there is
+   nothing this row can do, and the title says why. */
+.lib-option[aria-disabled="true"] { cursor: default; }
+.lib-option[aria-disabled="true"]:hover { background: none; }
 
 .lib-picker-none {
   margin: var(--scale-200) var(--scale-300) var(--scale-300);
@@ -389,6 +385,7 @@ table.data th {
 }
 
 /* ── Page title row ────────────────────────────────────────── */
+
 .title-row {
   display: flex;
   align-items: center;
@@ -583,7 +580,7 @@ table.data th {
 .field { display: flex; flex-direction: column; gap: var(--scale-50); }
 
 /* A set of fields that belong together under one heading — the default
-   values a stock form hands a new unit, for instance. The rule sits
+   values a unit type hands a new unit, for instance. The rule sits
    with the heading, so the group reads as one thing rather than as
    more fields in the same list. */
 .field-group {
@@ -619,6 +616,21 @@ table.data th {
   font-size: var(--fontsize-label);
   color: var(--text-tertiary);
 }
+
+/* ── Page stack ────────────────────────────────────────────────
+   The catalog pages stack a caption, a search field, a rollup, an add
+   row and a table. Each of those carries a margin of its own for use
+   elsewhere, and stacking them put five different gaps down one page.
+   One container with one gap replaces all of them, and the parts stop
+   having opinions about what follows them.
+   ------------------------------------------------------------- */
+.page-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--scale-500);
+}
+.page-stack > .section-help { margin-bottom: 0; }
+.page-stack > .search-panel { padding: 0; }
 
 /* ── Data table ────────────────────────────────────────────── */
 .table-wrap { overflow-x: auto; }
@@ -805,7 +817,7 @@ td.swatch { font-weight: var(--font-weight-semibold); }
 .unit-config-row {
   width: 100%;
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 2.4fr) minmax(0, 1.6fr) auto;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, .9fr) minmax(0, 2.2fr) minmax(0, .9fr) minmax(0, 1.3fr) auto;
   align-items: center;
   gap: var(--scale-400);
   padding: var(--scale-300) var(--scale-400);
@@ -914,6 +926,14 @@ td.swatch { font-weight: var(--font-weight-semibold); }
   padding: var(--scale-400);
   background: var(--bg-muted);
   border-bottom: 1px solid var(--border-tertiary);
+}
+/* On its own, above a table it is not welded to — a catalog rollup
+   rather than a unit type's. It closes itself off instead of running
+   its bottom edge into whatever follows. */
+.unit-rollup.is-standalone {
+  border: none;
+  background: none;
+  padding: 0;
 }
 
 /* Adding stock is the band's one action, so it spans it. */
@@ -1147,3 +1167,358 @@ table.data tbody tr:focus-within .unit-actions { visibility: visible; }
 }
 
 .divider { height: 1px; background: var(--border-tertiary); border: 0; margin: 0; }
+
+/* ── The unit type builder ─────────────────────────────────────
+   A unit type is assembled in the aside rather than chosen from a
+   list, so the panel needs three things the old form did not: a
+   checkbox that changes what the rest of the panel is, a repeating
+   row for an added field, and a place to say what a choice commits
+   to. ------------------------------------------------------- */
+
+/* The checkbox carries its own explanation. A control that changes
+   the shape of everything under it cannot afford to be a bare label
+   the reader has to test to understand. */
+.check-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--scale-300);
+  align-items: start;
+  padding: var(--scale-400);
+  border: 1px solid var(--border-tertiary);
+  border-radius: var(--border-radius-md);
+  background: var(--bg-subtle);
+  cursor: pointer;
+}
+.check-row input[type="checkbox"] {
+  width: var(--scale-400);
+  height: var(--scale-400);
+  margin-top: 2px;
+  accent-color: var(--accent-default);
+  cursor: pointer;
+}
+.check-row > span { display: flex; flex-direction: column; gap: var(--scale-100); }
+
+/* A setting that cannot be turned on yet keeps its explanation and
+   loses its affordance. Nothing here is broken and nothing is being
+   refused — the catalog simply is not in a state where the setting
+   applies — so the cursor stays default rather than saying "not
+   allowed", and the reason is in the title. */
+.check-row.is-stuck { cursor: default; opacity: .75; }
+.check-row.is-stuck input { cursor: default; }
+.check-label {
+  font-size: var(--fontsize-body-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.check-help {
+  font-size: var(--fontsize-body-sm);
+  color: var(--text-tertiary);
+  line-height: 1.45;
+}
+
+/* One added field: dimension, its unit, a default, and the way out.
+   The remove button is always visible — a row you added is a row you
+   may have added by mistake, and hiding its exit behind a hover is a
+   poor trade in a panel this dense. */
+.builder-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, .8fr) auto;
+  gap: var(--scale-300);
+  align-items: end;
+  padding: var(--scale-300);
+  border: 1px solid var(--border-tertiary);
+  border-radius: var(--border-radius-md);
+  background: var(--bg-subtle);
+}
+.builder-row-x { align-self: end; margin-bottom: 2px; }
+@media (max-width: 560px) {
+  .builder-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .builder-row-x { grid-column: 2; justify-self: end; }
+}
+
+.field-help {
+  color: var(--text-tertiary);
+  font-size: var(--fontsize-body-sm);
+  line-height: 1.45;
+}
+
+/* A text button with no shape of its own — the way out of a
+   confirmation, where a second pill would read as a second choice of
+   equal weight. */
+.btn-ghost {
+  padding: var(--scale-200) var(--scale-300);
+  border: 0;
+  background: none;
+  border-radius: var(--border-radius-sm);
+  font-family: inherit;
+  font-size: var(--fontsize-body-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.btn-ghost:hover { background: var(--interactive-bg-subtle); color: var(--text-primary); }
+
+
+/* ── Allocated to ──────────────────────────────────────────────
+   One column carries both shapes of allocation, so the cell has to
+   say which it is holding. A job reads as a number, a person as a
+   name; the kind is written out so the two are never confused. */
+.alloc-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--scale-200);
+  min-height: var(--scale-600);
+}
+.alloc-kind {
+  flex: 0 0 auto;
+  font-size: var(--fontsize-label);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.alloc-none { color: var(--text-tertiary); }
+
+/* The name an item will be saved under, shown while the values that
+   feed it are being typed. A generated value is not a field — it takes
+   no input and offers no caret — so it reads as the panel's own
+   statement rather than as one more box to fill. */
+.generated-name {
+  padding: var(--scale-300) var(--scale-400);
+  border-radius: var(--border-radius-md);
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  font-size: var(--fontsize-body-md);
+  font-weight: var(--font-weight-semibold);
+  word-break: break-word;
+}
+
+/* ── Activity log ──────────────────────────────────────────────
+   A unit's history, in the aside. The same timeline as the job detail
+   page's Scan History modal (scan-history-modal.css), because it is
+   the same thing: a dated list of what happened to one record. The
+   only differences are the container — a flyout rather than a modal —
+   and that this one is read-only.
+
+   For handoff: these rules are a copy of that component's, kept here
+   so the prototype stands alone. They should be one shared file.
+   ------------------------------------------------------------- */
+.activity-timeline {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* The panel covers the table it was opened from, so it has to name the
+   unit it is the log of. */
+.activity-scope {
+  padding-bottom: var(--scale-400);
+  border-bottom: 1px solid var(--border-tertiary);
+  color: var(--text-secondary);
+  font-size: var(--fontsize-body-sm);
+}
+
+.timeline-scroll {
+  overflow-y: auto;
+  padding-top: var(--scale-200);
+  padding-bottom: var(--scale-400);
+}
+
+.timeline-row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--scale-500);
+}
+
+.timeline-date {
+  width: 5rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Connector column: a full-height vertical line with a tick on it, so
+   the rows read as one thread rather than as a list that happens to
+   carry dates. */
+.timeline-connector {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+
+.timeline-line {
+  width: 0;
+  border: solid 1px var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 0;
+}
+
+/* The thread starts and ends at its first and last events rather than
+   running off the top and bottom of the panel. */
+.timeline-connector-first .timeline-line {
+  align-items: flex-start;
+  padding-top: 20px;
+  padding-bottom: 0;
+}
+.timeline-connector-last .timeline-line {
+  align-items: flex-end;
+  padding-bottom: 20px;
+  padding-top: 0;
+}
+/* A single-event log is both first and last: the line would have no
+   room left to draw, so it steps out of the way and leaves the tick. */
+.timeline-connector-first.timeline-connector-last .timeline-line {
+  align-items: center;
+  padding: 3px 0;
+  border-color: transparent;
+}
+
+.timeline-tick {
+  width: 8px;
+  height: 8px;
+  background: var(--interactive-hover);
+  border-radius: var(--border-radius-full);
+  flex-shrink: 0;
+}
+
+.timeline-event {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: var(--scale-300) 0;
+  color: var(--text-secondary);
+}
+
+/* The oldest event is where the unit came from, and carries the weight
+   for it — the same emphasis the job log gives "Created by". */
+.timeline-row-first .timeline-event {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.timeline-empty { color: var(--text-tertiary); font-size: var(--fontsize-body-sm); }
+
+/* A select sharing a cell with a field: same rhythm as .cell-field, so
+   the allocation kind does not sit taller than the name beside it. */
+.select.sm {
+  flex: 0 0 auto;
+  width: auto;
+  height: var(--scale-700);
+  padding: 0 var(--scale-200);
+  font-size: var(--fontsize-body-sm);
+}
+
+/* ── Segmented choice ──────────────────────────────────────────
+   Two named options, both on screen, one of them on. For a choice
+   between two THINGS — a job or a user — rather than between on and
+   off, which is what .switch is for. A switch would leave one of the
+   two unnamed, and "off" is not a word anybody reads as "job". */
+/* What a unit type allocates to, on its summary row. Supporting detail
+   like the measure beside it — the name and the field list are what
+   people scan for. */
+.unit-config-alloc {
+  color: var(--text-tertiary);
+  font-size: var(--fontsize-body-sm);
+}
+
+.seg {
+  display: inline-flex;
+  /* The section body stretches its children; a control this small has
+     no business being as wide as the page. */
+  align-self: flex-start;
+  padding: var(--scale-50);
+  gap: var(--scale-50);
+  border: 1px solid var(--border-tertiary);
+  border-radius: var(--border-radius-md);
+  background: var(--bg-subtle);
+}
+.seg-option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--scale-200);
+  padding: var(--scale-200) var(--scale-400);
+  border: 0;
+  border-radius: var(--border-radius-sm);
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--fontsize-body-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--duration-fast) ease, color var(--duration-fast) ease;
+}
+.seg-option:hover { background: var(--interactive-bg-subtle); color: var(--text-primary); }
+.seg-option.is-on {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
+}
+.seg-option:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 1px; }
+
+.col-alloc { min-width: 13rem; }
+/* A die number is short and is the column people scan down. */
+.col-id { width: 9rem; }
+
+
+/* ============================================================
+   HANDOFF ADDITIONS
+   ------------------------------------------------------------
+   Classes added during the handoff refactor. Everything above
+   this line predates it.
+
+   The rule the refactor follows: if you can see it, its HTML is
+   in a .html file and its styling is here. JavaScript moves
+   values into markup and toggles state classes; it does not
+   build markup.
+   ============================================================ */
+
+/* An icon that leads a button's label. Was an inline style on every
+   .add-row; a shared class instead, so the gap is set in one place. */
+.add-row__icon { margin-right: var(--scale-200); }
+
+/* The first group in a panel has nothing above it to be divided from. */
+.field-group--first { border-top: 0; padding-top: 0; }
+
+/* The panel's own fields, below the groups. */
+.field-list { display: flex; flex-direction: column; gap: var(--scale-400); }
+
+/* The unit a column's figures are counted in, in its header. Lighter
+   than the name, because the name is what people scan for. */
+/* What a change is about to cost, stated under the control that causes
+   it. Not an error — nothing is wrong yet — so it reads as a warning
+   rather than a refusal. */
+.field-warning {
+  padding: var(--scale-300);
+  border-radius: var(--border-radius-md);
+  background: var(--status-warning-bg);
+  border: 1px solid var(--status-warning-border);
+  color: var(--text-secondary);
+  font-size: var(--fontsize-body-sm);
+  line-height: 1.45;
+}
+
+.th-measure {
+  font-weight: var(--font-weight-book);
+  color: var(--border-subtle);
+}
+
+/* ── Item chips (item page header) ───────────────────────────── */
+.chip-value { color: var(--text-primary); font-weight: var(--font-weight-medium); }
+
+/* ── Allocation list (item editor) ───────────────────────────── */
+.alloc-list { display: flex; flex-direction: column; gap: var(--scale-300); }
+
+/* ── Empty rows ──────────────────────────────────────────────
+   A table with nothing in it still needs to say why. The cell spans
+   the table, so its colspan is the one attribute JavaScript sets. */
+.table-empty-row td {
+  padding: var(--scale-600) var(--scale-400);
+  color: var(--text-tertiary);
+  text-align: left;
+}

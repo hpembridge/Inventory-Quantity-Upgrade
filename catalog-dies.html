@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dies — Items</title>
+    <script src="https://kit.fontawesome.com/da08280601.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="shared/css/design-tokens.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=optional" rel="stylesheet" />
+    <link rel="stylesheet" href="inventory.css" />
+    <link rel="stylesheet" href="components/breadcrumbs/breadcrumbs.css" />
+    <link rel="stylesheet" href="components/flyout/flyout.css" />
+    <link rel="stylesheet" href="components/toast/toast.css" />
+    <link rel="stylesheet" href="components/switch/switch.css" />
+    <script src="components/toast/toast.js"></script>
+    <script src="inventory-data.js"></script>
+    <script src="components/item-editor/item-editor.js"></script>
+    <script src="components/activity-log/activity-log.js"></script>
+    <script>
+      window.SIDEBAR_CONFIG = {
+        activeItem: 'Inventory',
+        user: { name: 'Healey Pembridge', role: 'team member' }
+      };
+    </script>
+  </head>
+  <body>
+    <script src="shared/components/sidebar-component.js"></script>
+
+    <div class="main-content">
+
+      <!-- ══ Breadcrumbs ══════════════════════════════════════════ -->
+      <div class="breadcrumb-bar">
+        <nav class="breadcrumbs">
+          <a class="crumb" href="inventory.html"><i class="fa-regular fa-pallet-boxes"></i> Inventory</a>
+          <i class="fa-regular fa-chevron-right crumb-sep"></i>
+          <a class="crumb" href="inventory.html"><i class="fa-regular fa-layer-group"></i> Bindery Supplies</a>
+          <i class="fa-regular fa-chevron-right crumb-sep"></i>
+          <span class="crumb current"><i class="fa-regular fa-stamp"></i> Dies</span>
+        </nav>
+      </div>
+
+      <div class="page-scroll">
+        <div class="page-inner">
+
+          <!-- ══ Catalog header ═════════════════════════════════════ -->
+          <a class="back-link" href="inventory.html">
+            <i class="fa-regular fa-arrow-left"></i> Back to Bindery Supplies
+          </a>
+
+          <div class="title-row">
+            <h5 id="catalogName">Dies</h5>
+            <a class="btn-pill outline sm" href="catalog-settings.html">
+              <i class="fa-regular fa-gear"></i> Catalog Settings
+            </a>
+          </div>
+          <!-- ══ end Catalog header ═════════════════════════════════ -->
+
+          <!-- One stack, one gap. Each part below carries its own margin
+               for use elsewhere; .page-stack overrides them so the page
+               has a single rhythm. -->
+          <div class="page-stack">
+
+            <div class="section-help">
+              Every die is one object. Edit where it is and who has it in the table;
+              the figures below are the catalog total.
+            </div>
+
+            <!-- ══ Search ═══════════════════════════════════════════ -->
+            <div class="search-panel">
+              <input class="search-input" type="search" id="search"
+                     placeholder="Search by die number, client or process" autocomplete="off" />
+              <div class="search-count" id="searchCount" hidden></div>
+            </div>
+
+            <!-- ══ Catalog rollup ═══════════════════════════════════
+                 Four fixed figures, so all four tiles are in the markup
+                 and JavaScript only writes their values. The state
+                 modifier (.is-low / .is-over) lands on Available alone.
+                 ─────────────────────────────────────────────────── -->
+            <div class="unit-rollup is-standalone">
+              <div class="rollup-stats">
+
+                <div class="rollup-stat" title="Dies recorded but not yet put away.">
+                  <div class="rollup-label">On Order</div>
+                  <div class="rollup-value"><span data-figure="onOrder">0</span><span class="rollup-measure">ea</span></div>
+                </div>
+
+                <div class="rollup-stat" title="Dies that have a location.">
+                  <div class="rollup-label">In-House</div>
+                  <div class="rollup-value"><span data-figure="inHouse">0</span><span class="rollup-measure">ea</span></div>
+                </div>
+
+                <div class="rollup-stat" title="One for each person holding a die.">
+                  <div class="rollup-label">Allocated</div>
+                  <div class="rollup-value"><span data-figure="allocated">0</span><span class="rollup-measure">ea</span></div>
+                </div>
+
+                <div class="rollup-stat" id="availableStat" title="In-House minus Allocated.">
+                  <div class="rollup-label">
+                    <i class="fa-solid" id="availableIcon" hidden></i>
+                    Available
+                  </div>
+                  <div class="rollup-value"><span data-figure="available">0</span><span class="rollup-measure">ea</span></div>
+                </div>
+
+              </div>
+            </div>
+            <!-- ══ end Catalog rollup ═══════════════════════════════ -->
+
+            <button class="add-row" type="button" id="addItem">
+              <i class="fa-regular fa-plus add-row__icon"></i> Add Die
+            </button>
+
+            <!-- ══ Dies table ═══════════════════════════════════════
+                 Location and Allocated to are editable in place, the way
+                 a unit's fields are on the item page. The rest of the
+                 row is read-only; the pencil opens the item editor.
+                 ─────────────────────────────────────────────────── -->
+            <div class="page-card is-flush">
+              <div class="table-wrap">
+                <table class="data">
+                  <thead>
+                    <tr>
+                      <th class="left col-id">
+                        <button class="th-sort" type="button" data-sort="d-number">
+                          <span>ID</span><i class="fa-solid fa-sort sort-caret"></i>
+                        </button>
+                      </th>
+                      <th class="left">
+                        <button class="th-sort" type="button" data-sort="name">
+                          <span>Name</span><i class="fa-solid fa-sort sort-caret"></i>
+                        </button>
+                      </th>
+                      <th class="left col-loc">
+                        <button class="th-sort" type="button" data-sort="location">
+                          <span>Location</span><i class="fa-solid fa-sort sort-caret"></i>
+                        </button>
+                      </th>
+                      <th class="left col-alloc">
+                        <button class="th-sort" type="button" data-sort="alloc">
+                          <span>Allocated to</span><i class="fa-solid fa-sort sort-caret"></i>
+                        </button>
+                      </th>
+                      <th class="col-act"></th>
+                    </tr>
+                  </thead>
+                  <tbody id="rows"></tbody>
+                </table>
+                <div class="table-empty" id="emptyState" hidden></div>
+              </div>
+            </div>
+            <!-- ══ end Dies table ═══════════════════════════════════ -->
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Die row template ═════════════════════════════════════════
+         One <tr> per die. Angular: @for (die of dies; track die.id).
+         ───────────────────────────────────────────────────────────── -->
+    <template id="dieRowTemplate">
+      <tr>
+        <td class="left col-id strong" data-cell="id"></td>
+        <td class="left" data-cell="name"></td>
+        <td class="left col-loc">
+          <input type="text" class="cell-field" data-field="location"
+                 placeholder="Add location" aria-label="Location" />
+        </td>
+        <td class="left col-alloc">
+          <input type="text" class="cell-field" data-field="alloc"
+                 placeholder="Add name" aria-label="Allocated to" />
+        </td>
+        <td class="qty col-act">
+          <div class="unit-actions">
+            <button class="icon-btn" type="button" data-history
+                    title="Activity log" aria-label="Activity log">
+              <i class="fa-regular fa-clock-rotate-left"></i>
+            </button>
+            <button class="icon-btn" type="button" data-edit
+                    title="Edit die details" aria-label="Edit die details">
+              <i class="fa-regular fa-pen-to-square"></i>
+            </button>
+          </div>
+        </td>
+      </tr>
+    </template>
+
+    <!-- ══ Item Editor ══════════════════════════════════════════════
+         Adds an item and edits one — adding is editing a blank.
+         HTML: this block + the four field templates below
+         CSS:  inventory.css → .field, .field-group, .generated-name
+         JS:   components/item-editor/item-editor.js
+         ───────────────────────────────────────────────────────────── -->
+    <div class="flyout-overlay" id="itemEditor">
+      <div class="flyout-panel" role="dialog" aria-modal="true" aria-labelledby="itemEditorTitle">
+
+        <div class="flyout-header">
+          <span class="flyout-title" id="itemEditorTitle" data-editor-title>Edit Item Details</span>
+          <button class="icon-btn" type="button" data-close aria-label="Close">
+            <i class="fa-regular fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="flyout-body" data-editor-body>
+
+          <!-- Generated name — not a field. Shows what the item will be
+               saved as while the values that feed it are typed. -->
+          <div class="field-group field-group--first">
+            <div class="field-group-title">Generated name</div>
+            <div class="field-group-help">
+              Built from <span data-editor-name-source></span>, in that order.
+              Catalog Settings decides the template.
+            </div>
+            <div class="generated-name" data-editor-name></div>
+          </div>
+
+          <!-- One field per catalog property. Angular: @for over the
+               catalog's properties, with a template per property kind. -->
+          <div class="field-list" data-editor-fields></div>
+
+        </div>
+
+        <div class="flyout-footer">
+          <div class="footer-actions">
+            <button class="btn-pill outline sm" type="button" data-close>Cancel</button>
+            <button class="btn-pill solid sm" type="button" data-editor-done>Save Item</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Field templates — one per property kind. -->
+    <template id="fieldTextTemplate">
+      <div class="field">
+        <label class="field-label" data-field-label></label>
+        <input class="input" type="text" autocomplete="off" placeholder="None" data-field-input />
+      </div>
+    </template>
+
+    <template id="fieldNumberTemplate">
+      <div class="field">
+        <label class="field-label" data-field-label></label>
+        <input class="input num" type="text" inputmode="numeric" autocomplete="off"
+               placeholder="None" data-field-input />
+      </div>
+    </template>
+
+    <template id="fieldSelectTemplate">
+      <div class="field">
+        <label class="field-label" data-field-label></label>
+        <select class="select" data-field-input>
+          <option value="">None</option>
+        </select>
+      </div>
+    </template>
+
+    <template id="fieldBooleanTemplate">
+      <div class="field">
+        <label class="field-label" data-field-label></label>
+        <label class="switch">
+          <input type="checkbox" />
+          <span class="switch-track" aria-hidden="true"></span>
+          <span data-field-state>No</span>
+        </label>
+      </div>
+    </template>
+    <!-- ══ end Item Editor ══════════════════════════════════════════ -->
+
+    <!-- ══ Activity Log ═════════════════════════════════════════════
+         One record's history, oldest first. The same timeline as the
+         job detail page's Scan History.
+         HTML: this block + #timelineRowTemplate
+         CSS:  inventory.css → "Activity log"
+         JS:   components/activity-log/activity-log.js
+         ───────────────────────────────────────────────────────────── -->
+    <div class="flyout-overlay" id="activityLog">
+      <div class="flyout-panel" role="dialog" aria-modal="true" aria-labelledby="activityLogTitle">
+
+        <div class="flyout-header">
+          <span class="flyout-title" id="activityLogTitle">Activity Log</span>
+          <button class="icon-btn" type="button" data-close aria-label="Close">
+            <i class="fa-regular fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="flyout-body" data-log-body>
+          <div class="activity-timeline">
+            <!-- Names the record, because the panel covers the row that
+                 would otherwise say which record this is. -->
+            <div class="activity-scope" data-log-caption></div>
+            <div class="timeline-scroll" data-log-list></div>
+            <div class="timeline-empty" data-log-empty hidden>
+              Nothing recorded against this yet.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <template id="timelineRowTemplate">
+      <div class="timeline-row">
+        <div class="timeline-date type-body-sm" data-log-date></div>
+        <div class="timeline-connector">
+          <div class="timeline-line"><div class="timeline-tick"></div></div>
+        </div>
+        <div class="timeline-event type-body-md" data-log-event></div>
+      </div>
+    </template>
+    <!-- ══ end Activity Log ═════════════════════════════════════════ -->
+
+    <script>
+      /* ============================================================
+         Dies — a single-unit catalog
+         ------------------------------------------------------------
+         What this page demonstrates, and the measured catalog cannot:
+         the item IS the unit. There is no item page to drill into, the
+         four figures are a catalog total rather than a per-item row,
+         and the two things that can change about a unique object — its
+         location and who has it — are edited in the table itself.
+
+         What is prototype-only: the mock data in inventory-data.js,
+         the sort and search below, and the fact that nothing persists.
+         What would become Angular: the row template as an @for, the
+         two <input> commits as (blur)/(keydown.enter) handlers, and
+         the rollup figures as bindings.
+         ============================================================ */
+      const INV   = window.INVENTORY;
+      const cfg   = INV.DIE_CONFIG;
+      const DIES  = INV.DIE_ITEMS;
+      const PROPS = INV.DIE_PROPERTIES;
+      const TYPE  = cfg.unitTypes[0];
+
+      /* The die number is the ID column; the name is what the die is
+         FOR. Generating the name from the number would put the same
+         string in two columns and call one of them a name. */
+      const NAMING = ['d-client', 'd-process', 'd-size'];
+
+      const rowsEl     = document.getElementById('rows');
+      const emptyEl    = document.getElementById('emptyState');
+      const countEl    = document.getElementById('searchCount');
+      const searchEl   = document.getElementById('search');
+      const rowTemplate = document.getElementById('dieRowTemplate');
+
+      const nameOf   = (die) => INV.itemName(die, NAMING);
+      const recordOf = (die) => (die.single = die.single || { location: null, allocations: [] });
+      const allocText = (die) => (recordOf(die).allocations || []).map(a => a.value).join(', ');
+
+      DIES.forEach(die => { die.name = nameOf(die); die.history = die.history || []; });
+
+      /* ── Rollup ────────────────────────────────────────────────
+         The tiles are in the markup; this only writes their figures
+         and moves the state modifier onto Available. --------------- */
+      const availableStat = document.getElementById('availableStat');
+      const availableIcon = document.getElementById('availableIcon');
+
+      const STATE = {
+        low:  { cls: 'is-low',  icon: 'fa-circle-exclamation',
+                note: 'Running low on dies available to pull.' },
+        over: { cls: 'is-over', icon: 'fa-triangle-exclamation',
+                note: 'More claims on these dies than there are dies.' }
+      };
+
+      function renderRollup() {
+        const figures = INV.catalogQty(DIES, TYPE);
+
+        Object.keys(figures).forEach(key => {
+          document.querySelector(`[data-figure="${key}"]`).textContent = INV.fmt(figures[key]);
+        });
+
+        const state = STATE[INV.stockState(figures)];
+        availableStat.classList.remove('is-low', 'is-over');
+        availableIcon.classList.remove('fa-circle-exclamation', 'fa-triangle-exclamation');
+
+        if (state) {
+          availableStat.classList.add(state.cls);
+          availableStat.title = state.note;
+          availableIcon.classList.add(state.icon);
+          availableIcon.hidden = false;
+        } else {
+          availableStat.title = 'In-House minus Allocated.';
+          availableIcon.hidden = true;
+        }
+      }
+
+      /* ── Sorting ───────────────────────────────────────────────
+         Prototype-only. Angular would sort in the component. -------- */
+      const SORT_VALUES = {
+        'd-number': (die) => die.props['d-number'],
+        name:       (die) => nameOf(die),
+        location:   (die) => recordOf(die).location || '',
+        alloc:      (die) => allocText(die)
+      };
+
+      let sort = { key: null, dir: 'asc' };
+
+      function sortDies(list) {
+        if (!sort.key) return list;
+        const read = SORT_VALUES[sort.key];
+        const dir = sort.dir === 'asc' ? 1 : -1;
+        return list.slice().sort((a, b) => {
+          const av = read(a), bv = read(b);
+          if (!av && !bv) return 0;
+          if (!av) return 1;
+          if (!bv) return -1;
+          return String(av).localeCompare(String(bv), undefined, { numeric: true }) * dir;
+        });
+      }
+
+      function renderSortCarets() {
+        document.querySelectorAll('[data-sort]').forEach(btn => {
+          const on = btn.dataset.sort === sort.key;
+          btn.classList.toggle('is-sorted', on);
+          const caret = btn.querySelector('.sort-caret');
+          caret.className = 'fa-solid sort-caret ' +
+            (on ? (sort.dir === 'asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort');
+        });
+      }
+
+      /* ── Rows ──────────────────────────────────────────────────
+         One clone of #dieRowTemplate per die. Angular: @for. -------- */
+      function renderRows(query = '') {
+        const q = query.trim().toLowerCase();
+        const matches = q
+          ? DIES.filter(die => Object.values(die.props).some(v => String(v).toLowerCase().includes(q)))
+          : DIES;
+
+        rowsEl.replaceChildren();
+
+        sortDies(matches).forEach(die => {
+          const row = rowTemplate.content.firstElementChild.cloneNode(true);
+          const index = DIES.indexOf(die);
+
+          row.querySelector('[data-cell="id"]').textContent   = die.props['d-number'];
+          row.querySelector('[data-cell="name"]').textContent = nameOf(die);
+
+          row.querySelectorAll('.cell-field').forEach(field => {
+            field.dataset.die = index;
+            field.value = valueOf(die, field.dataset.field);
+          });
+          row.querySelector('[data-history]').dataset.history = index;
+          row.querySelector('[data-edit]').dataset.edit = index;
+
+          rowsEl.appendChild(row);
+        });
+
+        emptyEl.hidden = matches.length > 0;
+        emptyEl.textContent = q
+          ? 'No dies found. Try a different search.'
+          : 'No dies yet. Add one to start tracking them.';
+        countEl.hidden = !q;
+        countEl.textContent = q ? `Showing ${matches.length} of ${DIES.length} dies` : '';
+      }
+
+      function render() {
+        renderRollup();
+        renderSortCarets();
+        renderRows(searchEl.value);
+      }
+
+      /* ── Editing in the table ──────────────────────────────────
+         Commits on blur or Enter, reverts on Escape. No save button:
+         the only thing to learn is that leaving the field keeps the
+         value. Angular: (blur) and (keydown.enter) on the input.
+         --------------------------------------------------------- */
+      const MAX = { location: 24, alloc: 64 };
+
+      function valueOf(die, field) {
+        return field === 'location' ? (recordOf(die).location || '') : allocText(die);
+      }
+
+      function commitField(input) {
+        const die = DIES[Number(input.dataset.die)];
+        const rec = recordOf(die);
+        const raw = input.value.trim();
+        if (raw === valueOf(die, input.dataset.field)) return;
+
+        if (input.dataset.field === 'location') {
+          rec.location = raw || null;
+          INV.logEvent(die, rec.location ? `Scanned to ${rec.location}` : 'Location cleared');
+        } else {
+          /* Several people, comma separated. Each adds one to Allocated,
+             so a die two of them have claimed reads as oversold rather
+             than quietly available. A blank between commas is a typo,
+             not a claim. */
+          rec.allocations = raw.split(',').map(v => v.trim()).filter(Boolean)
+            .map(value => ({ kind: 'user', value }));
+
+          if (!rec.allocations.length) INV.logEvent(die, 'Allocation removed');
+          else rec.allocations.forEach(a => INV.logEvent(die, `Allocated to ${a.value}`));
+        }
+
+        input.value = valueOf(die, input.dataset.field);
+        renderRollup();
+      }
+
+      rowsEl.addEventListener('input', (e) => {
+        const input = e.target.closest('.cell-field');
+        if (!input) return;
+        const max = MAX[input.dataset.field];
+        if (input.value.length > max) input.value = input.value.slice(0, max);
+      });
+
+      rowsEl.addEventListener('focusin', (e) => {
+        if (e.target.matches('.cell-field')) e.target.select();
+      });
+
+      rowsEl.addEventListener('focusout', (e) => {
+        if (e.target.matches('.cell-field')) commitField(e.target);
+      });
+
+      rowsEl.addEventListener('keydown', (e) => {
+        const input = e.target.closest('.cell-field');
+        if (!input) return;
+        if (e.key === 'Enter')  { e.preventDefault(); commitField(input); input.blur(); }
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          input.value = valueOf(DIES[Number(input.dataset.die)], input.dataset.field);
+          input.blur();
+        }
+      });
+
+      /* ── Row actions ───────────────────────────────────────────
+         The clock opens the activity log, the pencil opens the item
+         editor. Both are components; see their own files. ---------- */
+      function captionFor(die) {
+        const rec = recordOf(die);
+        const bits = [die.props['d-number'], nameOf(die), rec.location || 'No location yet'];
+        if (allocText(die)) bits.push(allocText(die));
+        return bits.join(' · ');
+      }
+
+      function openEditor(die) {
+        ItemEditor.open({
+          item: die, cfg, items: DIES, properties: PROPS, namingTemplate: NAMING,
+          onSave: render
+        });
+      }
+
+      rowsEl.addEventListener('click', (e) => {
+        const history = e.target.closest('[data-history]');
+        if (history) {
+          const die = DIES[Number(history.dataset.history)];
+          ActivityLog.open({ caption: captionFor(die), entries: die.history });
+          return;
+        }
+        const edit = e.target.closest('[data-edit]');
+        if (edit) openEditor(DIES[Number(edit.dataset.edit)]);
+      });
+
+      document.getElementById('addItem')
+        .addEventListener('click', () => openEditor(null));
+
+      document.querySelector('thead').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-sort]');
+        if (!btn) return;
+        const key = btn.dataset.sort;
+        sort = sort.key === key
+          ? { key, dir: sort.dir === 'asc' ? 'desc' : 'asc' }
+          : { key, dir: 'asc' };
+        render();
+      });
+
+      searchEl.addEventListener('input', () => renderRows(searchEl.value));
+
+      render();
+
+      /* ── Deep link ─────────────────────────────────────────────
+         ?panel=add-item opens the aside on load, so the structure map
+         on the index page can point at a panel and not just a page.
+         --------------------------------------------------------- */
+      if (new URLSearchParams(location.search).get('panel') === 'add-item') {
+        openEditor(null);
+      }
+    </script>
+  </body>
+</html>

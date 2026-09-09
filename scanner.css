@@ -1,0 +1,912 @@
+/* ============================================================
+   Handheld scanner app — prototype styles
+   ------------------------------------------------------------
+   Every class here styles markup that lives in scanner.html.
+   Nothing in scanner.js writes styles; it only toggles the state
+   classes documented at the foot of this file.
+
+   Tokens come from shared/css/design-tokens.css. Anything this
+   file needed that the token set does not define is listed under
+   PROTOTYPE-LOCAL VALUES at the bottom, flagged for the design
+   system rather than invented into the palette.
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Local token — the same one inventory.css declares. A candidate to
+   promote into design-tokens.css rather than live in two files. */
+:root { --duration-panel: 180ms; }
+
+/* A hidden element is hidden whatever display its own class sets.
+   Several rows here are display:flex, which would otherwise win. */
+[hidden] { display: none !important; }
+
+/* ── Bench: the desktop page the device frame sits on ─────────
+   Not part of the app. It exists so the prototype reads at a
+   desktop screen; on the real handheld the .device-screen
+   contents are the whole viewport. */
+.bench {
+  min-height: 100vh;
+  background: var(--bg-subtle);
+  font-family: var(--font-family-primary, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--scale-600);
+  padding: var(--scale-800) var(--scale-400);
+}
+
+/* Device and prototype controls side by side, so the label list is
+   reachable without scrolling the page. Stacks on a narrow window. */
+.bench-stage {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--scale-800);
+  flex-wrap: wrap;
+}
+
+.bench-controls {
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--scale-400);
+}
+
+.bench-head { text-align: center; max-width: 60ch; }
+
+.bench-title {
+  font-size: var(--fontsize-heading-h4, 20px);
+  font-weight: var(--font-weight-bold, 700);
+  margin-bottom: var(--scale-100);
+}
+
+
+
+
+
+
+
+/* ══ Device shell ══════════════════════════════════════════════
+   The handheld itself. Everything inside .device-screen is the
+   application; the shell around it is prototype scaffolding.
+   ────────────────────────────────────────────────────────────── */
+.device {
+  width: 390px;
+  flex: none;
+  background: var(--color-carbon-700);
+  border-radius: 36px;
+  padding: 12px;
+  box-shadow: 0 18px 40px rgb(from var(--color-black) r g b / 0.22);
+}
+
+.device-screen {
+  position: relative;
+  height: 780px;
+  background: var(--bg-page);
+  border-radius: 26px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Status strip — cosmetic, stands in for the OS bar */
+.device-status {
+  flex: none;
+  height: 28px;
+  background: var(--bg-inverse);
+  color: var(--text-on-dark);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--scale-400);
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.device-status-right { display: flex; gap: var(--scale-200); align-items: center; }
+
+/* Hardware trigger — the physical scan button, shown so the
+   prototype does not imply the on-screen target is the only way in */
+.device-trigger { display: flex; }
+
+.trigger-btn {
+  font: inherit;
+  font-size: var(--fontsize-label, 12px);
+  font-weight: var(--font-weight-semibold, 600);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--text-on-dark);
+  background: var(--color-carbon-500);
+  border: 1px solid var(--color-carbon-300);
+  border-radius: var(--border-radius-full, 999px);
+  padding: var(--scale-200) var(--scale-600);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--scale-200);
+}
+
+.trigger-btn:hover { background: var(--color-carbon-400); }
+.trigger-btn:active { background: var(--color-carbon-600); }
+
+
+/* ══ Screen ════════════════════════════════════════════════════
+   One .screen per view. Exactly one carries .is-active; the rest
+   are display:none. In Angular each is a routed component.
+   ────────────────────────────────────────────────────────────── */
+.screen { display: none; flex: 1; min-height: 0; flex-direction: column; }
+.screen.is-active { display: flex; }
+
+
+/* ── App bar ─────────────────────────────────────────────────── */
+.app-bar {
+  flex: none;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-tertiary);
+  padding: var(--scale-300) var(--scale-300);
+  display: flex;
+  align-items: center;
+  gap: var(--scale-200);
+  min-height: 56px;
+}
+
+.app-bar__back {
+  font: inherit;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: none;
+  border-radius: var(--border-radius-md, 8px);
+  color: var(--text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.app-bar__back:hover { background: var(--bg-muted); color: var(--text-primary); }
+
+.app-bar__titles { flex: 1; min-width: 0; }
+
+.app-bar__eyebrow {
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold, 600);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.app-bar__title {
+  font-size: var(--fontsize-body-lg, 16px);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-bar__action {
+  font: inherit;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: none;
+  border-radius: var(--border-radius-md, 8px);
+  color: var(--text-secondary);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.app-bar__action:hover { background: var(--bg-muted); color: var(--text-primary); }
+
+
+/* ── Screen body ─────────────────────────────────────────────── */
+.screen-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--scale-400);
+  display: flex;
+  flex-direction: column;
+  gap: var(--scale-400);
+}
+
+.screen-body.is-centered { justify-content: center; }
+
+/* Footer — the committing action, always in thumb reach and never
+   scrolled away from */
+.screen-footer {
+  flex: none;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-tertiary);
+  padding: var(--scale-300) var(--scale-400) var(--scale-400);
+  display: flex;
+  flex-direction: column;
+  gap: var(--scale-200);
+}
+
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+.button {
+  font: inherit;
+  font-size: var(--fontsize-body-md, 14px);
+  font-weight: var(--font-weight-semibold, 600);
+  border-radius: var(--border-radius-md, 8px);
+  padding: var(--scale-300) var(--scale-400);
+  min-height: 48px;           /* glove-sized target */
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--scale-200);
+  border: 1px solid transparent;
+  width: 100%;
+}
+
+.button--primary { background: var(--interactive-default); color: var(--text-on-dark); }
+.button--primary:hover { background: var(--interactive-hover); }
+.button--primary:active { background: var(--interactive-pressed); }
+
+.button--secondary {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-color: var(--border-subtle);
+}
+.button--secondary:hover { border-color: var(--border-default); }
+
+.button--ghost { background: none; color: var(--text-secondary); min-height: 40px; }
+.button--ghost:hover { color: var(--text-primary); }
+
+.button--danger { background: var(--bg-surface); color: var(--color-red-300); border-color: var(--color-red-100); }
+.button--danger:hover { background: var(--status-error-bg); }
+
+.button:disabled { opacity: .45; cursor: not-allowed; }
+
+
+/* ── Scan target ─────────────────────────────────────────────
+   The landing screen's primary affordance. Tapping it, or the
+   hardware trigger, simulates a scan. */
+.scan-target {
+  background: var(--bg-surface);
+  border: 2px dashed var(--border-subtle);
+  border-radius: var(--border-radius-lg, 12px);
+  padding: var(--scale-800) var(--scale-400);
+  text-align: center;
+  cursor: pointer;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--scale-300);
+}
+
+.scan-target:hover { border-color: var(--interactive-default); background: var(--interactive-bg-subtle); }
+
+.scan-target__icon { font-size: 40px; color: var(--interactive-default); }
+
+.scan-target__label {
+  font-size: var(--fontsize-body-lg, 16px);
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+
+/* The listening state — a scan is expected but has not landed */
+.scan-target.is-listening { border-color: var(--interactive-default); background: var(--interactive-bg-subtle); }
+.scan-target.is-listening .scan-target__icon { animation: scanPulse 1.4s ease-in-out infinite; }
+
+@keyframes scanPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scan-target.is-listening .scan-target__icon { animation: none; }
+}
+
+
+/* ── Manual entry ────────────────────────────────────────────
+   A scanner that will not read a rubbed barcode is the commonest
+   failure on the floor, so every scan screen carries a typed way in. */
+.manual-entry { display: flex; flex-direction: column; gap: var(--scale-200); }
+
+.manual-entry__label {
+  font-size: var(--fontsize-label, 12px);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--text-secondary);
+}
+
+.manual-entry__row { display: flex; gap: var(--scale-200); }
+
+.input {
+  font: inherit;
+  font-size: var(--fontsize-body-md, 14px);
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  padding: var(--scale-300);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--border-radius-md, 8px);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.input:focus { outline: 2px solid var(--border-focus); outline-offset: -1px; border-color: var(--border-focus); }
+.input.is-rejected { border-color: var(--color-red-300); background: var(--status-error-bg); }
+
+.manual-entry__go { width: auto; flex: none; padding-inline: var(--scale-500); }
+
+
+/* ── Card ────────────────────────────────────────────────────── */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-tertiary);
+  border-radius: var(--border-radius-lg, 12px);
+  padding: var(--scale-400);
+  display: flex;
+  flex-direction: column;
+  gap: var(--scale-300);
+}
+
+.card--flush { padding: 0; overflow: hidden; }
+
+.card__label {
+  font-size: 11px;
+  font-weight: var(--font-weight-bold, 700);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+
+/* ── Record header — what was scanned ────────────────────────── */
+.record { display: flex; flex-direction: column; gap: var(--scale-100); }
+
+.record__kind {
+  font-size: 11px;
+  font-weight: var(--font-weight-bold, 700);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text-interactive);
+}
+
+.record__name {
+  font-size: var(--fontsize-heading-h5, 18px);
+  font-weight: var(--font-weight-bold, 700);
+  line-height: 1.3;
+}
+
+.record__id {
+  font-family: var(--font-family-mono, "SF Mono", Menlo, monospace);
+  font-size: var(--fontsize-body-sm, 13px);
+  color: var(--text-secondary);
+}
+
+
+/* ── Detail list — label / value pairs ───────────────────────── */
+.detail-list { display: flex; flex-direction: column; }
+
+.detail-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--scale-400);
+  padding: var(--scale-300) 0;
+  border-bottom: 1px solid var(--border-tertiary);
+}
+
+.detail-row:last-child { border-bottom: none; }
+
+.detail-row__label {
+  font-size: var(--fontsize-body-sm, 13px);
+  color: var(--text-secondary);
+  flex: none;
+}
+
+.detail-row__value {
+  font-size: var(--fontsize-body-md, 14px);
+  font-weight: var(--font-weight-medium, 500);
+  text-align: right;
+  word-break: break-word;
+}
+
+.detail-row__value.is-mono { font-family: var(--font-family-mono, "SF Mono", Menlo, monospace); }
+.detail-row__value.is-empty { color: var(--text-tertiary); font-weight: var(--font-weight-book, 400); }
+
+
+/* ── Quantity headline — the figure the scan exists to check ─── */
+.qty-headline {
+  display: flex;
+  align-items: baseline;
+  gap: var(--scale-200);
+}
+
+.qty-headline__number {
+  font-size: 40px;
+  font-weight: var(--font-weight-bold, 700);
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.qty-headline__uom {
+  font-size: var(--fontsize-body-lg, 16px);
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--text-secondary);
+}
+
+.qty-headline__caption {
+  font-size: var(--fontsize-body-sm, 13px);
+  color: var(--text-secondary);
+}
+
+
+/* ── Status pill ─────────────────────────────────────────────── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--scale-100);
+  font-size: var(--fontsize-label, 12px);
+  font-weight: var(--font-weight-semibold, 600);
+  padding: 2px var(--scale-200);
+  border-radius: var(--border-radius-full, 999px);
+  background: var(--status-neutral-bg);
+  border: 1px solid var(--status-neutral-border);
+  color: var(--text-secondary);
+  align-self: flex-start;
+}
+
+.pill--available { background: var(--status-success-bg); border-color: var(--status-success-border); color: var(--color-green-800); }
+.pill--allocated { background: var(--status-warning-bg); border-color: var(--status-warning-border); color: var(--color-copper-700); }
+.pill--unplaced  { background: var(--status-error-bg);   border-color: var(--status-error-border);   color: var(--color-red-900); }
+
+
+/* ── Action list — what you can do with what you scanned ─────── */
+.action-list { display: flex; flex-direction: column; }
+
+.action-item {
+  font: inherit;
+  text-align: left;
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border-tertiary);
+  padding: var(--scale-400);
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: var(--scale-300);
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.action-item:last-child { border-bottom: none; }
+.action-item:hover { background: var(--bg-muted); }
+
+.action-item__icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--border-radius-md, 8px);
+  background: var(--interactive-bg-subtle);
+  color: var(--interactive-default);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+
+.action-item__text { flex: 1; min-width: 0; }
+
+.action-item__name {
+  font-size: var(--fontsize-body-md, 14px);
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.action-item__help {
+  font-size: var(--fontsize-body-sm, 13px);
+  color: var(--text-secondary);
+  line-height: var(--line-height-body-sm, 1.45);
+}
+
+.action-item__chevron { flex: none; color: var(--text-tertiary); font-size: 13px; }
+
+.action-item--danger .action-item__icon { background: var(--status-error-bg); color: var(--color-red-300); }
+
+
+/* ── Field — a labelled control with its own help line ───────── */
+.field { display: flex; flex-direction: column; gap: var(--scale-200); }
+
+.field__label {
+  font-size: var(--fontsize-label, 12px);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--text-secondary);
+}
+
+
+/* A quantity input with its unit of measure fixed alongside */
+.qty-input { display: flex; align-items: stretch; gap: 0; }
+
+.qty-input .input {
+  font-size: var(--fontsize-heading-h5, 18px);
+  font-weight: var(--font-weight-semibold, 600);
+  min-height: 56px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.qty-input__uom {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--scale-300);
+  border: 1px solid var(--border-subtle);
+  border-left: none;
+  border-radius: 0 var(--border-radius-md, 8px) var(--border-radius-md, 8px) 0;
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+  font-size: var(--fontsize-body-md, 14px);
+  font-weight: var(--font-weight-medium, 500);
+}
+
+/* Read-out — a figure the screen shows but does not take */
+.readout {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: var(--scale-300) var(--scale-400);
+  background: var(--bg-muted);
+  border-radius: var(--border-radius-md, 8px);
+}
+
+.readout__label { font-size: var(--fontsize-body-sm, 13px); color: var(--text-secondary); }
+.readout__value { font-size: var(--fontsize-heading-h5, 18px); font-weight: var(--font-weight-semibold, 600); }
+
+/* The unlock — Current Quantity is a correction, not a day-to-day
+   entry, so it is read-only until asked for */
+.readout__unlock {
+  font: inherit;
+  font-size: var(--fontsize-body-sm, 13px);
+  font-weight: var(--font-weight-semibold, 600);
+  background: none;
+  border: none;
+  color: var(--text-interactive);
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+/* Two linked fields: filling either one fills the other */
+.linked-pair { display: flex; flex-direction: column; gap: var(--scale-300); }
+
+
+
+/* A field the other one just filled in — shown so the operator can
+   see which number the system derived */
+.input.is-derived { background: var(--bg-muted); color: var(--text-secondary); }
+
+
+/* ── Log list ────────────────────────────────────────────────
+   Recent scans, and what a location holds. These are a RECORD of
+   what was scanned, not a way into records that were not: a unit
+   or a job you have not scanned cannot be opened from here, so
+   nothing in this list is a control. Rows are plain elements with
+   no hover, no cursor and no focus stop — the list reads as a log
+   and behaves as one. */
+.log-list { display: flex; flex-direction: column; }
+
+.log-list__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--scale-300);
+  padding: var(--scale-300) var(--scale-400);
+  border-bottom: 1px solid var(--border-tertiary);
+  background: var(--bg-muted);
+}
+
+/* How many rows the list below holds. It belongs on the header rather
+   than in a detail row of its own — it describes the list. */
+.count-badge {
+  flex: none;
+  min-width: 20px;
+  padding: 1px var(--scale-200);
+  border-radius: var(--border-radius-full, 999px);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-tertiary);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold, 600);
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.log-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--scale-300);
+  padding: var(--scale-300) var(--scale-400);
+  border-bottom: 1px solid var(--border-tertiary);
+}
+
+.log-row:last-child { border-bottom: none; }
+
+.log-row__main { flex: 1; min-width: 0; }
+
+.log-row__name {
+  font-size: var(--fontsize-body-md, 14px);
+  font-weight: var(--font-weight-medium, 500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.log-row__meta {
+  font-size: var(--fontsize-body-sm, 13px);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.log-row__aside {
+  flex: none;
+  text-align: right;
+  font-size: var(--fontsize-body-md, 14px);
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--text-secondary);
+}
+
+.log-row__aside small {
+  display: block;
+  font-size: 11px;
+  font-weight: var(--font-weight-book, 400);
+  color: var(--text-tertiary);
+}
+
+
+/* ── Empty state ─────────────────────────────────────────────── */
+.empty {
+  text-align: center;
+  padding: var(--scale-600) var(--scale-400);
+  color: var(--text-tertiary);
+  font-size: var(--fontsize-body-sm, 13px);
+  line-height: var(--line-height-body-sm, 1.5);
+}
+
+
+/* ── Activity timeline ───────────────────────────────────────
+   Same shape as the desktop unit history (components/activity-log)
+   and the job page's Scan History. Oldest first. */
+.timeline { display: flex; flex-direction: column; padding: var(--scale-200) var(--scale-400); }
+
+.timeline-row {
+  display: flex;
+  gap: var(--scale-300);
+  padding-bottom: var(--scale-400);
+  position: relative;
+}
+
+.timeline-row:last-child { padding-bottom: 0; }
+
+.timeline-row__thread {
+  flex: none;
+  width: 10px;
+  display: flex;
+  justify-content: center;
+  position: relative;
+}
+
+.timeline-row__thread::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border-subtle);
+  margin-top: 5px;
+  z-index: 1;
+}
+
+.timeline-row:not(:last-child) .timeline-row__thread::after {
+  content: "";
+  position: absolute;
+  top: 13px;
+  bottom: -4px;
+  width: 1px;
+  background: var(--border-tertiary);
+}
+
+.timeline-row:first-child .timeline-row__thread::before { background: var(--interactive-default); }
+
+.timeline-row__body { flex: 1; min-width: 0; padding-bottom: var(--scale-100); }
+.timeline-row__text { font-size: var(--fontsize-body-sm, 13px); line-height: var(--line-height-body-sm, 1.5); }
+.timeline-row__at { font-size: 11px; color: var(--text-tertiary); }
+
+
+/* ── Confirmation screen ─────────────────────────────────────── */
+.confirm-mark {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--status-success-bg);
+  border: 1px solid var(--status-success-border);
+  color: var(--color-green-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  align-self: center;
+}
+
+.confirm-text { text-align: center; display: flex; flex-direction: column; gap: var(--scale-200); }
+
+.confirm-text__headline {
+  font-size: var(--fontsize-heading-h5, 18px);
+  font-weight: var(--font-weight-bold, 700);
+}
+
+.confirm-text__detail {
+  font-size: var(--fontsize-body-md, 14px);
+  color: var(--text-secondary);
+  line-height: var(--line-height-body-md, 1.5);
+}
+
+
+/* ── Scan chooser ────────────────────────────────────────────
+   PROTOTYPE CONTROL, outside the device: the labels the current
+   screen could accept, shown while the trigger is held. It sits
+   with the trigger rather than on the screen because neither is
+   part of the application. Drag onto a pill, release to scan it. */
+.scan-chooser {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--scale-300);
+  touch-action: none;
+}
+
+.scan-chooser[hidden] { display: none !important; }
+
+.scan-chooser__hint {
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold, 600);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.scan-chooser__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--scale-200);
+}
+
+.scan-option {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--scale-200);
+  padding: var(--scale-200) var(--scale-300);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-tertiary);
+  border-radius: var(--border-radius-full, 999px);
+  max-width: 100%;
+}
+
+.scan-option__kind {
+  font-size: 10px;
+  font-weight: var(--font-weight-bold, 700);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.scan-option__label {
+  font-size: var(--fontsize-body-sm, 13px);
+  font-weight: var(--font-weight-medium, 500);
+  color: var(--text-secondary);
+}
+
+/* Under the pointer. Named for what it means — release now and this
+   is what gets scanned — rather than for hover, which a held drag
+   does not produce. */
+.scan-option.is-armed {
+  background: var(--interactive-default);
+  border-color: var(--interactive-default);
+}
+.scan-option.is-armed .scan-option__kind,
+.scan-option.is-armed .scan-option__label { color: var(--text-on-dark); }
+
+/* The target while the trigger is down: the device is reading. */
+.scan-target.is-reading {
+  border-style: solid;
+  border-color: var(--interactive-default);
+  background: var(--interactive-bg-subtle);
+}
+
+.trigger-btn.is-held { background: var(--interactive-pressed); border-color: var(--interactive-default); }
+
+
+/* ── Discard confirmation ────────────────────────────────────
+   The dialog itself is the desktop prototype's confirm-modal
+   component. Two things it needs here, and only here:
+   it is scoped to the device rather than the browser window, and
+   its footer buttons sit side by side rather than full width. */
+.device-screen .modal-overlay { position: absolute; z-index: 40; }
+
+.modal-footer .button { width: auto; min-height: 44px; }
+
+
+/* ── Toast — a rejection, said out loud ──────────────────────── */
+.toast {
+  position: absolute;
+  left: var(--scale-400);
+  right: var(--scale-400);
+  bottom: var(--scale-400);
+  z-index: 20;
+  background: var(--bg-inverse);
+  color: var(--text-on-dark);
+  border-radius: var(--border-radius-md, 8px);
+  padding: var(--scale-300) var(--scale-400);
+  font-size: var(--fontsize-body-sm, 13px);
+  line-height: var(--line-height-body-sm, 1.45);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--scale-200);
+  box-shadow: 0 6px 18px rgb(from var(--color-black) r g b / 0.3);
+}
+
+.toast[hidden] { display: none; }
+.toast__icon { flex: none; margin-top: 2px; }
+.toast.is-error .toast__icon { color: var(--color-red-100); }
+
+
+/* Spans used as block rows.
+   The markup uses <span> inside buttons so a button never nests a
+   <div>; these give them the block behaviour their layout assumes. */
+.action-item__text,
+.action-item__name,
+.action-item__help,
+.log-row__main,
+.log-row__name,
+.log-row__meta,
+.log-row__aside,
+.scan-target__label,
+.timeline-row__body,
+.timeline-row__text,
+.timeline-row__at { display: block; }
+
+.action-item__text { display: flex; flex-direction: column; gap: 2px; }
+
+
+/* ============================================================
+   PROTOTYPE-LOCAL VALUES — flagged, not invented
+   ------------------------------------------------------------
+   The design system has no token for these. They are hardcoded
+   here so the gap is visible rather than buried:
+
+     - Device frame: 390 x 780, radius 36/26, and its shadow.
+       Prototype scaffolding, not app UI — no token needed.
+     - Touch target floor of 48px (.button, .input) and 64px
+       (.action-item). The system's --scale ramp has no
+       touch-target token; the handheld needs one.
+     - .qty-headline__number at 40px. Larger than
+       --fontsize-heading-h1; a display size the ramp lacks.
+     - .app-bar__eyebrow / .card__label / .record__kind at 11px,
+       below --fontsize-label (12px). Same micro-label size the
+       desktop prototype uses.
+     - Status pill text colours (--color-green-800,
+       --color-copper-700, --color-red-900). The status tokens
+       define bg and border only; no on-status text token exists.
+
+   STATE CLASSES toggled by scanner.js — nothing else:
+     .is-active     which .screen is showing
+     .is-listening  a scan screen waiting for a read
+     .is-rejected   an input that refused what was typed
+     .is-derived    a field the linked field just filled
+     .is-current    the bench nav button for the visible screen
+     [hidden]       the toast, and rows that do not apply
+   ============================================================ */

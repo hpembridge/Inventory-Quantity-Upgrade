@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Handheld Scanner — Inventory Quantity</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="shared/css/design-tokens.css" />
+  <link rel="stylesheet" href="components/confirm-modal/confirm-modal.css" />
+  <link rel="stylesheet" href="scanner.css" />
+</head>
+<body class="bench">
+
+  <!-- ══ Bench ══════════════════════════════════════════════════
+       Desktop scaffolding around the device. None of this is part
+       of the application — it exists so the prototype can be shown
+       on a laptop. Drop it and the .device-screen contents are the
+       whole handheld viewport.
+       ═══════════════════════════════════════════════════════════ -->
+  <div class="bench-head">
+    <div class="bench-title">Handheld scanner</div>
+  </div>
+
+
+  <div class="bench-stage">
+
+    <div class="device">
+      <div class="device-screen">
+
+        <!-- Cosmetic OS bar -->
+        <div class="device-status">
+          <span>9:41</span>
+          <span class="device-status-right">
+            <i class="fa-solid fa-wifi"></i>
+            <i class="fa-solid fa-battery-three-quarters"></i>
+          </span>
+        </div>
+
+
+        <!-- ══ Screen: Scan ══════════════════════════════════════
+             The home screen. It does one thing, so it says one thing.
+             ══════════════════════════════════════════════════════ -->
+        <section class="screen is-active" id="screen-scan" data-screen="scan">
+          <header class="app-bar">
+            <div class="app-bar__titles">
+              <div class="app-bar__eyebrow">Inventory</div>
+              <div class="app-bar__title">Scan</div>
+            </div>
+          </header>
+
+          <div class="screen-body">
+
+            <button class="scan-target is-listening" type="button" data-act="simulate-scan">
+              <span class="scan-target__icon"><i class="fa-solid fa-barcode"></i></span>
+              <span class="scan-target__label">Scan a location or unit</span>
+            </button>
+
+            <!-- Manual entry — a rubbed barcode is the commonest floor
+                 failure, so every scan screen carries a typed way in. -->
+            <div class="manual-entry">
+              <label class="manual-entry__label" for="scanManual">Or enter a code</label>
+              <div class="manual-entry__row">
+                <input class="input" id="scanManual" type="text" inputmode="text"
+                       placeholder="CM-U-000001" autocomplete="off" data-field="scan-code" />
+                <button class="button button--secondary manual-entry__go" type="button" data-act="scan-manual">
+                  Go
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+
+        <!-- ══ Screen: Unit ══════════════════════════════════════
+             What a unit barcode resolves to: what it is, then what
+             can be done to it.
+             ══════════════════════════════════════════════════════ -->
+        <section class="screen" id="screen-unit" data-screen="unit">
+          <header class="app-bar">
+            <button class="app-bar__back" type="button" data-act="back" aria-label="Back">
+              <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <div class="app-bar__titles">
+              <div class="app-bar__eyebrow">Unit</div>
+              <div class="app-bar__title" data-bind="unit.id">—</div>
+            </div>
+            <button class="app-bar__action" type="button" data-act="open-unit-history" title="History">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+            </button>
+          </header>
+
+          <div class="screen-body">
+
+            <!-- Unit details -->
+            <div class="card">
+              <div class="record">
+                <div class="record__kind" data-bind="unit.catalogPath">—</div>
+                <div class="record__name" data-bind="unit.itemName">—</div>
+                <div class="record__id" data-bind="unit.barcode">—</div>
+              </div>
+
+              <span class="pill" data-bind-class="unit.statusPill">
+                <i class="fa-solid fa-circle-check" data-bind-class="unit.statusIcon"></i>
+                <span data-bind="unit.statusText">—</span>
+              </span>
+
+              <!-- The figure the scan usually exists to check. Hidden on a
+                   single-unit record, which has no counted quantity. -->
+              <div data-row="unit.qty">
+                <div class="qty-headline">
+                  <span class="qty-headline__number" data-bind="unit.qty">—</span>
+                  <span class="qty-headline__uom" data-bind="unit.uom">—</span>
+                </div>
+                <div class="qty-headline__caption">Current quantity</div>
+              </div>
+
+              <div class="detail-list" id="unitDetails">
+                <!-- #detailRowTemplate clones here: location, allocation,
+                     catalog, and the unit type's added fields -->
+              </div>
+            </div>
+
+            <!-- Unit actions -->
+            <div class="card card--flush">
+              <div class="action-list">
+
+                <button class="action-item" type="button" data-act="go-quantity" data-row="unit.qtyAction">
+                  <span class="action-item__icon"><i class="fa-solid fa-arrow-down-1-9"></i></span>
+                  <span class="action-item__text">
+                    <span class="action-item__name">Adjust quantity</span>
+                    <span class="action-item__help">Record what was used, or correct the count</span>
+                  </span>
+                  <span class="action-item__chevron"><i class="fa-solid fa-chevron-right"></i></span>
+                </button>
+
+                <button class="action-item" type="button" data-act="go-move">
+                  <span class="action-item__icon"><i class="fa-solid fa-location-arrow"></i></span>
+                  <span class="action-item__text">
+                    <span class="action-item__name">Move to a new location</span>
+                    <span class="action-item__help">Scan the shelf this is going to</span>
+                  </span>
+                  <span class="action-item__chevron"><i class="fa-solid fa-chevron-right"></i></span>
+                </button>
+
+                <button class="action-item" type="button" data-act="go-allocate">
+                  <span class="action-item__icon"><i class="fa-solid fa-user-tag"></i></span>
+                  <span class="action-item__text">
+                    <span class="action-item__name" data-bind="unit.allocateActionName">Allocate</span>
+                    <span class="action-item__help" data-bind="unit.allocateActionHelp">—</span>
+                  </span>
+                  <span class="action-item__chevron"><i class="fa-solid fa-chevron-right"></i></span>
+                </button>
+
+                <!-- Releasing is its own action rather than an empty field,
+                     because on a handheld there is no blur to commit. -->
+                <button class="action-item action-item--danger" type="button"
+                        data-act="release" data-row="unit.release">
+                  <span class="action-item__icon"><i class="fa-solid fa-link-slash"></i></span>
+                  <span class="action-item__text">
+                    <span class="action-item__name">Release allocation</span>
+                    <span class="action-item__help" data-bind="unit.releaseHelp">—</span>
+                  </span>
+                </button>
+
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+
+        <!-- ══ Screen: Adjust Quantity ═══════════════════════════
+             Three figures, two of them linked: fill Amount used or
+             New quantity and the other follows. Current quantity is
+             a correction, so it is read-only until asked for.
+             ══════════════════════════════════════════════════════ -->
+        <section class="screen" id="screen-quantity" data-screen="quantity">
+          <header class="app-bar">
+            <button class="app-bar__back" type="button" data-act="back" aria-label="Back">
+              <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <div class="app-bar__titles">
+              <div class="app-bar__eyebrow" data-bind="unit.unitType">—</div>
+              <div class="app-bar__title">Adjust quantity</div>
+            </div>
+          </header>
+
+          <div class="screen-body">
+
+            <div class="record">
+              <div class="record__name" data-bind="unit.itemName">—</div>
+              <div class="record__id" data-bind="unit.id">—</div>
+            </div>
+
+            <!-- Current quantity: shown, not taken. The unlock exists
+                 because a stocktake correction is a different act from
+                 recording use, and should not be one slip away. -->
+            <div class="card">
+              <div class="readout" data-row="qty.currentReadout">
+                <span class="readout__label">Current quantity</span>
+                <span>
+                  <span class="readout__value" data-bind="qty.current">—</span>
+                  <span class="readout__label" data-bind="unit.uom">—</span>
+                </span>
+              </div>
+              <button class="readout__unlock" type="button" data-act="unlock-current" data-row="qty.unlock">
+                This count is wrong — correct it
+              </button>
+
+              <!-- Revealed by the unlock -->
+              <div class="field" data-row="qty.currentField" hidden>
+                <label class="field__label" for="qtyCurrent">Current quantity — correcting</label>
+                <div class="qty-input">
+                  <input class="input" id="qtyCurrent" type="number" inputmode="decimal"
+                         step="any" min="0" data-field="qty.current" />
+                  <span class="qty-input__uom" data-bind="unit.uom">—</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- The linked pair -->
+            <div class="card">
+              <div class="linked-pair">
+
+                <div class="field">
+                  <label class="field__label" for="qtyUsed">Amount used</label>
+                  <div class="qty-input">
+                    <input class="input" id="qtyUsed" type="number" inputmode="decimal"
+                           step="any" min="0" placeholder="0" data-field="qty.used" />
+                    <span class="qty-input__uom" data-bind="unit.uom">—</span>
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label class="field__label" for="qtyNew">New quantity</label>
+                  <div class="qty-input">
+                    <input class="input" id="qtyNew" type="number" inputmode="decimal"
+                           step="any" min="0" data-field="qty.new" />
+                    <span class="qty-input__uom" data-bind="unit.uom">—</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+          <footer class="screen-footer">
+            <button class="button button--primary" type="button" data-act="save-quantity" disabled
+                    data-bind-disabled="qty.canSave">
+              <i class="fa-solid fa-check"></i> Save quantity
+            </button>
+            <button class="button button--ghost" type="button" data-act="cancel">Cancel</button>
+          </footer>
+        </section>
+
+
+        <!-- ══ Screen: Move ══════════════════════════════════════ -->
+        <section class="screen" id="screen-move" data-screen="move">
+          <header class="app-bar">
+            <button class="app-bar__back" type="button" data-act="back" aria-label="Back">
+              <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <div class="app-bar__titles">
+              <div class="app-bar__eyebrow" data-bind="unit.id">—</div>
+              <div class="app-bar__title">Move unit</div>
+            </div>
+          </header>
+
+          <div class="screen-body">
+
+            <div class="card">
+              <div class="detail-list">
+                <div class="detail-row">
+                  <span class="detail-row__label">Moving</span>
+                  <span class="detail-row__value" data-bind="unit.itemName">—</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-row__label">From</span>
+                  <span class="detail-row__value is-mono" data-bind="unit.location">—</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-row__label">To</span>
+                  <span class="detail-row__value is-mono" data-bind="move.target">Not scanned</span>
+                </div>
+              </div>
+            </div>
+
+            <button class="scan-target is-listening" type="button" data-act="simulate-scan" data-scan-kind="location">
+              <span class="scan-target__icon"><i class="fa-solid fa-location-dot"></i></span>
+              <span class="scan-target__label">Scan the new location</span>
+            </button>
+
+            <div class="manual-entry">
+              <label class="manual-entry__label" for="moveManual">Or enter a location code</label>
+              <div class="manual-entry__row">
+                <input class="input" id="moveManual" type="text" placeholder="WARE-3-1-A4"
+                       autocomplete="off" data-field="move-code" />
+                <button class="button button--secondary manual-entry__go" type="button" data-act="move-manual">
+                  Go
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <footer class="screen-footer">
+            <button class="button button--primary" type="button" data-act="save-move" disabled
+                    data-bind-disabled="move.canSave">
+              <i class="fa-solid fa-check"></i> Move unit
+            </button>
+            <button class="button button--ghost" type="button" data-act="cancel">Cancel</button>
+          </footer>
+        </section>
+
+
+        <!-- ══ Screen: Allocate ══════════════════════════════════
+             Job or user, decided by the unit type — never both, and
+             never a choice put to the operator.
+             ══════════════════════════════════════════════════════ -->
+        <section class="screen" id="screen-allocate" data-screen="allocate">
+          <header class="app-bar">
+            <button class="app-bar__back" type="button" data-act="back" aria-label="Back">
+              <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <div class="app-bar__titles">
+              <div class="app-bar__eyebrow" data-bind="unit.id">—</div>
+              <div class="app-bar__title" data-bind="alloc.title">Allocate</div>
+            </div>
+          </header>
+
+          <div class="screen-body">
+
+            <div class="card">
+              <div class="detail-list">
+                <div class="detail-row">
+                  <span class="detail-row__label">Unit</span>
+                  <span class="detail-row__value" data-bind="unit.itemName">—</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-row__label">Currently</span>
+                  <span class="detail-row__value" data-bind="unit.allocationText">—</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-row__label" data-bind="alloc.targetLabel">To</span>
+                  <span class="detail-row__value" data-bind="alloc.target">Not scanned</span>
+                </div>
+              </div>
+            </div>
+
+            <button class="scan-target is-listening" type="button" data-act="simulate-scan" data-scan-kind="alloc">
+              <span class="scan-target__icon"><i class="fa-solid fa-user-tag" data-bind-class="alloc.icon"></i></span>
+              <span class="scan-target__label" data-bind="alloc.scanLabel">Scan</span>
+            </button>
+
+            <div class="manual-entry">
+              <label class="manual-entry__label" for="allocManual" data-bind="alloc.manualLabel">Or enter it</label>
+              <div class="manual-entry__row">
+                <input class="input" id="allocManual" type="text" autocomplete="off"
+                       data-field="alloc-code" data-bind-placeholder="alloc.placeholder" />
+                <button class="button button--secondary manual-entry__go" type="button" data-act="alloc-manual">
+                  Go
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <footer class="screen-footer">
+            <button class="button button--primary" type="button" data-act="save-alloc" disabled
+                    data-bind-disabled="alloc.canSave">
+              <i class="fa-solid fa-check"></i> <span data-bind="alloc.saveLabel">Allocate</span>
+            </button>
+            <button class="button button--ghost" type="button" data-act="cancel">Cancel</button>
+          </footer>
+        </section>
+
+
+        <!-- ══ Screen: Location ══════════════════════════════════
+             What a location barcode resolves to. The units it holds
+             are the reason for scanning it, so they are the body of
+             the screen rather than a link off it.
+             ══════════════════════════════════════════════════════ -->
+        <section class="screen" id="screen-location" data-screen="location">
+          <header class="app-bar">
+            <button class="app-bar__back" type="button" data-act="back" aria-label="Back">
+              <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <div class="app-bar__titles">
+              <div class="app-bar__eyebrow">Location</div>
+              <div class="app-bar__title" data-bind="loc.name">—</div>
+            </div>
+          </header>
+
+          <div class="screen-body">
+
+            <!-- Units in this location -->
+            <div class="card card--flush">
+              <div class="card__label log-list__heading">
+                <span>What is here</span>
+                <span class="count-badge" data-bind="loc.unitCount">0</span>
+              </div>
+              <div class="log-list" id="locUnitList">
+                <!-- #unitRowTemplate clones here -->
+              </div>
+              <p class="empty" id="locUnitEmpty" hidden>
+                Nothing is stored here. Scan a unit to put it away.
+              </p>
+            </div>
+
+            <!-- Location actions -->
+            <div class="card card--flush">
+              <div class="action-list">
+                <button class="action-item" type="button" data-act="put-away">
+                  <span class="action-item__icon"><i class="fa-solid fa-box-archive"></i></span>
+                  <span class="action-item__text">
+                    <span class="action-item__name">Store a unit here</span>
+                    <span class="action-item__help">Scan the unit going into this location</span>
+                  </span>
+                  <span class="action-item__chevron"><i class="fa-solid fa-chevron-right"></i></span>
+                </button>
+                <button class="action-item" type="button" data-act="open-loc-history">
+                  <span class="action-item__icon"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                  <span class="action-item__text">
+                    <span class="action-item__name">History</span>
+                    <span class="action-item__help">What has come and gone from here</span>
+                  </span>
+                  <span class="action-item__chevron"><i class="fa-solid fa-chevron-right"></i></span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+
+        <!-- ══ Screen: History ═══════════════════════════════════
+             Serves both a unit's history and a location's. Same
+             timeline as the desktop activity log and the job page's
+             Scan History — one component in Angular, not three.
+             ══════════════════════════════════════════════════════ -->
+        <section class="screen" id="screen-history" data-screen="history">
+          <header class="app-bar">
+            <button class="app-bar__back" type="button" data-act="back" aria-label="Back">
+              <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <div class="app-bar__titles">
+              <div class="app-bar__eyebrow" data-bind="history.subject">—</div>
+              <div class="app-bar__title">History</div>
+            </div>
+          </header>
+
+          <div class="screen-body">
+            <div class="card card--flush">
+              <div class="timeline" id="historyList">
+                <!-- #timelineRowTemplate clones here -->
+              </div>
+              <p class="empty" id="historyEmpty" hidden>Nothing recorded yet.</p>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ══ Screen: Confirmation ══════════════════════════════
+             A committed action says what it did in the operator's own
+             terms, and offers the next scan without a trip home.
+             ══════════════════════════════════════════════════════ -->
+        <section class="screen" id="screen-confirm" data-screen="confirm">
+          <header class="app-bar">
+            <div class="app-bar__titles">
+              <div class="app-bar__eyebrow">Saved</div>
+              <div class="app-bar__title" data-bind="confirm.title">Done</div>
+            </div>
+          </header>
+
+          <div class="screen-body is-centered">
+            <div class="confirm-mark"><i class="fa-solid fa-check"></i></div>
+            <div class="confirm-text">
+              <div class="confirm-text__headline" data-bind="confirm.headline">—</div>
+              <div class="confirm-text__detail" data-bind="confirm.detail">—</div>
+            </div>
+          </div>
+
+          <footer class="screen-footer">
+            <button class="button button--primary" type="button" data-act="go-scan">
+              <i class="fa-solid fa-barcode"></i> Scan the next one
+            </button>
+            <button class="button button--secondary" type="button" data-act="back-to-unit">
+              Back to this unit
+            </button>
+          </footer>
+        </section>
+
+
+        <!-- ══ Discard confirmation ══════════════════════════════
+             The back arrow is the one way off these screens that does
+             not say what it costs. With a quantity typed and not saved,
+             it silently throws the entry away — so it asks first.
+             Cancel is not guarded: it is labelled, and discarding is
+             what the operator asked for.
+
+             Uses the desktop prototype's confirm-modal component
+             (components/confirm-modal/confirm-modal.css) so the two
+             prototypes hand over one dialog, not two. It is a div
+             rather than a <dialog> only because a real dialog renders
+             in the top layer and would cover the browser window
+             instead of the device frame; in the application this is a
+             <dialog> opened with showModal().
+             ══════════════════════════════════════════════════════ -->
+        <div class="modal-overlay" id="discardModal">
+          <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="discardTitle">
+            <div class="modal-header">
+              <div class="modal-title" id="discardTitle">Leave without saving?</div>
+            </div>
+            <div class="modal-body">
+              <p class="confirm-warning" data-bind="discard.detail">—</p>
+            </div>
+            <div class="modal-footer">
+              <button class="button button--ghost" type="button" data-act="discard-cancel">Keep editing</button>
+              <button class="button button--danger" type="button" data-act="discard-confirm">Discard</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Toast — a rejection, said out loud -->
+        <div class="toast" id="toast" role="status" hidden>
+          <span class="toast__icon"><i class="fa-solid fa-circle-exclamation"></i></span>
+          <span class="toast__text" id="toastText"></span>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══ Prototype controls ═══════════════════════════════════
+         Beside the device on purpose: the trigger stands in for the
+         handheld's hardware button, and the label list stands in for
+         there being something to read. Hold the trigger, drag onto a
+         label, release to scan it. Neither ships — in the application
+         the trigger is a hardware event that hands the app a string.
+         ═════════════════════════════════════════════════════════ -->
+    <div class="bench-controls">
+      <div class="device-trigger">
+        <button class="trigger-btn" type="button" data-act="simulate-scan">
+          <i class="fa-solid fa-barcode"></i> Hold to scan
+        </button>
+      </div>
+
+      <div class="scan-chooser" id="scanChooser" hidden>
+        <div class="scan-chooser__hint">Drag to a label — release to scan</div>
+        <div class="scan-chooser__list" id="scanChooserList">
+          <!-- #scanOptionTemplate clones here -->
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- ══ Templates ════════════════════════════════════════════
+       Every repeated structure is a <template>. The page clones one
+       per row and fills its text; it never builds markup from
+       strings. Each of these is an @for waiting to happen.
+       ═════════════════════════════════════════════════════════ -->
+
+  <template id="scanOptionTemplate">
+    <div class="scan-option">
+      <span class="scan-option__kind" data-cell="kind"></span>
+      <span class="scan-option__label" data-cell="label"></span>
+    </div>
+  </template>
+
+
+  <template id="detailRowTemplate">
+    <div class="detail-row">
+      <span class="detail-row__label" data-cell="label"></span>
+      <span class="detail-row__value" data-cell="value"></span>
+    </div>
+  </template>
+
+  <template id="unitRowTemplate">
+    <div class="log-row">
+      <span class="log-row__main">
+        <span class="log-row__name" data-cell="name"></span>
+        <span class="log-row__meta" data-cell="meta"></span>
+      </span>
+      <span class="log-row__aside">
+        <span data-cell="qty"></span>
+        <small data-cell="qtyCaption"></small>
+      </span>
+    </div>
+  </template>
+
+
+  <template id="timelineRowTemplate">
+    <div class="timeline-row">
+      <span class="timeline-row__thread"></span>
+      <span class="timeline-row__body">
+        <span class="timeline-row__text" data-cell="text"></span>
+        <span class="timeline-row__at" data-cell="at"></span>
+      </span>
+    </div>
+  </template>
+
+  <script src="scanner-data.js"></script>
+  <script src="scanner.js"></script>
+</body>
+</html>
