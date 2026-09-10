@@ -86,6 +86,8 @@
   gap: var(--scale-300);
   flex-shrink: 0;
   border-top: 1px solid var(--border-subtle);
+  justify-content: space-between;
+  width: 100%;
 }
 
 .flyout-footer { padding: var(--scale-400) var(--scale-500); }
@@ -97,5 +99,6 @@
 .footer-actions {
   display: flex;
   gap: var(--scale-300);
-  margin-left: auto;
+  justify-content: space-between;
+  width: 100%;
 }

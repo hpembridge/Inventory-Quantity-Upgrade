@@ -773,6 +773,16 @@ td.swatch { font-weight: var(--font-weight-semibold); }
   color: var(--text-primary);
 }
 .chip.removable .chip-label { color: var(--text-primary); }
+
+/* A property an item cannot be saved without. A word rather than an
+   asterisk: the chip row is a list of settings, not a form. */
+.chip-required {
+  font-size: var(--fontsize-label);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
 .chip-x {
   background: none;
   border: none;
@@ -787,6 +797,17 @@ td.swatch { font-weight: var(--font-weight-semibold); }
 /* ── Section blocks (settings + item page) ─────────────────── */
 .section { padding: var(--scale-800) 0; }
 .section + .section { border-top: 1px solid var(--border-tertiary); }
+
+/* A section label with a control at its trailing edge — the setting
+   that decides what the section shows sits beside its name. */
+.section-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--scale-300);
+  margin-bottom: var(--scale-100);
+}
+.section-label-row .section-label { margin-bottom: 0; }
 
 .section-label {
   font-size: var(--fontsize-body-sm);
@@ -907,7 +928,7 @@ td.swatch { font-weight: var(--font-weight-semibold); }
 .unit-type-block table.data th.col-job,
 .unit-type-block table.data td.col-job { width: 140px; }
 .unit-type-block table.data th.col-act,
-.unit-type-block table.data td.col-act { width: 60px; }
+.unit-type-block table.data td.col-act { width: 92px; }
 
 
 /* ── Rollup band ────────────────────────────────────────────
@@ -1205,6 +1226,7 @@ table.data tbody tr:focus-within .unit-actions { visibility: visible; }
    allowed", and the reason is in the title. */
 .check-row.is-stuck { cursor: default; opacity: .75; }
 .check-row.is-stuck input { cursor: default; }
+
 .check-label {
   font-size: var(--fontsize-body-md);
   font-weight: var(--font-weight-semibold);

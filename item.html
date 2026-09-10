@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="components/flyout/flyout.css" />
     <link rel="stylesheet" href="components/toast/toast.css" />
     <link rel="stylesheet" href="components/switch/switch.css" />
+    <link rel="stylesheet" href="components/confirm-modal/confirm-modal.css" />
     <script src="components/toast/toast.js"></script>
     <script src="inventory-data.js"></script>
     <script src="components/item-editor/item-editor.js"></script>
@@ -191,6 +192,10 @@
             <button class="icon-btn" type="button" title="Print unit label" aria-label="Print unit label">
               <i class="fa-regular fa-print"></i>
             </button>
+            <button class="icon-btn danger" type="button" data-delete
+                    title="Delete unit" aria-label="Delete unit">
+              <i class="fa-regular fa-trash-can"></i>
+            </button>
           </div>
         </td>
       </tr>
@@ -287,6 +292,33 @@
       </div>
     </template>
     <!-- ══ end Item Editor ══════════════════════════════════════════ -->
+
+    <!-- ══ Delete unit confirmation ═════════════════════════════════
+         Deleting a unit takes its quantity and its history with it, so
+         it asks first and names what is lost.
+         HTML: this block
+         CSS:  components/confirm-modal/confirm-modal.css
+         JS:   the "Delete a unit" section in the page script
+         ───────────────────────────────────────────────────────────── -->
+    <div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true"
+         aria-labelledby="confirmTitle">
+      <div class="modal-panel">
+        <div class="modal-header">
+          <span class="modal-title" id="confirmTitle">Delete unit?</span>
+          <button class="icon-btn" type="button" data-close-modal aria-label="Close">
+            <i class="fa-regular fa-xmark"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="confirm-warning" id="confirmBody"></p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-pill outline" type="button" data-close-modal>Cancel</button>
+          <button class="btn-pill solid is-danger" type="button" id="confirmDelete">Delete Unit</button>
+        </div>
+      </div>
+    </div>
+    <!-- ══ end Delete unit confirmation ═════════════════════════════ -->
 
     <!-- ══ Activity Log ═════════════════════════════════════════════
          One record's history, oldest first. The same timeline as the
@@ -538,6 +570,7 @@
           row.dataset.row = unit.id;
           row.classList.toggle('is-depleted', isDepleted(unit));
           row.querySelector('[data-history]').dataset.history = unit.id;
+          row.querySelector('[data-delete]').dataset.delete = unit.id;
 
           /* The three fixed inputs are in the template; the added-field
              cells are cloned in before the actions cell. */
@@ -789,6 +822,48 @@
         });
       });
 
+      /* ── Delete a unit ─────────────────────────────────────────
+         The trash icon names the unit in the dialog; the row is only
+         removed once the dialog is confirmed. Angular: a signal for
+         the pending unit and the dev team's own confirm component. */
+      const confirmModal = document.getElementById('confirmModal');
+      let pendingDeleteId = null;
+
+      function closeConfirm() {
+        confirmModal.classList.remove('open');
+        pendingDeleteId = null;
+      }
+
+      rowsEl.addEventListener('click', (e) => {
+        const button = e.target.closest('[data-delete]');
+        if (!button) return;
+        const unit = unitById(button.dataset.delete);
+        pendingDeleteId = unit.id;
+        document.getElementById('confirmTitle').textContent =
+          `Delete ${unit.location || 'this unit'}?`;
+        document.getElementById('confirmBody').textContent =
+          `This unit's quantity and its activity log will be deleted. This cannot be undone.`;
+        confirmModal.classList.add('open');
+      });
+
+      confirmModal.addEventListener('click', (e) => {
+        if (e.target === confirmModal || e.target.closest('[data-close-modal]')) closeConfirm();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && confirmModal.classList.contains('open')) closeConfirm();
+      });
+
+      document.getElementById('confirmDelete').addEventListener('click', () => {
+        const index = UNITS.findIndex(u => u.id === pendingDeleteId);
+        if (index > -1) UNITS.splice(index, 1);
+        closeConfirm();
+        const type = activeType();
+        renderRows(type);
+        renderRollup(type);
+        window.toast('Unit deleted.', 'info');
+      });
+
       /* Add puts an empty row at the bottom with the unit type's
          defaults already in it, and the cursor in its first field. */
       let nextId = UNITS.length + 1;
@@ -835,8 +910,18 @@
          ?panel=edit-item opens the aside on load, so the structure map
          on the index page can point at a panel and not just a page.
          --------------------------------------------------------- */
-      if (new URLSearchParams(location.search).get('panel') === 'edit-item') {
+      const deepPanel = new URLSearchParams(location.search).get('panel');
+      if (deepPanel === 'edit-item') {
         ItemEditor.open({ item: ITEM, cfg, onSave: renderHeader });
+      }
+      if (deepPanel === 'activity-log') {
+        const unit = UNITS.find(u => u.unitTypeId === activeType().id) || UNITS[0];
+        if (unit) {
+          ActivityLog.open({
+            caption: historyCaption(unit, activeType()),
+            entries: unit.history || []
+          });
+        }
       }
     </script>
   </body>

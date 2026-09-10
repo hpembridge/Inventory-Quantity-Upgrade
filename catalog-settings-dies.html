@@ -12,6 +12,8 @@
     <link rel="stylesheet" href="inventory.css" />
     <link rel="stylesheet" href="components/breadcrumbs/breadcrumbs.css" />
     <link rel="stylesheet" href="components/flyout/flyout.css" />
+    <link rel="stylesheet" href="components/confirm-modal/confirm-modal.css" />
+    <link rel="stylesheet" href="components/switch/switch.css" />
     <script src="inventory-data.js"></script>
     <script>
       /* Which catalog this settings page is for. The behaviour lives in
@@ -69,13 +71,14 @@
             <hr class="divider" />
 
             <!-- ══ Catalog properties ═════════════════════════════
-                 Static in this prototype: the chips demonstrate the
-                 shape, and adding one is out of scope.
+                 The chips are the catalog's properties. Add Catalog
+                 Property opens the aside below; a saved property is
+                 appended here as a removable chip.
                  ───────────────────────────────────────────────── -->
             <div class="section">
               <div class="section-label">Catalog Properties</div>
               <div class="section-body">
-                <div class="chip-row">
+                <div class="chip-row" id="propertyChips">
                   <span class="chip"><i class="fa-regular fa-hashtag chip-icon"></i><span class="chip-label">Die Number</span></span>
                   <span class="chip removable"><i class="fa-regular fa-layer-group chip-icon"></i><span class="chip-label">Material</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
                   <span class="chip removable"><i class="fa-regular fa-stamp chip-icon"></i><span class="chip-label">Process</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
@@ -83,54 +86,45 @@
                   <span class="chip removable"><i class="fa-regular fa-ruler-horizontal chip-icon"></i><span class="chip-label">Size</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
                   <span class="chip removable"><i class="fa-regular fa-toggle-on chip-icon"></i><span class="chip-label">Customer Owned</span><button class="chip-x" type="button" title="Remove">&times;</button></span>
                 </div>
-                <button class="add-row" type="button">
+                <button class="add-row" type="button" id="addProperty">
                   <i class="fa-regular fa-plus add-row__icon"></i> Add Catalog Property
                 </button>
               </div>
             </div>
             <!-- ══ end Catalog properties ═════════════════════════ -->
 
-            <!-- ══ Items — Single-Unit ════════════════════════════
-                 An identity claim about what a row on this catalog's
-                 page IS. Locked off while the catalog has more than one
-                 unit type: turning it on would have to throw the others
-                 away, and a switch that silently deletes work is not a
-                 switch.
-                 ───────────────────────────────────────────────── -->
-            <div class="section">
-              <div class="section-body">
-                <label class="check-row" id="singleUnitRow">
-                  <input type="checkbox" id="singleUnitBox" />
-                  <span>
-                    <span class="check-label">Single-Unit Items</span>
-                    <span class="check-help">
-                      Use this setting when there is a single unique unit at a singular location for
-                      each item. For example, dies. We typically do not have multiple copies of the
-                      same exact die at the same location.
-                    </span>
-                  </span>
-                </label>
-              </div>
-            </div>
-            <!-- ══ end Items ══════════════════════════════════════ -->
 
             <!-- ══ Units ══════════════════════════════════════════
                  One read-only row per unit type; every edit goes
                  through the builder aside.
+
+                 Single-Unit Items is the switch at the right of the
+                 label: it is a claim about what a row on this catalog
+                 IS. On, there are no unit types to build, so the list
+                 goes away and the help text says why.
                  ───────────────────────────────────────────────── -->
             <div class="section">
-              <div class="section-label">Units</div>
-              <div class="section-help">
+              <div class="section-label-row">
+                <div class="section-label">Units</div>
+                <label class="switch" id="singleUnitRow">
+                  <input type="checkbox" id="singleUnitBox" />
+                  <span class="switch-track" aria-hidden="true"></span>
+                  <span class="switch-label">Single-Unit Items</span>
+                </label>
+              </div>
+              <div class="section-help" id="unitsHelp">
                 A unit type is built, not picked. Say what its stock is counted in, and add a field
                 for anything that varies between the units of one item. Saved types become presets
                 the rest of the company can start from.
               </div>
-              <div class="section-body">
+
+              <div class="section-body" id="unitTypesBody">
                 <div class="unit-config-list" id="unitTypes"></div>
                 <button class="add-row" type="button" id="addUnitType">
                   <i class="fa-regular fa-plus add-row__icon"></i> Add Unit Type
                 </button>
               </div>
+
             </div>
             <!-- ══ end Units ══════════════════════════════════════ -->
 
@@ -200,9 +194,10 @@
             <input class="input" type="text" id="typeName" autocomplete="off" />
           </div>
 
-          <!-- Two named options, not a switch: a switch is on/off, and
-               "Allocate to user: off" does not read as "job". Hidden in
-               a single-unit catalog, where the answer is settled. -->
+          <!-- Named options, not a switch: a switch is on/off, and
+               "Allocate to user: off" does not read as "job". A
+               single-unit catalog adds None — a record can simply be
+               held, with no job and nobody to answer for it. -->
           <div class="field-group" id="allocGroup">
             <div class="field-group-title">Allocation</div>
             <div class="field-group-help">
@@ -214,6 +209,10 @@
               </button>
               <button class="seg-option" type="button" role="radio" data-alloc="user">
                 <i class="fa-regular fa-user"></i> User
+              </button>
+              <!-- Single-unit catalogs only: a record nobody has out. -->
+              <button class="seg-option" type="button" role="radio" data-alloc="none" id="allocNone">
+                <i class="fa-regular fa-ban"></i> None
               </button>
             </div>
             <!-- Shown only when the change would release stock. -->
@@ -273,7 +272,105 @@
     </div>
     <!-- ══ end Unit Type Builder ════════════════════════════════════ -->
 
+    <!-- ══ Catalog Property Editor ══════════════════════════════════
+         Adds a catalog property: what kind of value it holds, what it
+         is called, and whether an item can be saved without it.
+         HTML: this block + #propertyChipTemplate
+         CSS:  inventory.css → .field, .field-group, .chip
+         JS:   catalog-settings.js → "Catalog properties"
+         ───────────────────────────────────────────────────────────── -->
+    <div class="flyout-overlay" id="propertyFlyout">
+      <div class="flyout-panel" role="dialog" aria-modal="true" aria-labelledby="propertyFlyoutTitle">
+
+        <div class="flyout-header">
+          <span class="flyout-title" id="propertyFlyoutTitle">Add Catalog Property</span>
+          <button class="icon-btn" type="button" data-close-property aria-label="Close">
+            <i class="fa-regular fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="flyout-body">
+
+          <div class="field">
+            <label class="field-label" for="propertyKind">Property type</label>
+            <select class="select" id="propertyKind">
+              <option value="boolean">True/False</option>
+              <option value="select">Dropdown</option>
+              <option value="measurement">Measurement</option>
+              <option value="number">Number</option>
+              <option value="text">Description</option>
+            </select>
+            <div class="field-help" id="propertyKindHelp"></div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="propertyName">Property name</label>
+            <input class="input" type="text" id="propertyName" autocomplete="off"
+                   placeholder="e.g. Product Line" />
+          </div>
+
+          <div class="field">
+            <label class="switch">
+              <input type="checkbox" id="propertyRequired" />
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="switch-label">Required</span>
+            </label>
+            <div class="field-help">
+              A required property has to have a value before an item can be saved.
+            </div>
+          </div>
+
+        </div>
+
+        <div class="flyout-footer">
+          <div class="footer-actions">
+            <button class="btn-pill outline sm" type="button" data-close-property>Cancel</button>
+            <button class="btn-pill solid sm" type="button" id="propertyDone">Add Property</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <!-- ══ end Catalog Property Editor ══════════════════════════════ -->
+
+    <!-- One added property. The static chips above show the same shape. -->
+    <template id="propertyChipTemplate">
+      <span class="chip removable">
+        <i class="fa-regular chip-icon" data-chip-icon></i>
+        <span class="chip-label" data-chip-label></span>
+        <span class="chip-required" data-chip-required hidden>Required</span>
+        <button class="chip-x" type="button" title="Remove">&times;</button>
+      </span>
+    </template>
+
     <!-- ══ Settings templates ══════════════════════════════════════ -->
+    <!-- ══ Delete unit type confirmation ════════════════════════════
+         Replaces the old inline confirm row so deleting a unit type
+         asks in the same dialog as the other destructive actions.
+         HTML: this block
+         CSS:  components/confirm-modal/confirm-modal.css
+         JS:   catalog-settings.js → "Delete confirmation"
+         ───────────────────────────────────────────────────────────── -->
+    <div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true"
+         aria-labelledby="confirmTitle">
+      <div class="modal-panel">
+        <div class="modal-header">
+          <span class="modal-title" id="confirmTitle">Delete unit type?</span>
+          <button class="icon-btn" type="button" data-close-modal aria-label="Close">
+            <i class="fa-regular fa-xmark"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="confirm-warning" id="confirmBody"></p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-pill outline" type="button" data-close-modal>Cancel</button>
+          <button class="btn-pill solid is-danger" type="button" id="confirmDelete">Delete Unit Type</button>
+        </div>
+      </div>
+    </div>
+    <!-- ══ end Delete unit type confirmation ════════════════════════ -->
+
     <template id="unitTypeRowTemplate">
       <div class="unit-config-row">
         <span class="unit-config-name" data-cell="name"></span>
@@ -289,7 +386,7 @@
         <span class="unit-config-example" data-cell="example"></span>
         <span class="unit-config-actions">
           <button class="icon-btn" type="button" data-edit aria-label="Edit unit type">
-            <i class="fa-regular fa-pen-to-square"></i>
+            <i class="fa-regular fa-pen"></i>
           </button>
           <button class="icon-btn danger" type="button" data-delete aria-label="Delete unit type">
             <i class="fa-regular fa-trash-can"></i>
@@ -298,17 +395,6 @@
       </div>
     </template>
 
-    <template id="unitTypeConfirmTemplate">
-      <div class="unit-config-row is-confirming">
-        <span class="unit-config-confirm">
-          Delete <strong data-cell="name"></strong>? <span data-cell="consequence"></span>
-        </span>
-        <span class="unit-config-actions">
-          <button class="btn-ghost" type="button" data-cancel-delete>Cancel</button>
-          <button class="btn-pill solid sm is-danger" type="button" data-confirm-delete>Delete</button>
-        </span>
-      </div>
-    </template>
 
     <template id="builderFieldTemplate">
       <div class="builder-row">

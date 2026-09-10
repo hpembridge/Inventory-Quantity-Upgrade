@@ -72,7 +72,7 @@
               <button class="add-row" type="button">
                 <span class="add-label"><i class="fa-regular fa-plus"></i> Add Catalog</span>
               </button>
-              <div id="libCatalogs"></div>
+              <div class="catalog-list" id="libCatalogs"></div>
             </div>
 
           </div>
@@ -447,14 +447,24 @@
       const libFlyout   = document.getElementById('libFlyout');
       const libNameInput = document.getElementById('libNameInput');
 
-      document.getElementById('libSettings').addEventListener('click', () => {
+      function openLibrarySettings() {
         const library = INV.libraryById(activeId);
         document.getElementById('libFlyoutTitle').textContent = `${library.name} Settings`;
         libNameInput.value = library.name;
         libNameInput.classList.remove('invalid');
         libFlyout.classList.add('open');
         libNameInput.focus();
-      });
+      }
+
+      document.getElementById('libSettings').addEventListener('click', openLibrarySettings);
+
+      /* ── Deep link ─────────────────────────────────────────────
+         ?panel=library-settings opens the aside on load, so the
+         structure map on the index page can point at a panel and not
+         just a page. --------------------------------------------- */
+      if (new URLSearchParams(location.search).get('panel') === 'library-settings') {
+        openLibrarySettings();
+      }
 
       libFlyout.addEventListener('click', (e) => {
         if (e.target === libFlyout || e.target.closest('[data-close]')) {

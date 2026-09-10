@@ -12,7 +12,7 @@
     const CONFIG = {
       owner:           'hpembridge',
       repo:            'Inventory-Quantity-Upgrade',
-      title:           'Inventory Quantity Upgrade',
+      title:           'Quantity Upgrade',
       eyebrow:         'Inventory',
       sprintTrackerUrl:'https://hpembridge.github.io/Product-Management-Tool/',
     };
@@ -261,14 +261,11 @@
       <div class="eyebrow" id="hEyebrow"></div>
       <h1 id="hTitle"></h1>
       <div class="quick-links">
-        <a class="quick-link" id="lTracker" href="#" target="_blank">
-          <i class="fa-solid fa-chart-gantt"></i> Sprint Tracker
-        </a>
         <a class="quick-link" id="lGithub" href="#" target="_blank">
-          <i class="fa-brands fa-github"></i> Project Files
+          <i class="fa-brands fa-github"></i> Github Project Files
         </a>
-        <a class="quick-link" href="scanner.html">
-          <i class="fa-solid fa-barcode"></i> Handheld Scanner
+        <a class="quick-link" href="https://dev.azure.com/ClevelandMenuPrinting/Platinum%20Core/_workitems/edit/159/">
+          <i class="fa-brands fa-microsoft"></i> DevOps
         </a>
       </div>
     </div>
@@ -281,16 +278,14 @@
          panel already open (?panel=…).
          ───────────────────────────────────────────────────────────── -->
     <div class="section-label">Structure</div>
-    <p class="map-caption">
-      Every screen, and how it is reached. Select a box to open it — an aside
-      opens its page with the panel showing.
-    </p>
 
     <div class="map">
       <svg viewBox="0 0 1200 600" role="img" aria-label="Prototype structure map">
 
         <!-- connectors -->
         <g class="map-lines" fill="none">
+          <!-- Library View to its aside -->
+          <path d="M500 72 H460" />
           <!-- Library View splits to the two catalog kinds -->
           <path d="M600 104 v36 q0 12 -12 12 H442 q-12 0 -12 12 v32" />
           <path d="M600 104 v36 q0 12 12 12 H758 q12 0 12 12 v32" />
@@ -299,28 +294,40 @@
           <path d="M330 246 q-24 0 -36 12 -12 12 -36 12 H250" />
           <!-- Catalog View down to Item View -->
           <path d="M430 270 v170" />
-          <!-- Item View to its aside -->
-          <path d="M330 475 H250" />
+          <!-- Item View to its asides -->
+          <path d="M330 465 q-24 0 -36 -6 -12 -6 -36 -6 H250" />
+          <path d="M330 485 q-24 0 -36 20 -12 20 -36 20 H250" />
           <!-- Single-unit catalog to its asides -->
           <path d="M870 224 q24 0 36 -12 12 -12 36 -12 H950" />
           <path d="M870 246 q24 0 36 12 12 12 36 12 H950" />
+          <!-- Single-unit catalog to its activity log -->
+          <path d="M870 258 v70 q0 12 12 12 H950" />
         </g>
 
         <g class="map-arrows">
+          <path d="M460 72 l9 -5 v10 z" transform="translate(-9,0)" />
           <path d="M430 196 l-5 -9 h10 z" />
           <path d="M770 196 l-5 -9 h10 z" />
           <path d="M250 200 l9 -5 v10 z" transform="translate(-9,0)" />
           <path d="M250 258 l9 -5 v10 z" transform="translate(-9,0)" />
           <path d="M430 440 l-5 -9 h10 z" />
-          <path d="M250 475 l9 -5 v10 z" transform="translate(-9,0)" />
+          <path d="M250 453 l9 -5 v10 z" transform="translate(-9,0)" />
+          <path d="M250 525 l9 -5 v10 z" transform="translate(-9,0)" />
           <path d="M950 200 l-9 -5 v10 z" transform="translate(9,0)" />
           <path d="M950 258 l-9 -5 v10 z" transform="translate(9,0)" />
+          <path d="M950 340 l-9 -5 v10 z" transform="translate(9,0)" />
         </g>
 
         <!-- ── Library ── -->
         <a class="map-node is-page" href="inventory.html">
           <rect x="500" y="40" width="200" height="64" rx="6" />
           <text x="600" y="76">Library View</text>
+        </a>
+
+        <a class="map-node is-aside" href="inventory.html?panel=library-settings">
+          <rect x="260" y="42" width="200" height="60" rx="6" />
+          <text x="360" y="66">Edit Library Name</text>
+          <text x="360" y="86" class="map-node-sub">Aside</text>
         </a>
 
         <!-- ── A measured catalog ── -->
@@ -345,9 +352,15 @@
         </a>
 
         <a class="map-node is-aside" href="item.html?panel=edit-item">
-          <rect x="50" y="445" width="200" height="60" rx="6" />
-          <text x="150" y="472">Edit Item Details</text>
-          <text x="150" y="490" class="map-node-sub">Aside</text>
+          <rect x="50" y="423" width="200" height="60" rx="6" />
+          <text x="150" y="450">Edit Item Details</text>
+          <text x="150" y="468" class="map-node-sub">Aside</text>
+        </a>
+
+        <a class="map-node is-aside" href="item.html?panel=activity-log">
+          <rect x="50" y="495" width="200" height="60" rx="6" />
+          <text x="150" y="522">Activity Log</text>
+          <text x="150" y="540" class="map-node-sub">Aside</text>
         </a>
 
         <!-- ── A single-unit catalog ── -->
@@ -366,6 +379,12 @@
           <rect x="950" y="240" width="200" height="60" rx="6" />
           <text x="1050" y="266">Catalog Settings</text>
           <text x="1050" y="284" class="map-node-sub">Single-Unit Items</text>
+        </a>
+
+        <a class="map-node is-aside" href="catalog-dies.html?panel=activity-log">
+          <rect x="950" y="310" width="200" height="60" rx="6" />
+          <text x="1050" y="336">Activity Log</text>
+          <text x="1050" y="354" class="map-node-sub">Aside</text>
         </a>
 
         <!-- ── The handheld ──

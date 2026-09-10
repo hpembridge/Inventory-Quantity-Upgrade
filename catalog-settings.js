@@ -37,7 +37,6 @@ let cfg = JSON.parse(JSON.stringify(SOURCE.config || INV.loadConfig()));
 
 const templates = {
   row:     document.getElementById('unitTypeRowTemplate'),
-  confirm: document.getElementById('unitTypeConfirmTemplate'),
   field:   document.getElementById('builderFieldTemplate')
 };
 
@@ -72,29 +71,110 @@ titleEl.addEventListener('input', () => {
   dirty();
 });
 
-/* ── Single-Unit Items ─────────────────────────────────────── */
-const singleRow = document.getElementById('singleUnitRow');
-const singleBox = document.getElementById('singleUnitBox');
+/* ── Catalog properties ──────────────────────────────────────
+   Add Catalog Property opens its aside: what kind of value the
+   property holds, what it is called, and whether an item can be
+   saved without it. A saved property is appended to the chip row.
+   In Angular the chip row becomes an @for over the catalog's
+   properties and the aside becomes a form component. ---------- */
+const propertyChips   = document.getElementById('propertyChips');
+const propertyFlyout  = document.getElementById('propertyFlyout');
+const propertyKind    = document.getElementById('propertyKind');
+const propertyKindHelp = document.getElementById('propertyKindHelp');
+const propertyName    = document.getElementById('propertyName');
+const propertyRequired = document.getElementById('propertyRequired');
+const propertyChipTemplate = document.getElementById('propertyChipTemplate');
+
+/* The icon and the one-line explanation that go with each kind. */
+const PROPERTY_KIND_INFO = {
+  boolean:     { icon: 'fa-toggle-on', help: 'True or false — a switch on the item.' },
+  select:      { icon: 'fa-diamond',   help: 'A pick from a list. The list is set up after the property is added.' },
+  measurement: { icon: 'fa-ruler-horizontal', help: 'A dimension with a unit of measure.' },
+  number:      { icon: 'fa-hashtag',   help: 'A number, typed on the item.' },
+  text:        { icon: 'fa-font',      help: 'Free text, typed on the item.' }
+};
+
+function renderPropertyKind() {
+  propertyKindHelp.textContent = PROPERTY_KIND_INFO[propertyKind.value].help;
+}
+
+function openPropertyEditor() {
+  propertyKind.value = 'boolean';
+  propertyName.value = '';
+  propertyRequired.checked = false;
+  renderPropertyKind();
+  propertyFlyout.classList.add('open');
+  propertyName.focus();
+}
+
+function closePropertyEditor() {
+  propertyFlyout.classList.remove('open');
+}
+
+function addPropertyChip(name, kind, required) {
+  const chip = propertyChipTemplate.content.firstElementChild.cloneNode(true);
+  chip.querySelector('[data-chip-icon]').classList.add(PROPERTY_KIND_INFO[kind].icon);
+  chip.querySelector('[data-chip-label]').textContent = name;
+  chip.querySelector('[data-chip-required]').hidden = !required;
+  propertyChips.appendChild(chip);
+}
+
+document.getElementById('addProperty').addEventListener('click', openPropertyEditor);
+propertyKind.addEventListener('change', renderPropertyKind);
+
+propertyFlyout.addEventListener('click', (e) => {
+  if (e.target === propertyFlyout || e.target.closest('[data-close-property]')) closePropertyEditor();
+});
+
+document.getElementById('propertyDone').addEventListener('click', () => {
+  const name = propertyName.value.trim();
+  if (!name) { propertyName.focus(); return; }
+  addPropertyChip(name, propertyKind.value, propertyRequired.checked);
+  closePropertyEditor();
+  dirty();
+});
+
+/* Removing a chip is a prototype nicety — the static chips above
+   carry the same button. */
+propertyChips.addEventListener('click', (e) => {
+  const x = e.target.closest('.chip-x');
+  if (!x) return;
+  x.closest('.chip').remove();
+  dirty();
+});
+
+/* ── Single-Unit Items ───────────────────────────────────────
+   The switch at the right of the Units label. Turning it on keeps
+   the catalog's first unit type and drops the rest — a unique record
+   cannot be two different objects — and that one type keeps only a
+   name and an allocation. */
+const singleBox  = document.getElementById('singleUnitBox');
+const unitsHelp  = document.getElementById('unitsHelp');
+
+const UNITS_HELP = unitsHelp.textContent;
+const SINGLE_HELP =
+  'Every item in this catalog is one unique object at one location. Its unit type ' +
+  'takes a name and what a record is committed to — there is no quantity to count ' +
+  'and nothing that varies between units.';
 
 function renderSingleUnit() {
-  const stuck = cfg.unitTypes.length > 1 && !cfg.singleUnit;
+  singleBox.checked = cfg.singleUnit;
+  unitsHelp.textContent = cfg.singleUnit ? SINGLE_HELP : UNITS_HELP;
 
-  singleBox.checked  = cfg.singleUnit;
-  singleBox.disabled = stuck;
-  singleRow.classList.toggle('is-stuck', stuck);
-  singleRow.title = stuck
-    ? 'A catalog with single unit items can only have one unit type.' : '';
-
+  /* One unit type is the whole point of a single-unit catalog, so
+     there is nothing to add to. */
   addTypeBtn.disabled = cfg.singleUnit;
   addTypeBtn.title = cfg.singleUnit
     ? 'A single-unit catalog holds exactly one unit type' : '';
 }
 
 singleBox.addEventListener('change', () => {
+  /* Turning it on keeps the first unit type and drops the rest: a
+     unique record cannot be two different objects. That loses work,
+     so it goes through the dialog rather than happening on the
+     click. Turning it off costs nothing and just happens. */
+  if (singleBox.checked && cfg.unitTypes.length > 1) { askSingleUnit(); return; }
   cfg.singleUnit = singleBox.checked;
-  /* Turning it on strips the type's quantity and forces its
-     allocation to a user; turning it off gives the quantity back.
-     One normalizer decides both. */
   INV.normalizeConfig(cfg);
   render();
   dirty();
@@ -103,7 +183,6 @@ singleBox.addEventListener('change', () => {
 /* ── Unit type rows ────────────────────────────────────────
    Read-only summaries. Editing and deleting are the hover
    actions at the trailing edge. --------------------------- */
-let confirmingId = null;
 
 function measureOf(type) {
   return cfg.singleUnit
@@ -149,15 +228,6 @@ function render() {
   const last = cfg.unitTypes.length === 1;
 
   cfg.unitTypes.forEach(type => {
-    if (type.id === confirmingId) {
-      const row = templates.confirm.content.firstElementChild.cloneNode(true);
-      row.querySelector('[data-cell="name"]').textContent = type.name;
-      row.querySelector('[data-cell="consequence"]').textContent = consequenceOf(type);
-      row.querySelector('[data-confirm-delete]').dataset.confirmDelete = type.id;
-      listEl.appendChild(row);
-      return;
-    }
-
     const row = templates.row.content.firstElementChild.cloneNode(true);
     row.dataset.row = type.id;
     row.querySelector('[data-cell="name"]').textContent    = type.name;
@@ -198,6 +268,7 @@ const nameInput   = document.getElementById('typeName');
 const allocGroup  = document.getElementById('allocGroup');
 const allocHelp   = document.getElementById('allocHelp');
 const allocWarning = document.getElementById('allocWarning');
+const allocNone    = document.getElementById('allocNone');
 const measuredHalf = document.getElementById('measuredHalf');
 const qtyDimension = document.getElementById('qtyDimension');
 const qtyUom       = document.getElementById('qtyUom');
@@ -298,15 +369,19 @@ function renderAllocWarning() {
   allocWarning.hidden = affected === 0;
   allocWarning.textContent = affected === 0 ? '' :
     `Changing this releases ${affected} allocated ${affected === 1 ? 'unit' : 'units'}. ` +
-    `A job number is not a person's name, so the values cannot carry over.`;
+    `The two kinds of allocation hold different values, so they cannot carry over.`;
 }
 
 function renderBuilder() {
   const allocation = INV.allocationKind(draft);
 
   presetField.hidden = !!editingId;
-  allocGroup.hidden = cfg.singleUnit;
+  allocGroup.hidden = false;
+  /* A unique record has no quantity to count and nothing that varies
+     between its units, so the measured half is not offered. */
   measuredHalf.hidden = cfg.singleUnit;
+  /* None is a single-unit answer only. */
+  allocNone.hidden = !cfg.singleUnit;
 
   nameInput.value = draft.name;
   allocHelp.textContent = allocation.help;
@@ -343,8 +418,9 @@ function openBuilder(id) {
     ? JSON.parse(JSON.stringify(cfg.unitTypes.find(t => t.id === id)))
     : blankType();
 
-  if (cfg.singleUnit) draft.allocateTo = 'user';
-  else if (draft.allocateTo !== 'user') draft.allocateTo = 'job';
+  if (cfg.singleUnit) {
+    if (!['user', 'job', 'none'].includes(draft.allocateTo)) draft.allocateTo = 'user';
+  } else if (draft.allocateTo !== 'user') draft.allocateTo = 'job';
   draft.qty = draft.qty || { dimension: 'count', uom: 'ea', default: null };
   draft.fields = draft.fields || [];
   allocateWas = id ? draft.allocateTo : null;
@@ -449,7 +525,7 @@ addFieldBtn.addEventListener('click', () => {
 
 allocGroup.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-alloc]');
-  if (!btn || cfg.singleUnit || btn.dataset.alloc === draft.allocateTo) return;
+  if (!btn || btn.dataset.alloc === draft.allocateTo) return;
   draft.allocateTo = btn.dataset.alloc;
   renderBuilder();
 });
@@ -464,7 +540,9 @@ presetPick.addEventListener('change', () => {
   draft.id = id;
   draft.qty = draft.qty || { dimension: 'count', uom: 'ea', default: null };
   draft.fields = draft.fields || [];
-  if (cfg.singleUnit) draft.allocateTo = 'user';
+  if (cfg.singleUnit && !['user', 'job', 'none'].includes(draft.allocateTo)) {
+    draft.allocateTo = 'user';
+  }
   renderBuilder();
 });
 
@@ -484,7 +562,6 @@ document.getElementById('unitFlyoutDone').addEventListener('click', () => {
   if (!draft.name.trim()) draft.name = cfg.singleUnit ? 'Records' : 'Units';
 
   if (cfg.singleUnit) {
-    draft.allocateTo = 'user';
     draft.qty = null;
     draft.fields = [];
   } else {
@@ -525,21 +602,10 @@ flyout.addEventListener('click', (e) => {
 /* ── List actions ──────────────────────────────────────────── */
 listEl.addEventListener('click', (e) => {
   const edit = e.target.closest('[data-edit]');
-  if (edit) { confirmingId = null; render(); openBuilder(edit.dataset.edit); return; }
+  if (edit) { openBuilder(edit.dataset.edit); return; }
 
   const del = e.target.closest('[data-delete]');
-  if (del && !del.disabled) { confirmingId = del.dataset.delete; render(); return; }
-
-  if (e.target.closest('[data-cancel-delete]')) { confirmingId = null; render(); return; }
-
-  const confirm = e.target.closest('[data-confirm-delete]');
-  if (confirm) {
-    cfg.unitTypes = cfg.unitTypes.filter(t => t.id !== confirm.dataset.confirmDelete);
-    confirmingId = null;
-    render();
-    dirty();
-    return;
-  }
+  if (del && !del.disabled) { openConfirm(del.dataset.delete); return; }
 
   /* Clicking the row is a shortcut to Edit; the buttons above are
      the keyboard path. */
@@ -547,10 +613,78 @@ listEl.addEventListener('click', (e) => {
   if (row) openBuilder(row.dataset.row);
 });
 
+/* ── Destructive confirmation ───────────────────────────────
+   One dialog for both things on this page that lose work:
+   deleting a unit type, and turning Single-Unit Items on while
+   the catalog still has more than one. The caller supplies the
+   words and what to do on confirm.
+   Angular: a signal for the pending action and the dev team's own
+   confirm component. */
+const confirmModal = document.getElementById('confirmModal');
+let confirmAction = null;
+
+function askConfirm({ title, body, action, confirmLabel }) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmBody').textContent  = body;
+  document.getElementById('confirmDelete').textContent = confirmLabel;
+  confirmAction = action;
+  confirmModal.classList.add('open');
+}
+
+function openConfirm(typeId) {
+  const type = cfg.unitTypes.find(t => t.id === typeId);
+  if (!type) return;
+  askConfirm({
+    title: `Delete ${type.name}?`,
+    body: `${consequenceOf(type)} This cannot be undone.`,
+    confirmLabel: 'Delete Unit Type',
+    action: () => { cfg.unitTypes = cfg.unitTypes.filter(t => t.id !== type.id); }
+  });
+}
+
+/* Turning the switch on throws away every unit type but the first,
+   so it asks first and names what is going. */
+function askSingleUnit() {
+  const kept = cfg.unitTypes[0];
+  const losing = cfg.unitTypes.slice(1);
+  askConfirm({
+    title: 'Switch to single-unit items?',
+    body: `${losing.map(t => t.name).join(', ')} ` +
+      `${losing.length === 1 ? 'will be deleted, along with the stock' : 'will be deleted, along with all stock'} ` +
+      `recorded in ${losing.length === 1 ? 'it' : 'them'}. ${kept.name} is kept, and loses its ` +
+      `quantity and any additional fields. This cannot be undone.`,
+    confirmLabel: 'Switch to Single-Unit',
+    action: () => { cfg.singleUnit = true; }
+  });
+}
+
+function closeConfirm() {
+  confirmModal.classList.remove('open');
+  confirmAction = null;
+  /* The switch is a live control: if the dialog it opened was
+     dismissed, put it back the way the catalog actually is. */
+  singleBox.checked = cfg.singleUnit;
+}
+
+confirmModal.addEventListener('click', (e) => {
+  if (e.target === confirmModal || e.target.closest('[data-close-modal]')) closeConfirm();
+});
+
+document.getElementById('confirmDelete').addEventListener('click', () => {
+  const action = confirmAction;
+  closeConfirm();
+  if (!action) return;
+  action();
+  INV.normalizeConfig(cfg);
+  render();
+  dirty();
+});
+
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   if (flyout.classList.contains('open')) { closeBuilder(); return; }
-  if (confirmingId) { confirmingId = null; render(); }
+  if (propertyFlyout.classList.contains('open')) { closePropertyEditor(); return; }
+  if (confirmModal.classList.contains('open')) closeConfirm();
 });
 
 addTypeBtn.addEventListener('click', () => openBuilder(null));

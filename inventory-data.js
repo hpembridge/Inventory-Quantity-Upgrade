@@ -85,10 +85,10 @@
      let two rows in the same table mean different things by the same
      column.
 
-     A single-unit type is always 'user'. A unique record is a thing
-     somebody has — a die on a press, a board off the wall — and the
-     question a table of them has to answer is who has it. A job number
-     cannot answer that, so the choice is not offered. */
+     A single-unit type answers the same question with a third
+     option: a unique record can be out with a user, committed to a
+     job, or simply held — 'none'. A measured type is only ever a job
+     or a user. */
   const DEFAULT_CONFIG = {
     catalog: 'Bookcloth',
     singleUnit: false,
@@ -523,7 +523,11 @@
          ask the object in front of it rather than reaching for the
          config. The catalog is the only writer. */
       t.singleUnit = cfg.singleUnit;
-      t.allocateTo = (cfg.singleUnit || t.allocateTo === 'user') ? 'user' : 'job';
+      /* A single-unit record keeps its own answer — user, job or
+         nobody. A measured type is only ever a job or a user. */
+      t.allocateTo = cfg.singleUnit
+        ? (['user', 'job', 'none'].includes(t.allocateTo) ? t.allocateTo : 'user')
+        : (t.allocateTo === 'user' ? 'user' : 'job');
       t.fields = Array.isArray(t.fields) ? t.fields : [];
 
       /* A single-unit record has no quantity: one record is one thing. */
@@ -616,12 +620,18 @@
     job:  { key: 'job',  label: 'Job', column: 'Job Number',
             help: 'Stock is committed to a job. A six-digit job number releases or claims a unit.' },
     user: { key: 'user', label: 'User', column: 'Allocated to',
-            help: 'Stock goes out to a person. A name releases or claims a unit.' }
+            help: 'Stock goes out to a person. A name releases or claims a unit.' },
+    /* Single-unit catalogs only: a record that is simply held, with
+       no job and nobody to answer for it. */
+    none: { key: 'none', label: 'None', column: 'Allocated to',
+            help: 'Nothing is committed. The record is just held at its location.' }
   };
 
   function allocationKind(unitType) {
-    if (unitType && unitType.singleUnit) return ALLOCATION_KINDS.user;
-    return ALLOCATION_KINDS[(unitType && unitType.allocateTo) || 'job'];
+    if (unitType && unitType.singleUnit) {
+      return ALLOCATION_KINDS[unitType.allocateTo] || ALLOCATION_KINDS.user;
+    }
+    return ALLOCATION_KINDS[(unitType && unitType.allocateTo) === 'user' ? 'user' : 'job'];
   }
 
   function sumOf(t, units, keep, value) {

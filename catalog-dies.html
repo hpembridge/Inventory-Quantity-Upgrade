@@ -181,7 +181,7 @@
             </button>
             <button class="icon-btn" type="button" data-edit
                     title="Edit die details" aria-label="Edit die details">
-              <i class="fa-regular fa-pen-to-square"></i>
+              <i class="fa-regular fa-pen"></i>
             </button>
           </div>
         </td>
@@ -573,8 +573,12 @@
          ?panel=add-item opens the aside on load, so the structure map
          on the index page can point at a panel and not just a page.
          --------------------------------------------------------- */
-      if (new URLSearchParams(location.search).get('panel') === 'add-item') {
+      const deepPanel = new URLSearchParams(location.search).get('panel');
+      if (deepPanel === 'add-item') {
         openEditor(null);
+      }
+      if (deepPanel === 'activity-log' && DIES.length) {
+        ActivityLog.open({ caption: captionFor(DIES[0]), entries: DIES[0].history });
       }
     </script>
   </body>
