@@ -137,6 +137,12 @@
           <input class="input" id="pickerInput" type="search"
                  placeholder="Find a library" autocomplete="off" aria-label="Find a library" />
 
+          <!-- Sits above the list so a brand-new library never depends on
+               a search turning up empty first. -->
+          <button class="add-row" type="button" id="pickerCreateNew">
+            <span class="add-label"><i class="fa-regular fa-plus"></i> Create Library</span>
+          </button>
+
           <ul class="lib-picker-list" id="pickerList"></ul>
 
           <div id="pickerNone" hidden>
@@ -199,7 +205,7 @@
     </template>
 
     <template id="libOptionTemplate">
-      <li>
+      <li class="lib-option-row" data-row>
         <button class="lib-option" type="button" data-toggle>
           <span class="lib-option-name" data-option-name></span>
           <span class="lib-option-meta" data-option-meta></span>
@@ -208,6 +214,21 @@
             <span class="lib-option-act"><i class="fa-solid fa-xmark"></i> Remove</span>
           </span>
         </button>
+
+        <button class="icon-btn" type="button" data-edit-lib aria-label="Edit library name">
+          <i class="fa-regular fa-pen"></i>
+        </button>
+
+        <!-- While editing: swaps in for the two buttons above, at rest. -->
+        <span class="lib-option-edit" data-option-edit hidden>
+          <input class="input" type="text" data-edit-input autocomplete="off" aria-label="Library name" />
+          <button class="icon-btn" type="button" data-save-lib aria-label="Save library name">
+            <i class="fa-solid fa-check"></i>
+          </button>
+          <button class="icon-btn" type="button" data-cancel-lib aria-label="Cancel">
+            <i class="fa-regular fa-xmark"></i>
+          </button>
+        </span>
       </li>
     </template>
 
@@ -219,8 +240,9 @@
          company. What differs per person is which ones they keep as
          tabs, which is why hiding one changes only this view.
 
-         Prototype-only: the mock data, and Add Catalog / Create Library
-         which are affordances without behaviour.
+         Prototype-only: the mock data, and Add Catalog, which is an
+         affordance without behaviour. Create Library and renaming a
+         library from the picker are both wired up below.
          Would become Angular: the tab and catalog row as @for blocks,
          the three overlays as components, and the view list as user
          state on the server.
@@ -355,12 +377,79 @@
       const pickerList   = document.getElementById('pickerList');
       const pickerNone   = document.getElementById('pickerNone');
 
+      /* A library id is a slug of its name, made unique with a numeric
+         suffix if two libraries would otherwise collide. */
+      function uniqueLibId(name) {
+        const base = `lib-${name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}` || 'lib';
+        let id = base, n = 2;
+        while (INV.LIBRARIES.some(l => l.id === id)) id = `${base}-${n++}`;
+        return id;
+      }
+
+      /* ── Rename / create, in place ──────────────────────────────
+         One row edits at a time. `editingIsNew` marks a library that
+         only exists because Create Library was clicked — Cancel on
+         that row undoes the create rather than leaving a blank behind.
+         --------------------------------------------------------- */
+      let editingLibId = null;
+      let editingIsNew = false;
+
+      function cancelEditing() {
+        if (editingIsNew && editingLibId) {
+          const index = INV.LIBRARIES.findIndex(l => l.id === editingLibId);
+          if (index > -1) INV.LIBRARIES.splice(index, 1);
+        }
+        editingLibId = null;
+        editingIsNew = false;
+      }
+
+      function startEditing(id) {
+        if (editingLibId) cancelEditing();
+        editingLibId = id;
+        editingIsNew = false;
+        renderPicker();
+      }
+
+      function createBlankLibrary() {
+        if (editingLibId) cancelEditing();
+        const id = uniqueLibId('New Library');
+        INV.LIBRARIES.push({ id, name: '', catalogs: [] });
+        editingLibId = id;
+        editingIsNew = true;
+        renderPicker();
+      }
+
+      function saveEditing(id) {
+        const library = INV.libraryById(id);
+        const row   = pickerList.querySelector(`[data-row="${id}"]`) || pickerList.querySelector('.lib-option-row.is-editing');
+        const input = row.querySelector('[data-edit-input]');
+        const name  = input.value.trim();
+
+        /* A library with no name would be unfindable in the picker. */
+        if (!name) {
+          input.classList.add('invalid');
+          input.focus();
+          window.toast('Give the library a name.', 'error');
+          return;
+        }
+
+        library.name = name;
+        if (editingIsNew) library.id = uniqueLibId(name);
+        INV.saveLibraries();
+
+        editingLibId = null;
+        editingIsNew = false;
+        renderPicker();
+        render();
+      }
+
       function renderPicker() {
         const query = pickerInput.value.trim().toLowerCase();
-        const matches = INV.LIBRARIES.filter(l => !query || l.name.toLowerCase().includes(query));
+        const matches = INV.LIBRARIES.filter(l =>
+          l.id === editingLibId || !query || l.name.toLowerCase().includes(query));
 
         pickerList.replaceChildren();
-        pickerNone.hidden = matches.length > 0;
+        pickerNone.hidden = matches.length > 0 || !!editingLibId;
         document.getElementById('pickerQuery').textContent = pickerInput.value.trim();
 
         /* The last library open cannot be turned off: the page always
@@ -370,6 +459,10 @@
 
         matches.forEach(library => {
           const item = templates.option.content.firstElementChild.cloneNode(true);
+          const isEditing = library.id === editingLibId;
+          item.dataset.row = library.id;
+          item.classList.toggle('is-editing', isEditing);
+
           const button = item.querySelector('[data-toggle]');
           const open = openIds.includes(library.id);
           const stuck = open && last;
@@ -377,6 +470,7 @@
           button.dataset.toggle = library.id;
           button.classList.toggle('is-on', open);
           button.setAttribute('aria-pressed', open);
+          button.hidden = isEditing;
 
           item.querySelector('[data-option-name]').textContent = library.name;
           item.querySelector('[data-option-meta]').textContent =
@@ -390,23 +484,49 @@
             mark.querySelector('.lib-option-act').remove();
           }
 
+          const editBtn = item.querySelector('[data-edit-lib]');
+          editBtn.dataset.editLib = library.id;
+          editBtn.title = `Edit ${library.name || 'library'} name`;
+          editBtn.hidden = isEditing;
+
+          const editWrap = item.querySelector('[data-option-edit]');
+          editWrap.hidden = !isEditing;
+          const editInput = item.querySelector('[data-edit-input]');
+          editInput.value = library.name;
+
           pickerList.appendChild(item);
+
+          if (isEditing) {
+            requestAnimationFrame(() => { editInput.focus(); editInput.select(); });
+          }
         });
       }
 
       function openPicker() {
         pickerInput.value = '';
+        cancelEditing();
         renderPicker();
         addLibFlyout.classList.add('open');
         pickerInput.focus();
       }
 
       function closePicker() {
+        cancelEditing();
         addLibFlyout.classList.remove('open');
       }
 
       addLibFlyout.addEventListener('click', (e) => {
         if (e.target === addLibFlyout || e.target.closest('[data-close]')) { closePicker(); return; }
+
+        const editBtn = e.target.closest('[data-edit-lib]');
+        if (editBtn) { startEditing(editBtn.dataset.editLib); return; }
+
+        const saveBtn = e.target.closest('[data-save-lib]');
+        if (saveBtn) { saveEditing(editingLibId); return; }
+
+        const cancelBtn = e.target.closest('[data-cancel-lib]');
+        if (cancelBtn) { cancelEditing(); renderPicker(); return; }
+
         const option = e.target.closest('[data-toggle]');
         if (option) {
           if (option.getAttribute('aria-disabled') === 'true') return;
@@ -415,9 +535,26 @@
           renderPicker();
           return;
         }
-        /* Prototype: a real create would name the library and set who it
-           belongs to before it appears as a tab. */
-        if (e.target.closest('#pickerCreate')) closePicker();
+
+        if (e.target.closest('#pickerCreateNew')) { createBlankLibrary(); return; }
+
+        /* Pulls the name straight from the search bar, so this row is
+           already saved — no editing step, unlike Create Library. */
+        if (e.target.closest('#pickerCreate')) {
+          const name = pickerInput.value.trim();
+          if (!name) return;
+          INV.LIBRARIES.push({ id: uniqueLibId(name), name, catalogs: [] });
+          INV.saveLibraries();
+          pickerInput.value = '';
+          renderPicker();
+        }
+      });
+
+      addLibFlyout.addEventListener('keydown', (e) => {
+        if (e.target.matches('[data-edit-input]')) {
+          if (e.key === 'Enter') { e.preventDefault(); saveEditing(editingLibId); }
+          else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); cancelEditing(); renderPicker(); }
+        }
       });
 
       pickerInput.addEventListener('input', renderPicker);
@@ -425,7 +562,7 @@
       /* Down from the field moves into the list and walks it; up walks
          back and returns to the field from the top. */
       addLibFlyout.addEventListener('keydown', (e) => {
-        const options = [...pickerList.querySelectorAll('.lib-option')];
+        const options = [...pickerList.querySelectorAll('.lib-option')].filter(el => !el.hidden);
 
         if (e.target === pickerInput) {
           if (e.key === 'ArrowDown' && options.length) { e.preventDefault(); options[0].focus(); }
@@ -521,7 +658,10 @@
         if (e.key !== 'Escape') return;
         if (libFlyout.classList.contains('open')) { libFlyout.classList.remove('open'); return; }
         if (modal.classList.contains('open')) { modal.classList.remove('open'); return; }
-        if (addLibFlyout.classList.contains('open')) { closePicker(); pickerBtn.focus(); }
+        if (addLibFlyout.classList.contains('open')) {
+          if (editingLibId) { cancelEditing(); renderPicker(); return; }
+          closePicker(); pickerBtn.focus();
+        }
       });
 
       render();

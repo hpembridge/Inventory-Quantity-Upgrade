@@ -306,8 +306,18 @@ table.data th {
   padding: 0;
 }
 
+/* The row: the toggle button and its edit affordance at rest, or the
+   rename field and its save/cancel once editing starts. Only one of
+   the two ever shows, so the row's height does not jump between them. */
+.lib-option-row {
+  display: flex;
+  align-items: center;
+  gap: var(--scale-100);
+}
+
 .lib-option {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: baseline;
   gap: var(--scale-200);
@@ -324,6 +334,23 @@ table.data th {
 .lib-option:focus-visible { outline: 2px solid var(--border-focus); outline-offset: -2px; }
 .lib-option-name { color: var(--text-primary); font-weight: var(--font-weight-medium); }
 .lib-option-meta { color: var(--text-tertiary); }
+
+/* The edit button sits at rest beside the toggle; hidden while
+   editing, same as the toggle button itself. */
+.lib-option-row [data-edit-lib] { flex-shrink: 0; }
+
+/* While editing: the rename field takes the toggle's place, flanked by
+   Save and Cancel — the same shape as Library Settings' own field,
+   just inline. */
+.lib-option-edit {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--scale-100);
+}
+.lib-option-edit .input { flex: 1; min-width: 0; }
+.lib-option-edit [data-save-lib] { color: var(--interactive-default); flex-shrink: 0; }
+.lib-option-edit [data-cancel-lib] { flex-shrink: 0; }
 /* Already in the view: shown, not hidden, so the list is the whole
    picture of what this person has and could have — and the row is the
    way back out again. The mark states what is true at rest and what a
