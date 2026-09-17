@@ -23,6 +23,21 @@ ID,Work Item Type,Title 1,Title 2,Title 3,Description,Acceptance Criteria,Assign
 - The confirmation states that the action cannot be undone.
 - Deleting removes the library and moves the view to another one.
 - The last remaining library cannot be deleted; the control is disabled and states why.",,New,,,Inventory; Quantity; Libraries,3,1
+,User Story,,,Create a library from the picker,"As an administrator, I want to create a brand-new library from the Add a Library panel, so that I am not limited to what is already listed or to what I happened to search for.","- A Create Library button sits above the list at all times, not only when a search comes up empty.
+- Clicking it adds a new row at the top of the list already in its editing state, with an empty name field focused and its text selected.
+- Save requires a name; an empty name is refused with the same inline error used elsewhere: a library with no name would be unfindable.
+- Cancel, or Escape while the field is focused, removes the row entirely rather than leaving an unnamed library behind.
+- Escape while editing cancels only the edit; it does not close the whole panel.
+- Saving adds the library to the company list. It is not added to my view automatically — it is then one click away, like any other library.",,New,,,Inventory; Quantity; Libraries,3,1
+,User Story,,,Create a library from a search that finds nothing,"As a user, I want to create a library using the text I searched for when nothing matches, so that I do not have to leave the panel to name one from scratch.","- When my search text matches no library, the panel shows “No library called ‘[query]’” with a Create it button.
+- Create it saves immediately using the typed text as the name — there is no separate editing step, unlike Create Library.
+- The new library appears in the list and the search field clears, so the full company list is visible again.
+- The library is added to the company list but not automatically to my view.",,New,,,Inventory; Quantity; Libraries,2,1
+,User Story,,,Rename a library from the picker,"As an administrator, I want to rename a library directly from its row in Add a Library, so that a simple rename does not require opening Library Settings.","- Each row in the panel has a pencil beside it. Selecting it swaps that row's toggle for an inline name field, focused with its text selected.
+- Save (a check) and Cancel (an x) replace the pencil and the toggle while editing.
+- Save requires a name; an empty name is refused with the same inline error used in Library Settings.
+- Escape cancels the edit without closing the panel. Starting to edit a different row discards an unsaved edit on the first without prompting.
+- Saving updates the name everywhere it appears — the tab, the panel title and the breadcrumb above every catalog inside it — the same as renaming from Library Settings.",,New,,,Inventory; Quantity; Libraries,3,1
 ,Feature,,Catalog configuration,,An administrator configures what a catalog holds. Two levels of setting: Single-Unit Items belongs to the catalog and is a claim about what a row on its page is; everything in the unit type builder belongs to a unit type and describes how one kind of stock is held.,,,New,,,Inventory; Quantity; Catalog settings,,1
 ,User Story,,,Define a unit type,"As an administrator, I want to define a unit type by saying what its stock is counted in, so that a catalog can hold any kind of stock.","- A unit type is: a name, what it allocates to, a quantity dimension with its unit of measure and an optional default, and any number of added fields.
 - The dimension list is controlled - Length, Width, Height, Count - so the same field means the same thing in every catalog.
