@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bookcloth — Items (Property Filters)</title>
+    <script src="https://kit.fontawesome.com/da08280601.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="shared/css/design-tokens.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=optional" rel="stylesheet" />
+    <link rel="stylesheet" href="inventory.css" />
+    <link rel="stylesheet" href="components/breadcrumbs/breadcrumbs.css" />
+    <link rel="stylesheet" href="components/catalog-filters/catalog-filters.css" />
+    <script src="inventory-data.js"></script>
+    <script src="bookcloth-full-data.js"></script>
+    <script src="components/catalog-filters/catalog-filters.js"></script>
+    <script>
+      window.SIDEBAR_CONFIG = {
+        activeItem: 'Inventory',
+        user: { name: 'Healey Pembridge', role: 'team member' }
+      };
+    </script>
+  </head>
+  <body>
+    <script src="shared/components/sidebar-component.js"></script>
+
+    <div class="main-content">
+
+      <!-- ══ Breadcrumbs ══════════════════════════════════════════ -->
+      <div class="breadcrumb-bar">
+        <nav class="breadcrumbs">
+          <a class="crumb" href="inventory.html"><i class="fa-regular fa-pallet-boxes"></i> Inventory</a>
+          <i class="fa-regular fa-chevron-right crumb-sep"></i>
+          <a class="crumb" href="inventory.html"><i class="fa-regular fa-layer-group"></i> Materials</a>
+          <i class="fa-regular fa-chevron-right crumb-sep"></i>
+          <span class="crumb current"><i class="fa-regular fa-book"></i> Bookcloth</span>
+        </nav>
+      </div>
+
+      <div class="page-scroll">
+        <div class="page-inner">
+
+          <!-- ══ Catalog header ═════════════════════════════════════ -->
+          <a class="back-link" href="catalog.html">
+            <i class="fa-regular fa-arrow-left"></i> Back to Materials
+          </a>
+
+          <div class="title-row">
+            <h5 id="catalogName">Bookcloth</h5>
+          </div>
+          <!-- ══ end Catalog header ═════════════════════════════════ -->
+
+          <div class="page-stack">
+
+            <!-- ══ Search ═══════════════════════════════════════════ -->
+            <div class="search-panel">
+              <input class="search-input" type="search" id="search"
+                     placeholder="Search by item name or swatch number" autocomplete="off" />
+              <div class="search-count" id="searchCount" hidden></div>
+            </div>
+
+            <!-- ══ Property Filters ═════════════════════════════════
+                 One filter menu per filterable catalog property.
+                 HTML: the bar + chip row here, and the three
+                 templates below (button/popover, option row, chip).
+                 CSS:  components/catalog-filters/catalog-filters.css
+                 JS:   components/catalog-filters/catalog-filters.js
+                 ─────────────────────────────────────────────────── -->
+            <div class="filter-bar" id="filterBar"></div>
+            <div class="filter-chips" id="filterChips" hidden></div>
+            <!-- ══ end Property Filters ═════════════════════════════ -->
+
+            <!-- ══ Items table ══════════════════════════════════════
+                 Same shape as catalog.html: Swatch + Item Name, then
+                 one column per configured unit type. Filtering narrows
+                 which rows appear here — it doesn't change what a row
+                 shows. Angular: @for over the filtered item list, with
+                 a nested @for over unit types, same as catalog.html.
+                 ─────────────────────────────────────────────────── -->
+            <div class="page-card is-flush">
+              <div class="table-wrap">
+                <table class="data">
+                  <thead>
+                    <tr id="headRow">
+                      <th class="col-swatch">
+                        <button class="th-sort" type="button" data-sort="swatch">
+                          <span>Swatch</span><i class="fa-solid fa-sort sort-caret"></i>
+                        </button>
+                      </th>
+                      <th class="left">
+                        <button class="th-sort" type="button" data-sort="name">
+                          <span>Item Name</span><i class="fa-solid fa-sort sort-caret"></i>
+                        </button>
+                      </th>
+                      <!-- unit type columns appended here -->
+                    </tr>
+                  </thead>
+                  <tbody id="rows"></tbody>
+                </table>
+                <div class="table-empty" id="emptyState" hidden></div>
+              </div>
+            </div>
+            <!-- ══ end Items table ══════════════════════════════════ -->
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ Row template ═══════════════════════════════════════════
+         Matches catalog.html: Swatch, Item Name, then one unit cell
+         per configured unit type (appended below via #unitCellTemplate).
+         No item-detail page exists in this prototype, so the name is
+         plain text rather than the link catalog.html uses.
+         ─────────────────────────────────────────────────────────── -->
+    <template id="itemRowTemplate">
+      <tr>
+        <td class="swatch" data-cell="swatch"></td>
+        <td class="left" data-cell="name"></td>
+        <!-- unit type cells appended here -->
+      </tr>
+    </template>
+
+    <template id="unitColumnHeaderTemplate">
+      <th class="col-num">
+        <button class="th-sort" type="button" data-sort>
+          <span>
+            <span data-column-name></span>
+            <span class="th-measure" data-column-measure></span>
+          </span>
+          <i class="fa-solid fa-sort sort-caret"></i>
+        </button>
+      </th>
+    </template>
+
+    <template id="unitCellTemplate">
+      <td class="qty strong">
+        <span data-cell="figure"></span>
+        <span class="pill" data-cell="pill" hidden></span>
+      </td>
+    </template>
+
+    <!-- ══ Filter templates ═════════════════════════════════════════
+         Cloned by components/catalog-filters/catalog-filters.js —
+         one button+popover per property, one row per distinct value,
+         one chip per active filter. Markup lives here so it reads as
+         real page structure, not a JS-built string.
+         ───────────────────────────────────────────────────────────── -->
+    <template id="filterButtonTemplate">
+      <div class="filter-menu">
+        <button class="filter-btn" type="button" data-filter-toggle>
+          <span data-filter-label></span>
+          <span class="filter-count" data-filter-count hidden></span>
+          <i class="fa-regular fa-chevron-down filter-caret"></i>
+        </button>
+        <div class="filter-popover" data-filter-popover hidden>
+          <div class="filter-popover-search">
+            <i class="fa-regular fa-magnifying-glass"></i>
+            <input class="filter-popover-input" type="text" data-filter-search autocomplete="off" />
+          </div>
+          <div class="filter-popover-actions">
+            <button class="filter-link" type="button" data-filter-all>Select all</button>
+            <button class="filter-link" type="button" data-filter-none>Clear</button>
+          </div>
+          <div class="filter-popover-list" data-filter-list></div>
+        </div>
+      </div>
+    </template>
+
+    <template id="filterOptionTemplate">
+      <label class="filter-option">
+        <input type="checkbox" data-filter-checkbox />
+        <span class="filter-option-label" data-filter-option-label></span>
+        <span class="filter-option-count" data-filter-option-count></span>
+      </label>
+    </template>
+
+    <template id="filterChipTemplate">
+      <span class="chip removable" data-filter-chip>
+        <span class="chip-label" data-chip-label></span>
+        <span class="chip-value" data-chip-value></span>
+        <button class="chip-x" type="button" data-chip-remove aria-label="Remove filter">
+          <i class="fa-regular fa-xmark"></i>
+        </button>
+      </span>
+    </template>
+    <!-- ══ end Filter templates ═════════════════════════════════════ -->
+
+    <script>
+      /* ============================================================
+         Bookcloth — property filters over the real item set
+         ------------------------------------------------------------
+         Same table as catalog.html — Swatch, Item Name, one column
+         per unit type — with a filter bar added above it. Filtering
+         only changes which rows are in `list`; every render/sort/unit
+         -column function below is copied from catalog.html unchanged
+         so the two pages stay one table, not two.
+
+         No item-detail page exists for these items in this prototype
+         (out of scope per the original ask), so unlike catalog.html
+         the name is plain text and the row does not link anywhere.
+
+         Prototype-only: the mock stock figures, the sort, the name
+         search, and CatalogFilters' predicate. Would become Angular:
+         the row template as an @for with a nested @for over unit
+         types, the sort as a pipe, and the filter predicate as a
+         query filter run server-side once the list is this long.
+         ============================================================ */
+      const INV = window.INVENTORY;
+      const cfg = INV.loadConfig();
+      const DATA = window.BOOKCLOTH_FULL;
+      const ITEMS = DATA.items;
+
+      document.getElementById('catalogName').textContent = 'Bookcloth';
+
+      const headRow   = document.getElementById('headRow');
+      const rowsEl    = document.getElementById('rows');
+      const emptyEl   = document.getElementById('emptyState');
+      const countEl   = document.getElementById('searchCount');
+      const searchEl  = document.getElementById('search');
+
+      const headerTemplate = document.getElementById('unitColumnHeaderTemplate');
+      const rowTemplate    = document.getElementById('itemRowTemplate');
+      const cellTemplate   = document.getElementById('unitCellTemplate');
+
+      /* ── Column headers — one per unit type, carrying its unit ── */
+      function renderHead() {
+        headRow.querySelectorAll('th.col-num').forEach(th => th.remove());
+
+        cfg.unitTypes.forEach(type => {
+          const th = headerTemplate.content.firstElementChild.cloneNode(true);
+          th.querySelector('[data-column-name]').textContent = type.name;
+          th.querySelector('[data-column-measure]').textContent =
+            `(${INV.quantityUnitLabel(type)})`;
+          th.querySelector('[data-sort]').dataset.sort = 'ut:' + type.id;
+          headRow.appendChild(th);
+        });
+      }
+
+      const STATE_PILL = {
+        low:  { cls: 'pill-warn',   note: 'Running low on available stock.' },
+        over: { cls: 'pill-danger', note: 'Allocated stock exceeds in-house stock.' }
+      };
+
+      /* ── Sorting ───────────────────────────────────────────────── */
+      let sort = { key: null, dir: 'asc' };
+
+      function readSortValue(item, key) {
+        if (key === 'swatch') return item.swatch;
+        if (key === 'name')   return item.name;
+        const type = INV.unitTypeById(cfg, key.slice(3));
+        return type ? INV.itemQty(item, type).available : '';
+      }
+
+      function sortItems(list) {
+        if (!sort.key) return list;
+        const dir = sort.dir === 'asc' ? 1 : -1;
+        const blank = (x) => x === null || x === undefined || x === '';
+        const text = sort.key === 'name';
+
+        return list.slice().sort((a, b) => {
+          const av = readSortValue(a, sort.key), bv = readSortValue(b, sort.key);
+          if (blank(av) && blank(bv)) return 0;
+          if (blank(av)) return 1;
+          if (blank(bv)) return -1;
+          return text
+            ? String(av).localeCompare(String(bv), undefined, { numeric: true }) * dir
+            : (av - bv) * dir;
+        });
+      }
+
+      function renderSortCarets() {
+        headRow.querySelectorAll('[data-sort]').forEach(btn => {
+          const on = btn.dataset.sort === sort.key;
+          btn.classList.toggle('is-sorted', on);
+          const caret = btn.querySelector('.sort-caret');
+          caret.className = 'fa-solid sort-caret ' +
+            (on ? (sort.dir === 'asc' ? 'fa-sort-up' : 'fa-sort-down') : 'fa-sort');
+        });
+      }
+
+      /* ── Rows ──────────────────────────────────────────────────── */
+      function nameMatches(item, q) {
+        if (!q) return true;
+        return item.name.toLowerCase().includes(q) || String(item.swatch).includes(q);
+      }
+
+      function render() {
+        renderSortCarets();
+        const q = searchEl.value.trim().toLowerCase();
+        const base = filters.getFilteredItems().filter(it => nameMatches(it, q));
+        const list = sortItems(base);
+
+        rowsEl.replaceChildren();
+        list.forEach(item => {
+          const row = rowTemplate.content.firstElementChild.cloneNode(true);
+          row.querySelector('[data-cell="swatch"]').textContent = item.swatch;
+          row.querySelector('[data-cell="name"]').textContent = item.name;
+
+          cfg.unitTypes.forEach(type => {
+            const cell = cellTemplate.content.firstElementChild.cloneNode(true);
+            const figures = INV.itemQty(item, type);
+            const state = STATE_PILL[INV.stockState(figures)];
+            const value = INV.fmt(figures.available);
+
+            const plain = cell.querySelector('[data-cell="figure"]');
+            const pill  = cell.querySelector('[data-cell="pill"]');
+
+            if (state) {
+              pill.textContent = value;
+              pill.classList.add(state.cls);
+              pill.title = state.note;
+              pill.hidden = false;
+              plain.hidden = true;
+            } else {
+              plain.textContent = value;
+            }
+            row.appendChild(cell);
+          });
+
+          rowsEl.appendChild(row);
+        });
+
+        emptyEl.hidden = list.length > 0;
+        emptyEl.textContent = 'No items match the current search and filters.';
+        countEl.hidden = list.length === ITEMS.length;
+        countEl.textContent = `Showing ${list.length} of ${ITEMS.length} items`;
+      }
+
+      /* ── Property filters ─────────────────────────────────────── */
+      const filters = CatalogFilters.init({
+        properties: DATA.properties,
+        items: ITEMS,
+        barEl: document.getElementById('filterBar'),
+        chipsEl: document.getElementById('filterChips'),
+        extraPredicate: (item) => nameMatches(item, searchEl.value.trim().toLowerCase()),
+        onChange: () => render()
+      });
+
+      headRow.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-sort]');
+        if (!btn) return;
+        const key = btn.dataset.sort;
+        sort = sort.key === key
+          ? { key, dir: sort.dir === 'asc' ? 'desc' : 'asc' }
+          : { key, dir: 'asc' };
+        render();
+      });
+
+      searchEl.addEventListener('input', () => { filters.refresh(); render(); });
+
+      renderHead();
+      render();
+    </script>
+  </body>
+</html>

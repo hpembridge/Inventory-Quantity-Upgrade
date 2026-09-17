@@ -1,0 +1,185 @@
+/* ============================================================
+   Catalog property filters
+   ------------------------------------------------------------
+   One button per filterable catalog property, each opening a
+   popover: a short, single-purpose choice — which values of this
+   property are in view — so it is a popover and not an aside. The
+   list inside is the browse (every value the property currently
+   holds), but choosing among them is the short interaction; the
+   browsing is scoped to one property at a time, not "every
+   library in the company."
+
+   Angular: FilterBar → *ngFor over filterable properties, each a
+   FilterMenu. FilterMenu owns its own open/closed state and its
+   own popover; the active-filter chip row is a sibling that reads
+   the same filter state.
+
+   Local token: --shadow-popover. PL-SHARED has --shadow-panel, but
+   that one is cut for a flyout that opens from the right (a hard
+   left-hand edge, no vertical spread) and reads wrong under a
+   dropdown. Flagged here rather than proposed into PL-SHARED —
+   this prototype's call to make, not a system one.
+   ============================================================ */
+:root {
+  --shadow-popover: 0 4px 16px rgb(from var(--color-black) r g b / .18);
+}
+
+/* ── Filter bar ─────────────────────────────────────────────── */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--scale-200);
+}
+
+/* ── One filter menu: button + popover ─────────────────────── */
+.filter-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--scale-200);
+  height: var(--scale-800);
+  padding: 0 var(--scale-300);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--border-radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--fontsize-body-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+.filter-btn:hover { background: var(--interactive-bg-subtle); border-color: var(--interactive-default); }
+.filter-btn.is-active {
+  border-color: var(--interactive-default);
+  background: var(--interactive-bg-subtle);
+  color: var(--interactive-default);
+}
+.filter-btn .filter-caret {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  transition: transform var(--duration-fast);
+}
+.filter-menu.is-open .filter-caret { transform: rotate(180deg); }
+
+.filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--scale-500);
+  height: var(--scale-500);
+  padding: 0 var(--scale-100);
+  border-radius: var(--border-radius-full);
+  background: var(--interactive-default);
+  color: var(--color-white);
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ── The popover itself ─────────────────────────────────────── */
+.filter-popover {
+  position: absolute;
+  top: calc(100% + var(--scale-100));
+  left: 0;
+  z-index: 30;
+  width: 280px;
+  max-height: 360px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-popover);
+}
+
+.filter-popover-search {
+  display: flex;
+  align-items: center;
+  gap: var(--scale-200);
+  padding: var(--scale-300) var(--scale-300) var(--scale-200);
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.filter-popover-search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--fontsize-body-sm);
+  color: var(--text-primary);
+}
+.filter-popover-search input:focus { outline: none; }
+.filter-popover-search input::placeholder { color: var(--text-tertiary); }
+
+.filter-popover-actions {
+  display: flex;
+  gap: var(--scale-300);
+  padding: var(--scale-200) var(--scale-300);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.filter-link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--text-interactive);
+  font-family: inherit;
+  font-size: var(--fontsize-body-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+.filter-link:hover { text-decoration: underline; }
+
+.filter-popover-list {
+  overflow-y: auto;
+  padding: var(--scale-100) 0;
+}
+.filter-popover-empty {
+  padding: var(--scale-300);
+  color: var(--text-tertiary);
+  font-size: var(--fontsize-body-sm);
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  gap: var(--scale-200);
+  padding: var(--scale-100) var(--scale-300);
+  cursor: pointer;
+}
+.filter-option:hover { background: var(--bg-subtle); }
+.filter-option input[type="checkbox"] {
+  width: var(--scale-400);
+  height: var(--scale-400);
+  accent-color: var(--interactive-default);
+  flex: 0 0 auto;
+}
+.filter-option-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fontsize-body-sm);
+  color: var(--text-primary);
+}
+.filter-option-label.is-blank { color: var(--text-tertiary); font-style: italic; }
+.filter-option-count {
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
+  font-size: var(--fontsize-body-sm);
+  font-variant-numeric: tabular-nums;
+}
+.filter-option.is-zero { opacity: .45; }
+
+/* ── Active filter chips ───────────────────────────────────── */
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--scale-200);
+  margin-top: var(--scale-300);
+}
+.filter-chips .filter-link { font-size: var(--fontsize-body-sm); }
