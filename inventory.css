@@ -424,7 +424,6 @@ table.data th {
    the heading tag carries its own type from design-tokens.css, so
    nothing here restates a size or a weight. */
 .title-row h5 { color: var(--text-primary); }
-.title-row-actions { display: flex; align-items: center; gap: var(--scale-300); }
 
 /* ── Buttons (extend the shared .btn-* set) ────────────────── */
 .btn-pill {
